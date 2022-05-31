@@ -10,6 +10,7 @@ program test_swap
   real(real64) :: b_first(6)
   real(real64) :: tmp_r
   real(real64) :: epsilon = 1d-6
+  character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"]
 
   a_first(:) = a(:)
   print'(*(i0, " "))', (a(i), i = 1, size(a))
@@ -27,5 +28,8 @@ program test_swap
   if (abs(sum(b_first - b) - (b_first(4) - b(3) + b_first(3) - b(4))) > epsilon) then
      error stop 2
   end if
+  print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+  call swap(strs, 4, 1)
+  print'(4(a, ", "))', (strs(i), i = 1, size(strs))
 
 end program test_swap

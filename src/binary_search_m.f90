@@ -14,11 +14,11 @@ contains
     integer(int32), intent(in) :: arr(lb:ub)
     integer(int32), intent(in) :: lb, ub
     integer(int32) :: p, q, r
-    !> binary_search: Search v from arr.
+    !> ,binary_search: Search v from arr
     !> arguments:
     !> v: typeof(v).
     !> arr: array of some type.
-    !> p, r: integer, lower bound and upper bound of arr.
+    !> lb, ub: integer, lower bound and upper bound of arr.
     !> return:
     !> pos: position of v in arr if lb <= pos <= ub.
     !> v does not exist in arr if pos = lb-1.
@@ -48,11 +48,11 @@ contains
     integer(int64), intent(in) :: arr(lb:ub)
     integer(int32), intent(in) :: lb, ub
     integer(int32) :: p, q, r
-    !> binary_search: Search v from arr.
+    !> ,binary_search: Search v from arr
     !> arguments:
     !> v: typeof(v).
     !> arr: array of some type.
-    !> p, r: integer, lower bound and upper bound of arr.
+    !> lb, ub: integer, lower bound and upper bound of arr.
     !> return:
     !> pos: position of v in arr if lb <= pos <= ub.
     !> v does not exist in arr if pos = lb-1.

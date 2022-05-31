@@ -14,7 +14,7 @@ contains
   subroutine selection_sort_int32(arr)
     integer(int32), intent(inout) :: arr(:)
     integer :: arr_size, mini_index, i, j
-    !> selection_sort: Sort arr of some type by selection-sort.
+    !> ,selection_sort: Sort arr of some type by selection-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:
@@ -35,7 +35,7 @@ contains
   subroutine selection_sort_int64(arr)
     integer(int64), intent(inout) :: arr(:)
     integer :: arr_size, mini_index, i, j
-    !> selection_sort: Sort arr of some type by selection-sort.
+    !> ,selection_sort: Sort arr of some type by selection-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:
@@ -56,7 +56,7 @@ contains
   subroutine selection_sort_real32(arr)
     real(real32), intent(inout) :: arr(:)
     integer :: arr_size, mini_index, i, j
-    !> selection_sort: Sort arr of some type by selection-sort.
+    !> ,selection_sort: Sort arr of some type by selection-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:
@@ -77,7 +77,7 @@ contains
   subroutine selection_sort_real64(arr)
     real(real64), intent(inout) :: arr(:)
     integer :: arr_size, mini_index, i, j
-    !> selection_sort: Sort arr of some type by selection-sort.
+    !> ,selection_sort: Sort arr of some type by selection-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:

@@ -24,7 +24,7 @@ contains
   subroutine merge_sentinel_int32(arr, p, q, r)
     integer(int32), intent(inout) :: arr(:)
     integer(int32)                :: Left(1:q-p+2), Right(1:r-q+1)
-    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -52,7 +52,7 @@ contains
   subroutine merge_sentinel_int64(arr, p, q, r)
     integer(int64), intent(inout) :: arr(:)
     integer(int64)                :: Left(1:q-p+2), Right(1:r-q+1)
-    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -80,7 +80,7 @@ contains
   subroutine merge_sentinel_real32(arr, p, q, r)
     real(real32), intent(inout) :: arr(:)
     real(real32)                :: Left(1:q-p+2), Right(1:r-q+1)
-    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -108,7 +108,7 @@ contains
   subroutine merge_sentinel_real64(arr, p, q, r)
     real(real64), intent(inout) :: arr(:)
     real(real64)                :: Left(1:q-p+2), Right(1:r-q+1)
-    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -139,7 +139,7 @@ contains
     integer(int32)                :: Left(1:q-p+1), Right(1:r-q)
     integer(int32), intent(in) :: p, q, r
     integer(int32)             :: l_max, r_max
-    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -179,7 +179,7 @@ contains
     integer(int64)                :: Left(1:q-p+1), Right(1:r-q)
     integer(int32), intent(in) :: p, q, r
     integer(int32)             :: l_max, r_max
-    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -219,7 +219,7 @@ contains
     real(real32)                :: Left(1:q-p+1), Right(1:r-q)
     integer(int32), intent(in) :: p, q, r
     integer(int32)             :: l_max, r_max
-    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -259,7 +259,7 @@ contains
     real(real64)                :: Left(1:q-p+1), Right(1:r-q)
     integer(int32), intent(in) :: p, q, r
     integer(int32)             :: l_max, r_max
-    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -299,7 +299,7 @@ contains
     integer(int32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> ,merge_sort_sub: Recursive function used by merge_sort.
     !> arguments:
     !> arr: array of some type.
     !> p, r: integer, p is start of arr, r is end of arr.
@@ -316,7 +316,7 @@ contains
     integer(int64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> ,merge_sort_sub: Recursive function used by merge_sort.
     !> arguments:
     !> arr: array of some type.
     !> p, r: integer, p is start of arr, r is end of arr.
@@ -333,7 +333,7 @@ contains
     real(real32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> ,merge_sort_sub: Recursive function used by merge_sort.
     !> arguments:
     !> arr: array of some type.
     !> p, r: integer, p is start of arr, r is end of arr.
@@ -350,7 +350,7 @@ contains
     real(real64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> ,merge_sort_sub: Recursive function used by merge_sort.
     !> arguments:
     !> arr: array of some type.
     !> p, r: integer, p is start of arr, r is end of arr.
@@ -366,28 +366,28 @@ contains
 
   subroutine merge_sort_int32(arr)
     integer(int32), intent(inout) :: arr(:)
-    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
     !> arguments:
     !> arr: array of some type.
     call merge_sort_sub(arr, 1, size(arr))
   end subroutine merge_sort_int32
   subroutine merge_sort_int64(arr)
     integer(int64), intent(inout) :: arr(:)
-    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
     !> arguments:
     !> arr: array of some type.
     call merge_sort_sub(arr, 1, size(arr))
   end subroutine merge_sort_int64
   subroutine merge_sort_real32(arr)
     real(real32), intent(inout) :: arr(:)
-    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
     !> arguments:
     !> arr: array of some type.
     call merge_sort_sub(arr, 1, size(arr))
   end subroutine merge_sort_real32
   subroutine merge_sort_real64(arr)
     real(real64), intent(inout) :: arr(:)
-    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
     !> arguments:
     !> arr: array of some type.
     call merge_sort_sub(arr, 1, size(arr))

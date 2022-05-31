@@ -135,12 +135,13 @@
 *** base
 #+name: swap
 #+begin_src fortran :exports code
-    !> swap: Swap two elements of arr.
+    !> ,swap: Swap two elements of arr.
     !> arguments:
     !> arr: array of some type.
-    !> i, j: integer indices.
+    !> i, j: integer, indices of array.
     !> variables:
     !> tmp: typeof(arr).
+    integer(int32), intent(in)    :: i, j
     tmp    = arr(i)
     arr(i) = arr(j)
     arr(j) = tmp
@@ -151,38 +152,47 @@
   module swap_m
     use, intrinsic :: iso_fortran_env
     implicit none
-
+    private
+    public :: swap
+    !> ,swap: swap two elements of array.
+    !> This is generic function for (int32, int64, real32, real64, character).
     interface swap
        module procedure :: swap_int32, swap_int64
        module procedure :: swap_real32, swap_real64
+       module procedure :: swap_character
     end interface swap
 
   contains
 
     subroutine swap_int32(arr, i, j)
       integer(int32), intent(inout) :: arr(:)
-      integer(int32), intent(in)    :: i, j
       integer(int32) :: tmp
       <<swap>>
     end subroutine swap_int32
     subroutine swap_int64(arr, i, j)
       integer(int64), intent(inout) :: arr(:)
-      integer(int32), intent(in)    :: i, j
       integer(int64) :: tmp
       <<swap>>
     end subroutine swap_int64
     subroutine swap_real32(arr, i, j)
-      real(real32)  , intent(inout) :: arr(:)
-      integer(int32), intent(in)    :: i, j
+      real(real32), intent(inout) :: arr(:)
       real(real32) :: tmp
       <<swap>>
     end subroutine swap_real32
     subroutine swap_real64(arr, i, j)
-      real(real64)  , intent(inout) :: arr(:)
-      integer(int32), intent(in)    :: i, j
+      real(real64), intent(inout) :: arr(:)
       real(real64) :: tmp
       <<swap>>
     end subroutine swap_real64
+    subroutine swap_character(arr, i, j)
+      character(len=*), intent(inout) :: arr(:)
+      character(len=4096)             :: tmp
+      integer(int32), intent(in)      :: i, j
+      tmp    = arr(i)
+      arr(i) = arr(j)
+      arr(j) = trim(tmp)
+    end subroutine swap_character
+
   end module swap_m
 #+end_src
 *** test
@@ -200,6 +210,7 @@
     real(real64) :: b_first(6)
     real(real64) :: tmp_r
     real(real64) :: epsilon = 1d-6
+    character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"]
 
     a_first(:) = a(:)
     print'(*(i0, " "))', (a(i), i = 1, size(a))
@@ -217,26 +228,30 @@
     if (abs(sum(b_first - b) - (b_first(4) - b(3) + b_first(3) - b(4))) > epsilon) then
        error stop 2
     end if
+    print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+    call swap(strs, 4, 1)
+    print'(4(a, ", "))', (strs(i), i = 1, size(strs))
 
   end program test_swap
 #+end_src
 #+begin_src fortran :exports both :results output :noweb yes :cache yes
   <<swap-module>>
-
   <<swap-test>>
 #+end_src
 
-#+RESULTS[d3fcb28191d598e89647e6ef35763a196f138c0b]:
+#+RESULTS[89bae1a26310e9ba423008758efb946b399b43be]:
 : 1 2 3 4 5 6
 : 2 1 3 4 5 6
-: 0.954 0.134 0.109 0.793 0.482 0.672
-: 0.954 0.134 0.793 0.109 0.482 0.672
+: 0.062 0.535 0.059 0.106 0.662 0.752
+: 0.062 0.535 0.106 0.059 0.662 0.752
+: hi , hoi, hey, hui,
+: hui, hoi, hey, hi ,
 
 ** is-sorted
 *** base
 #+name: is-sorted
 #+begin_src fortran :exports code
-  !> is_sorted: Check arr is sorted in ascending order.
+  !> ,is_sorted: Check arr is sorted in ascending order.
   !> arguments:
   !> arr: array of some type.
   !> return:
@@ -260,9 +275,12 @@
     implicit none
     private
     public :: is_sorted
+    !> ,is_sorted: Check arr is sorted and return logical value.
+    !> This is generic function for (int32, int64, real32, real64, character).
     interface is_sorted
        module procedure :: is_sorted_int32, is_sorted_int64
        module procedure :: is_sorted_real32, is_sorted_real64
+       module procedure :: is_sorted_character
     end interface is_sorted
 
   contains
@@ -283,6 +301,10 @@
       real(real64), intent(in) :: arr(:)
       <<is-sorted>>
     end function is_sorted_real64
+    pure logical function is_sorted_character(arr) result(sorted)
+      character(len=*), intent(in) :: arr(:)
+      <<is-sorted>>
+    end function is_sorted_character
 
   end module is_sorted_m
 #+end_src
@@ -294,8 +316,9 @@
     use is_sorted_m
     use merge_sort_m
     implicit none
-    integer(int64) :: sorted_arr(4) = [1_int64, 10_int64, 10_int64, 100_int64]
-    real(real32) :: arr(10)
+    integer(int64)    :: sorted_arr(4) = [1_int64, 10_int64, 10_int64, 100_int64]
+    real(real32)      :: arr(10)
+    character(len=10) :: strings(5) = [character(len=10) :: "apple", "apple", "banana", "brain", "brought"]
     call random_number(arr)
     if (.not. is_sorted(sorted_arr)) then
        error stop 1
@@ -303,6 +326,9 @@
     call merge_sort(arr)
     if (.not. is_sorted(arr)) then
        error stop 2
+    end if
+    if (.not. is_sorted(strings)) then
+       error stop 3
     end if
   end program is_sorted_test
 #+end_src
@@ -313,7 +339,7 @@
   <<is-sorted-test>>
 #+end_src
 
-#+RESULTS[c89f04f8a05a9f3607e7e561d9a2832e9572db96]:
+#+RESULTS[ca41d4c45bf5f4b082ecc0f291cd29fa90e8e3d4]:
 
 * sorting
 ** insertion-sort
@@ -419,7 +445,7 @@
 #+name: selection-sort
 #+begin_src fortran :exports code
     integer :: arr_size, mini_index, i, j
-    !> selection_sort: Sort arr of some type by selection-sort.
+    !> ,selection_sort: Sort arr of some type by selection-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:
@@ -506,7 +532,7 @@
 #+name: bubble-sort
 #+begin_src fortran :exports code
     integer(int32) :: size_arr, i, j
-    !> bubble_sort: Sort arr of some type by bubble-sort.
+    !> ,bubble_sort: Sort arr of some type by bubble-sort.
     !> arguments:
     !> arr: array of some type.
     !> variables:
@@ -589,7 +615,7 @@
 *** base
 #+name: merge-sentinel
 #+begin_src fortran :exports code
-    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -618,7 +644,7 @@
 #+begin_src fortran :exports code
     integer(int32), intent(in) :: p, q, r
     integer(int32)             :: l_max, r_max
-    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
     !> arguments:
     !> arr: array of some type, (out) arr(p:r) is sorted.
     !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
@@ -657,7 +683,7 @@
 #+begin_src fortran :exports code
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> ,merge_sort_sub: Recursive function used by merge_sort.
     !> arguments:
     !> arr: array of some type.
     !> p, r: integer, p is start of arr, r is end of arr.
@@ -672,7 +698,7 @@
 #+end_src
 #+name: merge-sort
 #+begin_src fortran :exports code
-    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
     !> arguments:
     !> arr: array of some type.
     call merge_sort_sub(arr, 1, size(arr))
@@ -814,11 +840,11 @@
 #+begin_src fortran :exports code
   integer(int32), intent(in) :: lb, ub
   integer(int32) :: p, q, r
-  !> binary_search: Search v from arr.
+  !> ,binary_search: Search v from arr
   !> arguments:
   !> v: typeof(v).
   !> arr: array of some type.
-  !> p, r: integer, lower bound and upper bound of arr.
+  !> lb, ub: integer, lower bound and upper bound of arr.
   !> return:
   !> pos: position of v in arr if lb <= pos <= ub.
   !> v does not exist in arr if pos = lb-1.
