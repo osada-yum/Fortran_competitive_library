@@ -1,0 +1,935 @@
+* emacs-lisp
+#+begin_src emacs-lisp :exports code
+  (defun org-babel-fortran-ensure-main-wrap (body params)
+    "Wrap body in a \"program ... end program\" block if none exists."
+    (if (or (string-match "^[ \t]*program\\>" (capitalize body))
+            (string-match "^[ \t]*module\\>" (capitalize body)))
+        (let ((vars (org-babel--get-vars params)))
+          (when vars (error "Cannot use :vars if `program' statement is present"))
+          body)
+      (format "program main\n%s\nend program main\n" body)))
+#+end_src
+* utilities
+** less or greater
+*** module
+#+name: compare-module
+#+begin_src fortran :exports code :tangle "src/compare_m.f90"
+  module compare_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+   private
+
+    public :: less, greater
+    public :: less_int32, less_int64, less_real32, less_real64
+    public :: greater_int32, greater_int64, greater_real32, greater_real64
+    public :: compare_int32, compare_int64, compare_real32, compare_real64
+    interface less
+       module procedure :: less_int32, less_int64, less_real32, less_real64
+    end interface
+    interface greater
+       module procedure :: greater_int32, greater_int64, greater_real32, greater_real64
+    end interface
+
+    interface
+       logical function compare_int32(x, y)
+         import int32
+         integer(int32), intent(in) :: x, y
+       end function compare_int32
+       logical function compare_int64(x, y)
+         import int64
+         integer(int64), intent(in) :: x, y
+       end function compare_int64
+       logical function compare_real32(x, y)
+         import real32
+         real(real32), intent(in) :: x, y
+       end function compare_real32
+       logical function compare_real64(x, y)
+         import real64
+         real(real64), intent(in) :: x, y
+       end function compare_real64
+    end interface
+
+  contains
+
+    pure logical function less_int32(x, y)
+      integer(int32), intent(in) :: x, y
+      less_int32 = x < y
+      return
+    end function less_int32
+    pure logical function less_int64(x, y)
+      integer(int64), intent(in) :: x, y
+      less_int64 = x < y
+      return
+    end function less_int64
+    pure logical function less_real32(x, y)
+      real(real32), intent(in) :: x, y
+      less_real32 = x < y
+      return
+    end function less_real32
+    pure logical function less_real64(x, y)
+      real(real64), intent(in) :: x, y
+      less_real64 = x < y
+      return
+    end function less_real64
+
+    pure logical function greater_int32(x, y)
+      integer(int32), intent(in) :: x, y
+      greater_int32 = x > y
+      return
+    end function greater_int32
+    pure logical function greater_int64(x, y)
+      integer(int64), intent(in) :: x, y
+      greater_int64 = x > y
+      return
+    end function greater_int64
+    pure logical function greater_real32(x, y)
+      real(real32), intent(in) :: x, y
+      greater_real32 = x > y
+      return
+    end function greater_real32
+    pure logical function greater_real64(x, y)
+      real(real64), intent(in) :: x, y
+      greater_real64 = x > y
+      return
+    end function greater_real64
+  end module compare_m
+#+end_src
+*** test
+#+name: compare-test
+#+begin_src fortran :exports code :tangle "test/test_compare.f90"
+  program test_compare
+    use, intrinsic :: iso_fortran_env
+    use compare_m
+    implicit none
+
+    call test_comp(less_int32, 1, 3)
+    if (.not. less(1, 3)) then
+       error stop 1
+    end if
+    if (.not. greater(huge(1.0_real64), 3.0_real64)) then
+       error stop 2
+    end if
+
+  contains
+
+
+    subroutine test_comp(cond, x, y)
+      procedure(compare_int32)    :: cond
+      integer(int32) , intent(in) :: x, y
+      if (.not. cond(x, y)) then
+         error stop 3
+      end if
+    end subroutine test_comp
+
+  end program test_compare
+#+end_src
+#+begin_src fortran :exports both :results output :noweb yes :cache yes
+  <<compare-module>>
+
+  <<compare-test>>
+#+end_src
+
+#+RESULTS[40f1c66d562402321e7683fa20c2a92a568ce3ab]:
+
+** swap
+*** base
+#+name: swap
+#+begin_src fortran :exports code
+    !> swap: Swap two elements of arr.
+    !> arguments:
+    !> arr: array of some type.
+    !> i, j: integer indices.
+    !> variables:
+    !> tmp: typeof(arr).
+    tmp    = arr(i)
+    arr(i) = arr(j)
+    arr(j) = tmp
+#+end_src
+*** module
+#+name: swap-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/swap_m.f90"
+  module swap_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+
+    interface swap
+       module procedure :: swap_int32, swap_int64
+       module procedure :: swap_real32, swap_real64
+    end interface swap
+
+  contains
+
+    subroutine swap_int32(arr, i, j)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32), intent(in)    :: i, j
+      integer(int32) :: tmp
+      <<swap>>
+    end subroutine swap_int32
+    subroutine swap_int64(arr, i, j)
+      integer(int64), intent(inout) :: arr(:)
+      integer(int32), intent(in)    :: i, j
+      integer(int64) :: tmp
+      <<swap>>
+    end subroutine swap_int64
+    subroutine swap_real32(arr, i, j)
+      real(real32)  , intent(inout) :: arr(:)
+      integer(int32), intent(in)    :: i, j
+      real(real32) :: tmp
+      <<swap>>
+    end subroutine swap_real32
+    subroutine swap_real64(arr, i, j)
+      real(real64)  , intent(inout) :: arr(:)
+      integer(int32), intent(in)    :: i, j
+      real(real64) :: tmp
+      <<swap>>
+    end subroutine swap_real64
+  end module swap_m
+#+end_src
+*** test
+#+name: swap-test
+#+begin_src fortran :exports code :tangle "test/test_swap.f90"
+  program test_swap
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    integer      :: i
+    integer      :: a(6) = [1, 2, 3, 4, 5, 6]
+    integer      :: a_first(6)
+    integer      :: tmp_i
+    real(real64) :: b(6)
+    real(real64) :: b_first(6)
+    real(real64) :: tmp_r
+    real(real64) :: epsilon = 1d-6
+
+    a_first(:) = a(:)
+    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call swap(a, 2, 1)
+    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    if (sum(a_first - a) /= a_first(2) - a(1) + a_first(1) - a(2)) then
+       error stop 1
+    end if
+
+    call random_number(b)
+    b_first(:) = b(:)
+    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    call swap(b, 3, 4)
+    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    if (abs(sum(b_first - b) - (b_first(4) - b(3) + b_first(3) - b(4))) > epsilon) then
+       error stop 2
+    end if
+
+  end program test_swap
+#+end_src
+#+begin_src fortran :exports both :results output :noweb yes :cache yes
+  <<swap-module>>
+
+  <<swap-test>>
+#+end_src
+
+#+RESULTS[d3fcb28191d598e89647e6ef35763a196f138c0b]:
+: 1 2 3 4 5 6
+: 2 1 3 4 5 6
+: 0.954 0.134 0.109 0.793 0.482 0.672
+: 0.954 0.134 0.793 0.109 0.482 0.672
+
+** is-sorted
+*** base
+#+name: is-sorted
+#+begin_src fortran :exports code
+  !> is_sorted: Check arr is sorted in ascending order.
+  !> arguments:
+  !> arr: array of some type.
+  !> return:
+  !> sorted: logical, .true. if arr is sorted.
+  !> variables:
+  !> i, j: integer, loop counter.
+  integer :: i
+  sorted = .true.
+  do i = 1, size(arr)-1
+     if (arr(i) > arr(i+1)) then
+        sorted = .false.
+        return
+     end if
+  end do
+#+end_src
+*** module
+#+name: is-sorted-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/is_sorted_m.f90"
+  module is_sorted_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: is_sorted
+    interface is_sorted
+       module procedure :: is_sorted_int32, is_sorted_int64
+       module procedure :: is_sorted_real32, is_sorted_real64
+    end interface is_sorted
+
+  contains
+
+    pure logical function is_sorted_int32(arr) result(sorted)
+      integer(int32), intent(in) :: arr(:)
+      <<is-sorted>>
+    end function is_sorted_int32
+    pure logical function is_sorted_int64(arr) result(sorted)
+      integer(int64), intent(in) :: arr(:)
+      <<is-sorted>>
+    end function is_sorted_int64
+    pure logical function is_sorted_real32(arr) result(sorted)
+      real(real32), intent(in) :: arr(:)
+      <<is-sorted>>
+    end function is_sorted_real32
+    pure logical function is_sorted_real64(arr) result(sorted)
+      real(real64), intent(in) :: arr(:)
+      <<is-sorted>>
+    end function is_sorted_real64
+
+  end module is_sorted_m
+#+end_src
+*** test
+#+name: is-sorted-test
+#+begin_src fortran :exports code :tangle "test/test_is_sorted.f90"
+  program is_sorted_test
+    use, intrinsic :: iso_fortran_env
+    use is_sorted_m
+    use merge_sort_m
+    implicit none
+    integer(int64) :: sorted_arr(4) = [1_int64, 10_int64, 10_int64, 100_int64]
+    real(real32) :: arr(10)
+    call random_number(arr)
+    if (.not. is_sorted(sorted_arr)) then
+       error stop 1
+    end if
+    call merge_sort(arr)
+    if (.not. is_sorted(arr)) then
+       error stop 2
+    end if
+  end program is_sorted_test
+#+end_src
+
+#+begin_src fortran :exports both :results output :cache yes :noweb yes
+  <<is-sorted-module>>
+  <<merge-sort-module>>
+  <<is-sorted-test>>
+#+end_src
+
+#+RESULTS[c89f04f8a05a9f3607e7e561d9a2832e9572db96]:
+
+* sorting
+** insertion-sort
+*** base
+#+name: insertion-sort
+#+begin_src fortran :exports code
+  arr_size = size(arr)
+  do i = 2, arr_size
+     key = arr(i)
+     do j = i-1, 1, -1
+        if (arr(j) < key) exit
+        arr(j+1) = arr(j)
+     end do
+     arr(j+1) = key
+  end do
+#+end_src
+#+name: insertion-sort-descending
+#+begin_src fortran :exports code
+  arr_size = size(arr)
+  do i = 2, arr_size
+     key = arr(i)
+     do j = i-1, 1, -1
+        if (arr(j) > key) exit
+        arr(j+1) = arr(j)
+     end do
+     arr(j+1) = key
+  end do
+#+end_src
+*** module
+#+name: insertion-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/insertion_sort_m.f90"
+  module insertion_sort_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+
+    public :: insertion_sort
+    interface insertion_sort
+       module procedure :: insertion_sort_int32, insertion_sort_int64
+       module procedure :: insertion_sort_real32, insertion_sort_real64
+    end interface insertion_sort
+
+  contains
+
+    subroutine insertion_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32)                :: key
+      integer                       :: arr_size, i, j
+      <<insertion-sort>>
+    end subroutine insertion_sort_int32
+    subroutine insertion_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      integer(int64)                :: key
+      integer                       :: arr_size, i, j
+      <<insertion-sort>>
+    end subroutine insertion_sort_int64
+    subroutine insertion_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      real(real32)                :: key
+      integer                     :: arr_size, i, j
+      <<insertion-sort>>
+    end subroutine insertion_sort_real32
+    subroutine insertion_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      real(real64)                :: key
+      integer                     :: arr_size, i, j
+      <<insertion-sort>>
+    end subroutine insertion_sort_real64
+
+  end module insertion_sort_m
+#+end_src
+*** test
+#+name: insertion-sort-test
+#+begin_src fortran :exports both :results output :noweb yes :cache yes
+  <<insertion-sort-module>>
+
+  program test_insertion_sort
+    use, intrinsic :: iso_fortran_env
+    use insertion_sort_m
+    implicit none
+    integer      :: i
+    integer      :: a(6) = [31, 41, 59, 26, 41, 58]
+    real(real64) :: b(6)
+
+    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call insertion_sort(a)
+    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call random_number(b)
+    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    call insertion_sort(b)
+    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+
+  end program test_insertion_sort
+#+end_src
+
+#+RESULTS[84c121f21b554d9038384d1d047f36bdab2b0e63]: insertion-sort-test
+: 31 41 59 26 41 58
+: 26 31 41 41 58 59
+: 0.456 0.216 0.396 0.920 0.482 0.240
+: 0.216 0.240 0.396 0.456 0.482 0.920
+** selection-sort
+*** base
+#+name: selection-sort
+#+begin_src fortran :exports code
+    integer :: arr_size, mini_index, i, j
+    !> selection_sort: Sort arr of some type by selection-sort.
+    !> arguments:
+    !> arr: array of some type.
+    !> variables:
+    !> arr_size: integer, size of arr(:).
+    !> mini_index: integer, index of minimum value in arr(j:arr_size).
+    !> i, j: integer, loop counters.
+    arr_size = size(arr)
+    do j = 1, arr_size
+       mini_index = j
+       do i = j+1, arr_size
+          if (arr(i) < arr(mini_index)) then
+             mini_index = i
+          end if
+       end do
+       call swap(arr, j, mini_index)
+    end do
+#+end_src
+*** module
+#+name: selection-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/selection_sort_m.f90"
+  module selection_sort_m
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    private
+    public :: selection_sort
+    interface selection_sort
+       module procedure :: selection_sort_int32, selection_sort_int64
+       module procedure :: selection_sort_real32, selection_sort_real64
+    end interface selection_sort
+
+  contains
+
+    subroutine selection_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_int32
+    subroutine selection_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_int64
+    subroutine selection_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_real32
+    subroutine selection_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_real64
+
+  end module selection_sort_m
+#+end_src
+*** test
+#+name: selection-sort-test
+#+begin_src fortran :exports code :noweb yes
+  <<swap-module>>
+  <<selection-sort-module>>
+
+  program test_selection_sort
+    use, intrinsic :: iso_fortran_env
+    use selection_sort_m
+    implicit none
+    ! integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer :: arr(-2:6) = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+    integer :: i
+
+    !    do i = -2, 6
+    !       arr(i) = i
+    !    end do
+
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+    call selection_sort(arr)
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+
+  end program test_selection_sort
+#+end_src
+
+#+RESULTS:
+| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+** bubble-sort
+*** base
+#+name: bubble-sort
+#+begin_src fortran :exports code
+    integer(int32) :: size_arr, i, j
+    !> bubble_sort: Sort arr of some type by bubble-sort.
+    !> arguments:
+    !> arr: array of some type.
+    !> variables:
+    !> arr_size: integer, size of arr(:).
+    !> i, j: integer, loop counters.
+    size_arr = size(arr)
+    do i = 1, size_arr
+       do j = size_arr, i+1, -1
+          if (arr(j) < arr(j-1)) then
+             call swap(arr, j, j-1)
+          end if
+       end do
+    end do
+#+end_src
+*** module
+#+name: bubble-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/bubble_sort_m.f90"
+  module bubble_sort_m
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    private
+    public :: bubble_sort
+    interface bubble_sort
+       module procedure :: bubble_sort_int32, bubble_sort_int64
+       module procedure :: bubble_sort_real32, bubble_sort_real64
+    end interface bubble_sort
+
+  contains
+
+    subroutine bubble_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_int32
+    subroutine bubble_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_int64
+    subroutine bubble_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_real32
+    subroutine bubble_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_real64
+
+  end module bubble_sort_m
+#+end_src
+*** test
+#+name: bubble-sort-test
+#+begin_src fortran :exports code :noweb yes
+  <<swap-module>>
+  <<bubble-sort-module>>
+
+  program test_bubble_sort
+    use, intrinsic :: iso_fortran_env
+    use bubble_sort_m
+    implicit none
+    ! integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer :: arr(-2:6) = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+    integer :: i
+
+    !    do i = -2, 6
+    !       arr(i) = i
+    !    end do
+
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+    call bubble_sort(arr)
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+
+  end program test_bubble_sort
+#+end_src
+
+#+RESULTS: bubble-sort-test
+| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+** merge-sort
+*** base
+#+name: merge-sentinel
+#+begin_src fortran :exports code
+    !> merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+    !> arguments:
+    !> arr: array of some type, (out) arr(p:r) is sorted.
+    !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+    !> variables:
+    !> Left, Right: array of typeof(arr), sorted
+    !> i, j, k: integer, loop counter.
+    integer(int32), intent(in) :: p, q, r
+    integer(int32)             :: i, j, k
+    Left(1:q-p+1) = arr(p:q)
+    Right(1:r-q)  = arr(q+1:r)
+    Left(q-p+2)   = huge(arr(p))
+    Right(r-q+1)  = huge(arr(p))
+    i = 1
+    j = 1
+    do k = p, r
+       if (Left(i) <= Right(j)) then
+          arr(k) = Left(i)
+          i = i + 1
+       else
+          arr(k) = Right(j)
+          j = j + 1
+       end if
+    end do
+#+end_src
+#+name: merge
+#+begin_src fortran :exports code
+    integer(int32), intent(in) :: p, q, r
+    integer(int32)             :: l_max, r_max
+    !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+    !> arguments:
+    !> arr: array of some type, (out) arr(p:r) is sorted.
+    !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+    !> variables:
+    !> Left, Right: array of typeof(arr), sorted
+    !> l_max, r_max: integer, max index of Left or Right.
+    l_max = q-p+1
+    r_max = r-q
+    block
+      !> i, j, k: integer, loop counters.
+      integer(int32) :: i, j, k
+      Left(1:l_max)  = arr(p:q)
+      Right(1:r_max) = arr(q+1:r)
+      i = 1
+      j = 1
+      do k = p, r
+         if (Left(i) <= Right(j)) then
+            arr(k) = Left(i)
+            i = i + 1
+            if (i > l_max) then
+               arr(k+1:r) = Right(j:)
+               return
+            end if
+         else
+            arr(k) = Right(j)
+            j = j + 1
+            if (j > r_max) then
+               arr(k+1:r) = Left(i:)
+               return
+            end if
+         end if
+      end do
+    end block
+#+end_src
+#+name: merge-sort-sub
+#+begin_src fortran :exports code
+    integer(int32), intent(in) :: p, r
+    integer(int32)             :: q
+    !> merge_sort_sub: Recursive function used by merge_sort.
+    !> arguments:
+    !> arr: array of some type.
+    !> p, r: integer, p is start of arr, r is end of arr.
+    !> variables:
+    !> q: integer, q = floor( (p+q)/2 )
+    if (p < r) then
+       q = int((r+p)/2, int32)
+       call merge_sort_sub(arr, p, q)
+       call merge_sort_sub(arr, q+1, r)
+       call merge(arr, p, q, r)
+    end if
+#+end_src
+#+name: merge-sort
+#+begin_src fortran :exports code
+    !> merge_sort: Sort arr(:) by sub function merge_sort_sub.
+    !> arguments:
+    !> arr: array of some type.
+    call merge_sort_sub(arr, 1, size(arr))
+#+end_src
+*** module
+#+name: merge-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/merge_sort_m.f90"
+  module merge_sort_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: merge_sort
+    interface merge_sentinel
+       module procedure :: merge_sentinel_int32, merge_sentinel_int64
+       module procedure :: merge_sentinel_real32, merge_sentinel_real64
+    end interface merge_sentinel
+    interface merge
+       module procedure :: merge_int32, merge_int64
+       module procedure :: merge_real32, merge_real64
+    end interface merge
+    interface merge_sort
+       module procedure :: merge_sort_int32, merge_sort_int64
+       module procedure :: merge_sort_real32, merge_sort_real64
+    end interface merge_sort
+    interface merge_sort_sub
+       module procedure :: merge_sort_sub_int32, merge_sort_sub_int64
+       module procedure :: merge_sort_sub_real32, merge_sort_sub_real64
+    end interface merge_sort_sub
+  contains
+
+    subroutine merge_sentinel_int32(arr, p, q, r)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32)                :: Left(1:q-p+2), Right(1:r-q+1)
+      <<merge-sentinel>>
+    end subroutine merge_sentinel_int32
+    subroutine merge_sentinel_int64(arr, p, q, r)
+      integer(int64), intent(inout) :: arr(:)
+      integer(int64)                :: Left(1:q-p+2), Right(1:r-q+1)
+      <<merge-sentinel>>
+    end subroutine merge_sentinel_int64
+    subroutine merge_sentinel_real32(arr, p, q, r)
+      real(real32), intent(inout) :: arr(:)
+      real(real32)                :: Left(1:q-p+2), Right(1:r-q+1)
+      <<merge-sentinel>>
+    end subroutine merge_sentinel_real32
+    subroutine merge_sentinel_real64(arr, p, q, r)
+      real(real64), intent(inout) :: arr(:)
+      real(real64)                :: Left(1:q-p+2), Right(1:r-q+1)
+      <<merge-sentinel>>
+    end subroutine merge_sentinel_real64
+
+    subroutine merge_int32(arr, p, q, r)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32)                :: Left(1:q-p+1), Right(1:r-q)
+      <<merge>>
+    end subroutine merge_int32
+    subroutine merge_int64(arr, p, q, r)
+      integer(int64), intent(inout) :: arr(:)
+      integer(int64)                :: Left(1:q-p+1), Right(1:r-q)
+      <<merge>>
+    end subroutine merge_int64
+    subroutine merge_real32(arr, p, q, r)
+      real(real32), intent(inout) :: arr(:)
+      real(real32)                :: Left(1:q-p+1), Right(1:r-q)
+      <<merge>>
+    end subroutine merge_real32
+    subroutine merge_real64(arr, p, q, r)
+      real(real64), intent(inout) :: arr(:)
+      real(real64)                :: Left(1:q-p+1), Right(1:r-q)
+      <<merge>>
+    end subroutine merge_real64
+
+    recursive subroutine merge_sort_sub_int32(arr, p, r)
+      integer(int32), intent(inout) :: arr(:)
+      <<merge-sort-sub>>
+    end subroutine merge_sort_sub_int32
+    recursive subroutine merge_sort_sub_int64(arr, p, r)
+      integer(int64), intent(inout) :: arr(:)
+      <<merge-sort-sub>>
+    end subroutine merge_sort_sub_int64
+    recursive subroutine merge_sort_sub_real32(arr, p, r)
+      real(real32), intent(inout) :: arr(:)
+      <<merge-sort-sub>>
+    end subroutine merge_sort_sub_real32
+    recursive subroutine merge_sort_sub_real64(arr, p, r)
+      real(real64), intent(inout) :: arr(:)
+      <<merge-sort-sub>>
+    end subroutine merge_sort_sub_real64
+
+    subroutine merge_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      <<merge-sort>>
+    end subroutine merge_sort_int32
+    subroutine merge_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      <<merge-sort>>
+    end subroutine merge_sort_int64
+    subroutine merge_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      <<merge-sort>>
+    end subroutine merge_sort_real32
+    subroutine merge_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      <<merge-sort>>
+    end subroutine merge_sort_real64
+
+  end module merge_sort_m
+#+end_src
+*** test
+#+name: merge-sort-test
+#+begin_src fortran :exports code :tangle "test/test_merge_sort.f90"
+  program test_merge
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    implicit none
+    integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer :: i
+
+    print'(*(i0, " "))', (arr(i), i = 1, size(arr))
+    call merge_sort(arr)
+    print'(*(i0, " "))', (arr(i), i = 1, size(arr))
+
+  end program test_merge
+#+end_src
+
+#+begin_src fortran :exports both :results output :cache yes :noweb yes
+  <<merge-sort-module>>
+  <<merge-sort-test>>
+#+end_src
+
+#+RESULTS[000d13091ef6658230c2841b92c81c674f0f65c8]:
+: 8 3 1 9 5 4 2 7 6
+: 1 2 3 4 5 6 7 8 9
+
+* search
+** binary-search
+*** base
+#+name: binary-search
+#+begin_src fortran :exports code
+  integer(int32), intent(in) :: lb, ub
+  integer(int32) :: p, q, r
+  !> binary_search: Search v from arr.
+  !> arguments:
+  !> v: typeof(v).
+  !> arr: array of some type.
+  !> p, r: integer, lower bound and upper bound of arr.
+  !> return:
+  !> pos: position of v in arr if lb <= pos <= ub.
+  !> v does not exist in arr if pos = lb-1.
+  !> variables:
+  !> p, r: integer, range of search [p, r]
+  !> q: integer, q = floor( (p+r)/2 ).
+  p = lb
+  r = ub
+  do
+     if (p > r) then
+        pos = lb-1
+        return
+     end if
+     q = int((p+r)/2, int32)
+     if (arr(q) == v) then
+        pos = q
+        return
+     else if (arr(q) < v) then
+        p = q + 1
+     else
+        r = q - 1
+     end if
+  end do
+#+end_src
+*** module
+#+name: binary-search-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/binary_search_m.f90"
+  module binary_search_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: binary_search
+    interface binary_search
+       module procedure :: binary_search_int32, binary_search_int64
+    end interface binary_search
+
+  contains
+
+    pure integer function binary_search_int32(v, arr, lb, ub) result(pos)
+      integer(int32), intent(in) :: v
+      integer(int32), intent(in) :: arr(lb:ub)
+      <<binary-search>>
+    end function binary_search_int32
+    pure integer function binary_search_int64(v, arr, lb, ub) result(pos)
+      integer(int64), intent(in) :: v
+      integer(int64), intent(in) :: arr(lb:ub)
+      <<binary-search>>
+    end function binary_search_int64
+
+  end module binary_search_m
+#+end_src
+*** test
+#+name: binary-search-test
+#+begin_src fortran :exports code :tangle "test/test_binary_search.f90"
+  program test_binary_search
+    use, intrinsic :: iso_fortran_env
+    use binary_search_m
+    implicit none
+    integer :: arr(-1:7) = [1, 2, 3, 4, 4, 6, 7, 8, 9]
+    integer :: i
+    if (binary_search(2, arr, -1, 7) /= 0) then
+       error stop 1
+    else if (binary_search(5, arr, -1, 7) /= lbound(arr, dim = 1)-1) then
+       error stop 2
+    else if (binary_search(9, arr, -1, 7) /= 7) then
+       error stop 3
+    end if
+  end program test_binary_search
+#+end_src
+#+begin_src fortran :flags -fbacktrace -g :exports both :results output :cache yes :noweb yes
+    <<binary-search-module>>
+
+    <<binary-search-test>>
+#+end_src
+
+#+RESULTS[ba220b33f2ebf16ce1e74e14608023809130da5e]:
+
+* data structure
+** tree
+*** integer
+#+begin_src fortran :exports both :results output :cache yes
+  module tree_int_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: tree_parent_int
+
+    type :: tree_parent_int
+       private
+       type(tree_int), pointer :: parent
+    end type tree_parent_int
+
+    type :: tree_int
+       private
+       integer(int32)          :: val
+       type(tree_int), pointer :: left, right
+     contains
+       procedure :: add => add_tree_int
+    end type tree_int
+
+    interface tree_int
+       module procedure :: init_tree_int
+    end interface tree_int
+
+  contains
+
+    subroutine add_tree_int(this, v)
+      class(tree_int), intent(inout) :: this
+      integer        , intent(in)    :: v
+
+    end subroutine add_tree_int
+
+  end module tree_int_m
+#+end_src

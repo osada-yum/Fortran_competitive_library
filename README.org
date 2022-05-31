@@ -1,0 +1,9 @@
+* Implement algorithms by Fortran
+** goal
+Implementation of some useful algorithms by Fortran.
+*** sort
+** How to build
+Use ~fpm~
+#+begin_src sh :exports code
+  fpm build
+#+end_src

@@ -1,0 +1,12 @@
+name = "algorithms_by_Fortran"
+version = "0.1.0"
+license = "BSD"
+author = "Yuma Osada"
+maintainer = "osada.yum@gmail.com"
+copyright = "Copyright 2022, Yuma Osada"
+[build]
+auto-executables = false
+auto-tests = true
+auto-examples = true
+[install]
+library = false
