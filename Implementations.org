@@ -138,18 +138,40 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
 ** swap
 *** base
-#+name: swap
+#+name: swap-subroutine
 #+begin_src fortran :exports code
-    !> ,swap: Swap two elements of arr.
-    !> arguments:
-    !> arr: array of some type.
-    !> i, j: integer, indices of array.
-    !> variables:
-    !> tmp: typeof(arr).
-    integer(int32), intent(in)    :: i, j
+  !> ,swap_${suffix}: Swap two elements in arr.
+  !> arguments:
+  !> arr: array of ${type}.
+  !> i, j: integer, indices of array.
+  !> variables:
+  !> tmp: ${type_tmp}, temporary variable for swap.
+  subroutine swap_${suffix}(arr, i, j)
+    ${type}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: i, j
+    ${type_tmp} :: tmp
     tmp    = arr(i)
     arr(i) = arr(j)
     arr(j) = tmp
+  end subroutine swap_${suffix}
+#+end_src
+#+name: swap-subroutine-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb yes
+  case "${type}" in
+      "character")
+          suffix="character"
+          type_tmp="character(len=:), allocatable"
+          type="character(len=*)"
+          ;;
+      ,*)
+          suffix="${type_kind}"
+          type_tmp="${type}(${type_kind})"
+          type="${type_tmp}"
+          ;;
+  esac
+  cat <<EOF
+  <<swap-subroutine>>
+  EOF
 #+end_src
 *** module
 #+name: swap-module
@@ -169,34 +191,11 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
   contains
 
-    subroutine swap_int32(arr, i, j)
-      integer(int32), intent(inout) :: arr(:)
-      integer(int32) :: tmp
-      <<swap>>
-    end subroutine swap_int32
-    subroutine swap_int64(arr, i, j)
-      integer(int64), intent(inout) :: arr(:)
-      integer(int64) :: tmp
-      <<swap>>
-    end subroutine swap_int64
-    subroutine swap_real32(arr, i, j)
-      real(real32), intent(inout) :: arr(:)
-      real(real32) :: tmp
-      <<swap>>
-    end subroutine swap_real32
-    subroutine swap_real64(arr, i, j)
-      real(real64), intent(inout) :: arr(:)
-      real(real64) :: tmp
-      <<swap>>
-    end subroutine swap_real64
-    subroutine swap_character(arr, i, j)
-      character(len=*), intent(inout) :: arr(:)
-      character(len=4096)             :: tmp
-      integer(int32), intent(in)      :: i, j
-      tmp    = arr(i)
-      arr(i) = arr(j)
-      arr(j) = trim(tmp)
-    end subroutine swap_character
+    <<swap-subroutine-var(type="integer", type_kind="int32")>>
+    <<swap-subroutine-var(type="integer", type_kind="int64")>>
+    <<swap-subroutine-var(type="real", type_kind="real32")>>
+    <<swap-subroutine-var(type="real", type_kind="real64")>>
+    <<swap-subroutine-var(type="character")>>
 
   end module swap_m
 #+end_src
@@ -209,33 +208,42 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     implicit none
     integer      :: i
     integer      :: a(6) = [1, 2, 3, 4, 5, 6]
-    integer      :: a_first(6)
+    integer      :: a_init(6)
     integer      :: tmp_i
     real(real64) :: b(6)
     real(real64) :: b_first(6)
     real(real64) :: tmp_r
     real(real64) :: epsilon = 1d-6
-    character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"]
+    character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
 
-    a_first(:) = a(:)
-    print'(*(i0, " "))', (a(i), i = 1, size(a))
-    call swap(a, 2, 1)
-    print'(*(i0, " "))', (a(i), i = 1, size(a))
-    if (sum(a_first - a) /= a_first(2) - a(1) + a_first(1) - a(2)) then
+    a_init(:) = a(:)
+    call swap(a, 1, 1)
+    if (sum(a_init - a) /= 0) then
        error stop 1
+    end if
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call swap(a, 2, 1)
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    if (a_init(2) /= a(1) .or. a_init(1) /= a(2)) then
+       error stop 2
     end if
 
     call random_number(b)
     b_first(:) = b(:)
-    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
     call swap(b, 3, 4)
-    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
-    if (abs(sum(b_first - b) - (b_first(4) - b(3) + b_first(3) - b(4))) > epsilon) then
-       error stop 2
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    if (abs(b_first(4) - b(3)) > epsilon .or. abs(b_first(3) - b(4)) > epsilon) then
+       error stop 3
     end if
-    print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+
+    strs_init = strs
+    ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
     call swap(strs, 4, 1)
-    print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+    ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+    if (strs_init(4) /= strs(1) .or. strs_init(1) /= strs(4)) then
+       error stop 4
+    end if
 
   end program test_swap
 #+end_src
@@ -244,13 +252,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   <<swap-test>>
 #+end_src
 
-#+RESULTS[89bae1a26310e9ba423008758efb946b399b43be]:
-: 1 2 3 4 5 6
-: 2 1 3 4 5 6
-: 0.062 0.535 0.059 0.106 0.662 0.752
-: 0.062 0.535 0.106 0.059 0.662 0.752
-: hi , hoi, hey, hui,
-: hui, hoi, hey, hi ,
+#+RESULTS[d2068ec5e201ac4221b4ddabd0c27332f6a98c62]:
 
 ** is-sorted
 *** base
@@ -356,12 +358,12 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   !> arr: Array of ${type}.
   !> In end of subroutine, arr is sorted.
   !> variables:
-  !> key: Same type as arr, insert key into arr(1:i-1).
+  !> key: ${type_key}, insert key into arr(1:i-1).
   !> arr_size: integer, size of arr.
   !> i, j: integer, loop counter.
   subroutine insertion_sort_${suffix}(arr)
     ${type}, intent(inout) :: arr(:)
-    ${type}                :: key
+    ${type_key}                :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -375,13 +377,23 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   end subroutine insertion_sort_${suffix}
 #+end_src
 #+name: insertion-sort-subroutine-var
-#+begin_src bash :exports code :var type="integer", type_kind="int32", op="<" :results output :noweb yes :cache no
-  type="${type}(${type_kind})"
+#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<" :results output :noweb yes :cache no
   order=""
   if [ "${op}" = ">" ]; then
       order="descending_"
   fi
-  suffix="${order}${type_kind}"
+  case "${type}" in
+      "character")
+          type_key="character(len=:), allocatable"
+          type="character(len=*)"
+          suffix="${order}character"
+          ;;
+      ,*)
+          type_key="${type}(${type_kind})"
+          type="${type}(${type_kind})"
+          suffix="${order}${type_kind}"
+          ;;
+  esac
   cat <<EOF
   <<insertion-sort-subroutine>>
   EOF
@@ -396,16 +408,18 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
     public :: insertion_sort, insertion_sort_descending
     !> ,insertion_sort: Sort arr in ascending order.
-    !> This is generic subroutine for (int32, int64, real32, real64).
+    !> This is generic subroutine for (int32, int64, real32, real64, character).
     interface insertion_sort
        module procedure :: insertion_sort_int32, insertion_sort_int64
        module procedure :: insertion_sort_real32, insertion_sort_real64
+       module procedure :: insertion_sort_character
     end interface insertion_sort
     !> ,insertion_sort_descending: Sort arr in desceding order.
-    !> This is generic subroutine for (int32, int64, real32, real64).
+    !> This is generic subroutine for (int32, int64, real32, real64, character).
     interface insertion_sort_descending
        module procedure :: insertion_sort_descending_int32, insertion_sort_descending_int64
        module procedure :: insertion_sort_descending_real32, insertion_sort_descending_real64
+       module procedure :: insertion_sort_descending_character
     end interface insertion_sort_descending
 
   contains
@@ -415,45 +429,48 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op="<")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op="<")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real64", op="<")>>
+    <<insertion-sort-subroutine-var(type="character", op="<")>>
   !!! Sort in desceding order.
     <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op=">")>>
     <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op=">")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op=">")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real64", op=">")>>
+    <<insertion-sort-subroutine-var(type="character", op=">")>>
 
   end module insertion_sort_m
 #+end_src
 *** test
 #+name: insertion-sort-test
-#+begin_src fortran :exports both :results output :noweb yes :cache yes
-  <<is-sorted-test
-
-  <<insertion-sort-module>>
-
+#+begin_src fortran :exports code :tangle "test/test_insertion_sort.f90"
   program test_insertion_sort
     use, intrinsic :: iso_fortran_env
+    use is_sorted_m
     use insertion_sort_m
     implicit none
     integer      :: i
     integer      :: a(6) = [31, 41, 59, 26, 41, 58]
     real(real64) :: b(6)
 
-    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
     call insertion_sort(a)
-    print'(*(i0, " "))', (a(i), i = 1, size(a))
+    if (.not. is_sorted(a)) error stop 1
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
     call random_number(b)
-    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
     call insertion_sort(b)
-    print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    if (.not. is_sorted(b)) error stop 2
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
 
   end program test_insertion_sort
 #+end_src
+#+name: test-insertion-sort
+#+begin_src fortran :exports both :results output :noweb yes :cache yes
+  <<is-sorted-module>>
+  <<insertion-sort-module>>
+  <<insertion-sort-test>>
+#+end_src
 
-#+RESULTS[82d69bd85fd6194c4f0271c049554e244abf599f]: insertion-sort-test
-: 31 41 59 26 41 58
-: 26 31 41 41 58 59
-: 0.427 0.743 0.472 0.411 0.004 0.779
-: 0.004 0.411 0.427 0.472 0.743 0.779
+#+RESULTS[c393f8b972242a123d9e2a7c680bed43e47e72ec]: test-insertion-sort
 
 ** selection-sort
 *** base
