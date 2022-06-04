@@ -21,8 +21,8 @@ module insertion_sort_m
 
 contains
 
-!!! Sort in ascending order.
-  !> ,insertion_sort_int32: Sort arr in < order by insertion-sort.
+!!! Sort an array in the ascending order.
+  !> ,insertion_sort_int32: Sort arr in the < order by insertion-sort.
   !> arguments:
   !> arr: Array of integer(int32).
   !> In end of subroutine, arr is sorted.
@@ -45,7 +45,7 @@ contains
     end do
   end subroutine insertion_sort_int32
   
-  !> ,insertion_sort_int64: Sort arr in < order by insertion-sort.
+  !> ,insertion_sort_int64: Sort arr in the < order by insertion-sort.
   !> arguments:
   !> arr: Array of integer(int64).
   !> In end of subroutine, arr is sorted.
@@ -68,7 +68,7 @@ contains
     end do
   end subroutine insertion_sort_int64
   
-  !> ,insertion_sort_real32: Sort arr in < order by insertion-sort.
+  !> ,insertion_sort_real32: Sort arr in the < order by insertion-sort.
   !> arguments:
   !> arr: Array of real(real32).
   !> In end of subroutine, arr is sorted.
@@ -91,7 +91,7 @@ contains
     end do
   end subroutine insertion_sort_real32
   
-  !> ,insertion_sort_real64: Sort arr in < order by insertion-sort.
+  !> ,insertion_sort_real64: Sort arr in the < order by insertion-sort.
   !> arguments:
   !> arr: Array of real(real64).
   !> In end of subroutine, arr is sorted.
@@ -114,7 +114,7 @@ contains
     end do
   end subroutine insertion_sort_real64
   
-  !> ,insertion_sort_character: Sort arr in < order by insertion-sort.
+  !> ,insertion_sort_character: Sort arr in the < order by insertion-sort.
   !> arguments:
   !> arr: Array of character(len=*).
   !> In end of subroutine, arr is sorted.
@@ -137,8 +137,8 @@ contains
     end do
   end subroutine insertion_sort_character
   
-!!! Sort in desceding order.
-  !> ,insertion_sort_descending_int32: Sort arr in > order by insertion-sort.
+!!! Sort an array in the desceding order.
+  !> ,insertion_sort_descending_int32: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of integer(int32).
   !> In end of subroutine, arr is sorted.
@@ -161,7 +161,7 @@ contains
     end do
   end subroutine insertion_sort_descending_int32
   
-  !> ,insertion_sort_descending_int64: Sort arr in > order by insertion-sort.
+  !> ,insertion_sort_descending_int64: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of integer(int64).
   !> In end of subroutine, arr is sorted.
@@ -184,7 +184,7 @@ contains
     end do
   end subroutine insertion_sort_descending_int64
   
-  !> ,insertion_sort_descending_real32: Sort arr in > order by insertion-sort.
+  !> ,insertion_sort_descending_real32: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of real(real32).
   !> In end of subroutine, arr is sorted.
@@ -207,7 +207,7 @@ contains
     end do
   end subroutine insertion_sort_descending_real32
   
-  !> ,insertion_sort_descending_real64: Sort arr in > order by insertion-sort.
+  !> ,insertion_sort_descending_real64: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of real(real64).
   !> In end of subroutine, arr is sorted.
@@ -230,7 +230,7 @@ contains
     end do
   end subroutine insertion_sort_descending_real64
   
-  !> ,insertion_sort_descending_character: Sort arr in > order by insertion-sort.
+  !> ,insertion_sort_descending_character: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of character(len=*).
   !> In end of subroutine, arr is sorted.

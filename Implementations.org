@@ -256,23 +256,47 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
 ** is-sorted
 *** base
-#+name: is-sorted
+#+name: is-sorted-function
 #+begin_src fortran :exports code
-  !> ,is_sorted: Check arr is sorted in ascending order.
+  !> ,is_sorted: Check arr is sorted in the ${op} order.
   !> arguments:
-  !> arr: array of some type.
+  !> arr: array of ${type}.
   !> return:
-  !> sorted: logical, .true. if arr is sorted.
+  !> ${res}: logical, .true. if arr is sorted.
   !> variables:
-  !> i, j: integer, loop counter.
-  integer :: i
-  sorted = .true.
-  do i = 1, size(arr)-1
-     if (arr(i) > arr(i+1)) then
-        sorted = .false.
-        return
-     end if
-  end do
+  !> i: integer, loop counter.
+  pure logical function is_sorted_${suffix}(arr) result(${res})
+    ${type}, intent(in) :: arr(:)
+    integer(int32) :: i
+    ${res} = .true.
+    do i = 1, size(arr)-1
+       if (.not. (arr(i) ${op} arr(i+1))) then
+          ${res} = .false.
+          return
+       end if
+    end do
+  end function is_sorted_${suffix}
+#+end_src
+#+name: is-sorted-function-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<=" :results output :noweb yes
+  order=""
+  if [ "${op}" = ">=" ]; then
+      order="descending_"
+  fi
+  case "${type}" in
+      "character")
+          type="${type}(len=*)"
+          suffix="${order}character"
+      ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${order}${type_kind}"
+      ;;
+  esac
+  res="sorted"
+  cat <<EOF
+  <<is-sorted-function>>
+  EOF
 #+end_src
 *** module
 #+name: is-sorted-module
@@ -281,7 +305,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     use, intrinsic :: iso_fortran_env
     implicit none
     private
-    public :: is_sorted
+    public :: is_sorted, is_sorted_descending
     !> ,is_sorted: Check arr is sorted and return logical value.
     !> This is generic function for (int32, int64, real32, real64, character).
     interface is_sorted
@@ -289,29 +313,26 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
        module procedure :: is_sorted_real32, is_sorted_real64
        module procedure :: is_sorted_character
     end interface is_sorted
+    interface is_sorted_descending
+       module procedure :: is_sorted_descending_int32, is_sorted_descending_int64
+       module procedure :: is_sorted_descending_real32, is_sorted_descending_real64
+       module procedure :: is_sorted_descending_character
+    end interface is_sorted_descending
 
   contains
 
-    pure logical function is_sorted_int32(arr) result(sorted)
-      integer(int32), intent(in) :: arr(:)
-      <<is-sorted>>
-    end function is_sorted_int32
-    pure logical function is_sorted_int64(arr) result(sorted)
-      integer(int64), intent(in) :: arr(:)
-      <<is-sorted>>
-    end function is_sorted_int64
-    pure logical function is_sorted_real32(arr) result(sorted)
-      real(real32), intent(in) :: arr(:)
-      <<is-sorted>>
-    end function is_sorted_real32
-    pure logical function is_sorted_real64(arr) result(sorted)
-      real(real64), intent(in) :: arr(:)
-      <<is-sorted>>
-    end function is_sorted_real64
-    pure logical function is_sorted_character(arr) result(sorted)
-      character(len=*), intent(in) :: arr(:)
-      <<is-sorted>>
-    end function is_sorted_character
+  !!! Check an array is sorted in the ascending order.
+    <<is-sorted-function-var(type="integer", type_kind="int32", op="<=")>>
+    <<is-sorted-function-var(type="integer", type_kind="int64", op="<=")>>
+    <<is-sorted-function-var(type="real", type_kind="real32", op="<=")>>
+    <<is-sorted-function-var(type="real", type_kind="real64", op="<=")>>
+    <<is-sorted-function-var(type="character", op="<=")>>
+  !!! Check an array is sorted in the descending order.
+    <<is-sorted-function-var(type="integer", type_kind="int32", op=">=")>>
+    <<is-sorted-function-var(type="integer", type_kind="int64", op=">=")>>
+    <<is-sorted-function-var(type="real", type_kind="real32", op=">=")>>
+    <<is-sorted-function-var(type="real", type_kind="real64", op=">=")>>
+    <<is-sorted-function-var(type="character", op=">=")>>
 
   end module is_sorted_m
 #+end_src
@@ -326,10 +347,10 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     integer(int64)    :: sorted_arr(4) = [1_int64, 10_int64, 10_int64, 100_int64]
     real(real32)      :: arr(10)
     character(len=10) :: strings(5) = [character(len=10) :: "apple", "apple", "banana", "brain", "brought"]
-    call random_number(arr)
     if (.not. is_sorted(sorted_arr)) then
        error stop 1
     end if
+    call random_number(arr)
     call merge_sort(arr)
     if (.not. is_sorted(arr)) then
        error stop 2
@@ -339,21 +360,21 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     end if
   end program is_sorted_test
 #+end_src
-
+#+name: test-is-sorted
 #+begin_src fortran :exports both :results output :cache yes :noweb yes
   <<is-sorted-module>>
   <<merge-sort-module>>
   <<is-sorted-test>>
 #+end_src
 
-#+RESULTS[ca41d4c45bf5f4b082ecc0f291cd29fa90e8e3d4]:
+#+RESULTS[e4ae4f05814e3cf4effe1357e4c9e1b426a73143]: test-is-sorted
 
 * sorting
 ** insertion-sort
 *** base
 #+name: insertion-sort-subroutine
 #+begin_src fortran :exports code
-  !> ,insertion_sort_${suffix}: Sort arr in ${op} order by insertion-sort.
+  !> ,insertion_sort_${suffix}: Sort arr in the ${op} order by insertion-sort.
   !> arguments:
   !> arr: Array of ${type}.
   !> In end of subroutine, arr is sorted.
@@ -424,13 +445,13 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
   contains
 
-  !!! Sort in ascending order.
+  !!! Sort an array in the ascending order.
     <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op="<")>>
     <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op="<")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op="<")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real64", op="<")>>
     <<insertion-sort-subroutine-var(type="character", op="<")>>
-  !!! Sort in desceding order.
+  !!! Sort an array in the desceding order.
     <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op=">")>>
     <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op=">")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op=">")>>
