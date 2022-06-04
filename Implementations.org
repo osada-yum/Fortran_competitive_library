@@ -1,4 +1,6 @@
 * emacs-lisp
+** org babel settings
+Modify org-babel function to avoid adding ~program...end program~ around ~module...end module~.
 #+begin_src emacs-lisp :exports code
   (defun org-babel-fortran-ensure-main-wrap (body params)
     "Wrap body in a \"program ... end program\" block if none exists."
@@ -8,6 +10,9 @@
           (when vars (error "Cannot use :vars if `program' statement is present"))
           body)
       (format "program main\n%s\nend program main\n" body)))
+#+end_src
+#+begin_src emacs-lisp :exports both :results output :cache yes
+  (setq org-confirm-babel-evaluate nil)
 #+end_src
 * utilities
 ** less or greater
