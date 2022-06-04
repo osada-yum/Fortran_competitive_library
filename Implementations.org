@@ -349,29 +349,42 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 * sorting
 ** insertion-sort
 *** base
-#+name: insertion-sort
+#+name: insertion-sort-subroutine
 #+begin_src fortran :exports code
-  arr_size = size(arr)
-  do i = 2, arr_size
-     key = arr(i)
-     do j = i-1, 1, -1
-        if (arr(j) < key) exit
-        arr(j+1) = arr(j)
-     end do
-     arr(j+1) = key
-  end do
+  !> ,insertion_sort_${suffix}: Sort arr in ${op} order by insertion-sort.
+  !> arguments:
+  !> arr: Array of ${type}.
+  !> In end of subroutine, arr is sorted.
+  !> variables:
+  !> key: Same type as arr, insert key into arr(1:i-1).
+  !> arr_size: integer, size of arr.
+  !> i, j: integer, loop counter.
+  subroutine insertion_sort_${suffix}(arr)
+    ${type}, intent(inout) :: arr(:)
+    ${type}                :: key
+    integer(int32) :: arr_size, i, j
+    arr_size = size(arr)
+    do i = 2, arr_size
+       key = arr(i)
+       do j = i-1, 1, -1
+          if (arr(j) ${op} key) exit
+          arr(j+1) = arr(j)
+       end do
+       arr(j+1) = key
+    end do
+  end subroutine insertion_sort_${suffix}
 #+end_src
-#+name: insertion-sort-descending
-#+begin_src fortran :exports code
-  arr_size = size(arr)
-  do i = 2, arr_size
-     key = arr(i)
-     do j = i-1, 1, -1
-        if (arr(j) > key) exit
-        arr(j+1) = arr(j)
-     end do
-     arr(j+1) = key
-  end do
+#+name: insertion-sort-subroutine-var
+#+begin_src bash :exports code :var type="integer", type_kind="int32", op="<" :results output :noweb yes :cache no
+  type="${type}(${type_kind})"
+  order=""
+  if [ "${op}" = ">" ]; then
+      order="descending_"
+  fi
+  suffix="${order}${type_kind}"
+  cat <<EOF
+  <<insertion-sort-subroutine>>
+  EOF
 #+end_src
 *** module
 #+name: insertion-sort-module
@@ -381,44 +394,40 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     implicit none
     private
 
-    public :: insertion_sort
+    public :: insertion_sort, insertion_sort_descending
+    !> ,insertion_sort: Sort arr in ascending order.
+    !> This is generic subroutine for (int32, int64, real32, real64).
     interface insertion_sort
        module procedure :: insertion_sort_int32, insertion_sort_int64
        module procedure :: insertion_sort_real32, insertion_sort_real64
     end interface insertion_sort
+    !> ,insertion_sort_descending: Sort arr in desceding order.
+    !> This is generic subroutine for (int32, int64, real32, real64).
+    interface insertion_sort_descending
+       module procedure :: insertion_sort_descending_int32, insertion_sort_descending_int64
+       module procedure :: insertion_sort_descending_real32, insertion_sort_descending_real64
+    end interface insertion_sort_descending
 
   contains
 
-    subroutine insertion_sort_int32(arr)
-      integer(int32), intent(inout) :: arr(:)
-      integer(int32)                :: key
-      integer                       :: arr_size, i, j
-      <<insertion-sort>>
-    end subroutine insertion_sort_int32
-    subroutine insertion_sort_int64(arr)
-      integer(int64), intent(inout) :: arr(:)
-      integer(int64)                :: key
-      integer                       :: arr_size, i, j
-      <<insertion-sort>>
-    end subroutine insertion_sort_int64
-    subroutine insertion_sort_real32(arr)
-      real(real32), intent(inout) :: arr(:)
-      real(real32)                :: key
-      integer                     :: arr_size, i, j
-      <<insertion-sort>>
-    end subroutine insertion_sort_real32
-    subroutine insertion_sort_real64(arr)
-      real(real64), intent(inout) :: arr(:)
-      real(real64)                :: key
-      integer                     :: arr_size, i, j
-      <<insertion-sort>>
-    end subroutine insertion_sort_real64
+  !!! Sort in ascending order.
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op="<")>>
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op="<")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real32", op="<")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real64", op="<")>>
+  !!! Sort in desceding order.
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op=">")>>
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op=">")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real32", op=">")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real64", op=">")>>
 
   end module insertion_sort_m
 #+end_src
 *** test
 #+name: insertion-sort-test
 #+begin_src fortran :exports both :results output :noweb yes :cache yes
+  <<is-sorted-test
+
   <<insertion-sort-module>>
 
   program test_insertion_sort
@@ -440,11 +449,12 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   end program test_insertion_sort
 #+end_src
 
-#+RESULTS[84c121f21b554d9038384d1d047f36bdab2b0e63]: insertion-sort-test
+#+RESULTS[82d69bd85fd6194c4f0271c049554e244abf599f]: insertion-sort-test
 : 31 41 59 26 41 58
 : 26 31 41 41 58 59
-: 0.456 0.216 0.396 0.920 0.482 0.240
-: 0.216 0.240 0.396 0.456 0.482 0.920
+: 0.427 0.743 0.472 0.411 0.004 0.779
+: 0.004 0.411 0.427 0.472 0.743 0.779
+
 ** selection-sort
 *** base
 #+name: selection-sort
