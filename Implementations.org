@@ -1,3 +1,11 @@
+#+TITLE: Implement algorithms in Modern Fortran.
+#+AUTHOR: Yuma Osada
+#+DATE: {{{time(%Y-%m-%d)}}}.
+#+LaTeX_header: \usepackage{minted}
+#+LaTeX_header: \usepackage{cleveref}
+#+macro: src_line line [[($1)]]
+#+options: ^:{}
+#+options: toc:t H:4 num:4
 * emacs-lisp
 ** org babel settings
 Modify org-babel function to avoid adding ~program...end program~ around ~module...end module~.
