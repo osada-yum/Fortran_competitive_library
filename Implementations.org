@@ -18,9 +18,12 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
           (when vars (error "Cannot use :vars if `program' statement is present"))
           body)
       (format "program main\n%s\nend program main\n" body)))
+  ;; reference: https://stackoverflow.com/questions/40033843/show-the-name-of-a-code-block-in-org-mode-when-export.
+  (customize-set-variable 'org-babel-exp-code-template
+                          "#+CAPTION: %name label:%name\n#+ATTR_LaTeX: :placement [H] :float t :options label=%name\n#+BEGIN_SRC %lang%switches%flags\n%body\n#+END_SRC")
 #+end_src
 #+begin_src emacs-lisp :exports both :results output :cache yes
-  (setq org-confirm-babel-evaluate nil)
+  (customize-set-variable 'org-confirm-babel-evaluate nil)
 #+end_src
 * utilities
 ** swap
