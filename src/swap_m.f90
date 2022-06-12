@@ -3,7 +3,7 @@ module swap_m
   implicit none
   private
   public :: swap
-  !> ,swap: swap two elements of array.
+  !> ,swap: swap the two elements in the array.
   !> This is generic function for (int32, int64, real32, real64, character).
   interface swap
      module procedure :: swap_int32, swap_int64

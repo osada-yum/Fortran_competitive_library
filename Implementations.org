@@ -27,26 +27,45 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 #+end_src
 * utilities
 ** swap
-*** base
+*** base code
+The Fortran code for swap, which is impure subroutine.
+The subroutine =swap_${suffix}= is generated once or more in the below org source block.
+- =${bash variable}= will be expanded by bash.
+  + =${type}= is the type of =arr(:)=.
+  + =${type_tmp}= is the type of =tmp= and is usually the same as =${type}=.
+#+name: swap-subroutine-description
+#+begin_src text :exports code
+  ,swap_${suffix}: Swap two elements in arr.
+  arguments:
+  arr: array of ${type}.
+  i, j: integer, indices of array.
+  variables:
+  tmp: ${type_tmp}, temporary variable for swap.
+#+end_src
+This is the whole subroutine.
+The comment of the subroutine is [[cref:swap-subroutine-description]].
+The body of the subroutine is [[cref:swap-subroutine-body]].
 #+name: swap-subroutine
-#+begin_src fortran :exports code
-  !> ,swap_${suffix}: Swap two elements in arr.
-  !> arguments:
-  !> arr: array of ${type}.
-  !> i, j: integer, indices of array.
-  !> variables:
-  !> tmp: ${type_tmp}, temporary variable for swap.
+#+begin_src fortran :exports code :noweb no-export
+  !> <<swap-subroutine-description>>
   subroutine swap_${suffix}(arr, i, j)
     ${type}, intent(inout) :: arr(:)
     integer(int32), intent(in) :: i, j
     ${type_tmp} :: tmp
-    tmp    = arr(i)
-    arr(i) = arr(j)
-    arr(j) = tmp
+    <<swap-subroutine-body>>
   end subroutine swap_${suffix}
 #+end_src
+The algorithm of the swap subroutine is simple.
+We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =arr= into \(i\)th element of =arr= and =tmp= into \(j\)th element of =arr=.
+#+name: swap-subroutine-body
+#+begin_src fortran :exports code
+  tmp    = arr(i)
+  arr(i) = arr(j)
+  arr(j) = tmp
+#+end_src
+*** process base code by bash
 #+name: swap-subroutine-var
-#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb yes
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export
   case "${type}" in
       "character")
           suffix="character"
@@ -65,13 +84,13 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 #+end_src
 *** module
 #+name: swap-module
-#+begin_src fortran :exports code :noweb yes :tangle "src/swap_m.f90"
+#+begin_src fortran :exports code :noweb no-export :tangle "src/swap_m.f90"
   module swap_m
     use, intrinsic :: iso_fortran_env
     implicit none
     private
     public :: swap
-    !> ,swap: swap two elements of array.
+    !> ,swap: swap the two elements in the array.
     !> This is generic function for (int32, int64, real32, real64, character).
     interface swap
        module procedure :: swap_int32, swap_int64
@@ -97,12 +116,9 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     use swap_m
     implicit none
     integer      :: i
-    integer      :: a(6) = [1, 2, 3, 4, 5, 6]
-    integer      :: a_init(6)
+    integer      :: a(6) = [1, 2, 3, 4, 5, 6], a_init(6)
     integer      :: tmp_i
-    real(real64) :: b(6)
-    real(real64) :: b_first(6)
-    real(real64) :: tmp_r
+    real(real64) :: b(6), b_first(6)
     real(real64) :: epsilon = 1d-6
     character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
 
@@ -137,12 +153,13 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
   end program test_swap
 #+end_src
-#+begin_src fortran :exports both :results output :noweb yes :cache yes
+#+name: test-swap
+#+begin_src fortran :exports both :results output :noweb no-export :cache yes
   <<swap-module>>
   <<swap-test>>
 #+end_src
 
-#+RESULTS[d2068ec5e201ac4221b4ddabd0c27332f6a98c62]:
+#+RESULTS[b955861b0de716ad37774a1e11928e855c0ddac2]:
 
 ** is-sorted
 *** base
@@ -261,9 +278,22 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
 * sorting
 ** insertion-sort
-*** base
+*** base code
+The Fortran code for insertion sort, which is impure subroutine.
+The subroutine =insertion_sort_${suffix}= is generated once or more in the below org source block.
+- =${bash variable}= will be expanded by bash.
+  + =${type}= is the type of =arr(:)=.
+  + =${type_key}= is the type of =key= and is usually the same as =${type}=.
+  + =${suffix}= is the suffix of the name of the subroutine for avoiding name collision.
+  + =${op}= is either src_fortran[:exports code]{<} (ascending order) or src_fortran[:exports code]{>} (descending order) .
+The subroutine =insertion_sort= takes an argument =arr(:)= in {{{src_line(insertion-sort-arr)}}}, sorts it and =arr(:)= was sorted in the end.
+The type of the =key= is usually the same as type of an element in =arr(:)=, but if the type of =arr(:)= is src_fortran[:exports code]{character(len=*)}, =key= must be src_fortran[:exports code]{character(len=:), allocatable}.
+The type of =arr_size, i, j= is src_fortran[:exports code]{integer(int32)}.
+=arr_size= is size of =arr(:)=.
+=i, j= is loop counter.
+If \(size(arr) > 2^{31}-1\), this subroutine goes fail, but in this case, we should use more effective sorting algorithms.
 #+name: insertion-sort-subroutine
-#+begin_src fortran :exports code
+#+begin_src fortran -r :exports code
   !> ,insertion_sort_${suffix}: Sort arr in the ${op} order by insertion-sort.
   !> arguments:
   !> arr: Array of ${type}.
@@ -273,22 +303,25 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   !> arr_size: integer, size of arr.
   !> i, j: integer, loop counter.
   subroutine insertion_sort_${suffix}(arr)
-    ${type}, intent(inout) :: arr(:)
-    ${type_key}                :: key
+    $type, intent(inout) :: arr(:) (ref:insertion-sort-arr)
+    $type_key :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
        key = arr(i)
        do j = i-1, 1, -1
-          if (arr(j) ${op} key) exit
+          if (arr(j) $op key) exit
           arr(j+1) = arr(j)
        end do
        arr(j+1) = key
     end do
   end subroutine insertion_sort_${suffix}
 #+end_src
+*** process base code by bash
+We want to expand the variables in the above base code by the various types.
+Pass the variables =type=, =type_kind= and =op= by org-babel :var.
 #+name: insertion-sort-subroutine-var
-#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<" :results output :noweb yes :cache no
+#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<" :results output :noweb no-export :cache no :shebang #!/bin/bash
   order=""
   if [ "${op}" = ">" ]; then
       order="descending_"
@@ -310,8 +343,12 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   EOF
 #+end_src
 *** module
+We want to expand the variables in the above base code by the various types.
+We can pass the arguments to the above org source block.
+So, our insertion sort is the generic subroutine for the array of src_fortran[:exports code]{integer(int32)}, src_fortran[:exports code]{integer(int64)}, src_fortran[:exports code]{real(real32)}, src_fortran[:exports code]{real(real64)}, and src_fortran[:exports code]{character(len=*)}
+This module exports =insertion_sort= and =insertion_sort_descending=.
 #+name: insertion-sort-module
-#+begin_src fortran :exports code :noweb yes :tangle "src/insertion_sort_m.f90"
+#+begin_src fortran :exports code :noweb no-export :tangle "src/insertion_sort_m.f90"
   module insertion_sort_m
     use, intrinsic :: iso_fortran_env
     implicit none
@@ -325,7 +362,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
        module procedure :: insertion_sort_real32, insertion_sort_real64
        module procedure :: insertion_sort_character
     end interface insertion_sort
-    !> ,insertion_sort_descending: Sort arr in desceding order.
+    !> ,insertion_sort_descending: Sort arr in descending order.
     !> This is generic subroutine for (int32, int64, real32, real64, character).
     interface insertion_sort_descending
        module procedure :: insertion_sort_descending_int32, insertion_sort_descending_int64
@@ -341,7 +378,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op="<")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real64", op="<")>>
     <<insertion-sort-subroutine-var(type="character", op="<")>>
-  !!! Sort an array in the desceding order.
+  !!! Sort an array in the descending order.
     <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op=">")>>
     <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op=">")>>
     <<insertion-sort-subroutine-var(type="real", type_kind="real32", op=">")>>
@@ -360,7 +397,8 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     implicit none
     integer      :: i
     integer      :: a(6) = [31, 41, 59, 26, 41, 58]
-    real(real64) :: b(6)
+    real(real64) :: b(100)
+    character(len=42) :: c(5) = ["a    ", "zzz  ", "123  ", "0    ", "     "]
 
     ! print'(*(i0, " "))', (a(i), i = 1, size(a))
     call insertion_sort(a)
@@ -371,17 +409,18 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     call insertion_sort(b)
     if (.not. is_sorted(b)) error stop 2
     ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
-
+    call insertion_sort(c)
+    if (.not. is_sorted(c)) error stop 3
   end program test_insertion_sort
 #+end_src
 #+name: test-insertion-sort
-#+begin_src fortran :exports both :results output :noweb yes :cache yes
+#+begin_src fortran :exports both :results output :noweb no-export :cache yes
   <<is-sorted-module>>
   <<insertion-sort-module>>
   <<insertion-sort-test>>
 #+end_src
 
-#+RESULTS[c393f8b972242a123d9e2a7c680bed43e47e72ec]: test-insertion-sort
+#+RESULTS[ab9d1aed9e2a01179cddef3596988bcfb45c23c7]: test-insertion-sort
 
 ** selection-sort
 *** base
@@ -408,7 +447,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 #+end_src
 *** module
 #+name: selection-sort-module
-#+begin_src fortran :exports code :noweb yes :tangle "src/selection_sort_m.f90"
+#+begin_src fortran :exports code :noweb no-export :tangle "src/selection_sort_m.f90"
   module selection_sort_m
     use, intrinsic :: iso_fortran_env
     use swap_m
@@ -443,7 +482,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 #+end_src
 *** test
 #+name: selection-sort-test
-#+begin_src fortran :exports code :noweb yes
+#+begin_src fortran :exports code :noweb no-export
   <<swap-module>>
   <<selection-sort-module>>
 
@@ -865,10 +904,13 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
 #+RESULTS[ba220b33f2ebf16ce1e74e14608023809130da5e]:
 
+* math
+** prime
+*** prime factorization
 * data structure
 ** tree
 *** integer
-#+begin_src fortran :exports both :results output :cache yes
+#+begin_src fortran :exports code :results output :cache yes
   module tree_int_m
     use, intrinsic :: iso_fortran_env
     implicit none

@@ -3,12 +3,9 @@ program test_swap
   use swap_m
   implicit none
   integer      :: i
-  integer      :: a(6) = [1, 2, 3, 4, 5, 6]
-  integer      :: a_init(6)
+  integer      :: a(6) = [1, 2, 3, 4, 5, 6], a_init(6)
   integer      :: tmp_i
-  real(real64) :: b(6)
-  real(real64) :: b_first(6)
-  real(real64) :: tmp_r
+  real(real64) :: b(6), b_first(6)
   real(real64) :: epsilon = 1d-6
   character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
 
