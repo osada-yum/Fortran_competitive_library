@@ -908,6 +908,226 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 ** prime
 *** prime factorization
 * data structure
+** linked list
+*** by pointer
+**** whole module of linked list
+#+name: linked_list-module
+#+begin_src fortran :exports code :tangle "src/linked_list_m.f90" :comment link :noweb no-export
+  module linked_list_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    <<declaration-linked_list-var(type="integer", type_kind="int32")>>
+    <<declaration-linked_list-var(type="integer", type_kind="int64")>>
+    <<declaration-linked_list-var(type="real", type_kind="real32")>>
+    <<declaration-linked_list-var(type="real", type_kind="real64")>>
+  contains
+    <<procedures-linked_list-var(type="integer", type_kind="int32")>>
+    <<procedures-linked_list-var(type="integer", type_kind="int64")>>
+    <<procedures-linked_list-var(type="real", type_kind="real32")>>
+    <<procedures-linked_list-var(type="real", type_kind="real64")>>
+  end module linked_list_m
+#+end_src
+**** declaration of linked list
+First, We define type of linked list.
+This linked list is implemented by a head of list and some lists (0 or more than).
+The list can add new values, delete, and search some elements.
+
+Variables like ${variable} are expanded by bash.
+- ${type} is type of elements in the list.
+#+name: declaration-linked_list
+#+begin_src fortran :exports code
+  private :: linked_list_${suffix}
+  type :: linked_list_${suffix}
+     private
+     ${type} :: val_
+     type(linked_list_${suffix}), pointer :: next_ => null()
+  end type linked_list_${suffix}
+
+  public :: linked_list_${suffix}_head
+  type :: linked_list_${suffix}_head
+     private
+     type(linked_list_${suffix}), pointer :: head_ => null()
+   contains
+     procedure, pass :: add    => add_linked_list_${suffix}_head
+     procedure, pass :: delete => delete_linked_list_${suffix}_head
+     procedure, pass :: search => search_linked_list_${suffix}_head
+  end type linked_list_${suffix}_head
+
+  interface linked_list_${suffix}
+     module procedure :: init_linked_list_${suffix}
+  end interface linked_list_${suffix}
+  interface linked_list_${suffix}_head
+     module procedure :: init_linked_list_${suffix}_head
+     module procedure :: init_linked_list_${suffix}_head_by_array
+  end interface linked_list_${suffix}_head
+#+end_src
+**** procedures of linked list
+There are three procedures for the linked list.
+#+name: procedures-linked_list
+#+begin_src fortran :exports code :noweb no-export
+    <<init-linked_list>>
+    <<init-linked_list_head>>
+    <<add-linked_list_head>>
+    <<delete-linked_list_head>>
+    <<search-linked_list_head>>
+#+end_src
+***** init
+=function init= initialize linked_list and linked_list
+#+name: init-linked_list
+#+begin_src fortran :exports code
+  !> init_linked_list_${suffix}: Initialize the linked_list_${suffix} by val.
+  impure function init_linked_list_${suffix}(val) result(lst)
+    type(linked_list_${suffix}), pointer :: lst
+    ${type} :: val
+    allocate(lst)
+    lst%val_ = val
+    return
+  end function init_linked_list_${suffix}
+#+end_src
+#+name: init-linked_list_head
+#+begin_src fortran :exports code
+  !> init_linked_list_${suffix}_head: Initialize the empty linked_list_${suffix}_head.
+  impure function init_linked_list_${suffix}_head() result(lst_head)
+    type(linked_list_${suffix}_head) :: lst_head
+    lst_head%head_ => null()
+    return
+  end function init_linked_list_${suffix}_head
+  !> init_linked_list_${suffix}_head_by_array: Initialize the empty linked_list_${suffix}_head by array.
+  impure function init_linked_list_${suffix}_head_by_array(arr) result(lst_head)
+    type(linked_list_${suffix}_head) :: lst_head
+    ${type} :: arr(:)
+    integer(int32) :: s, i
+    s = size(arr)
+    do i = s, 1, -1
+       call lst_head%add(arr(i))
+    end do
+    return
+  end function init_linked_list_${suffix}_head_by_array
+#+end_src
+***** add
+=Subroutine add= adds value into the linked list.
+#+name: add-linked_list_head
+#+begin_src fortran :exports code
+  !> add_linked_list_${suffix}: Add val into head of linked list.
+  subroutine add_linked_list_${suffix}_head(lst_head, val)
+    class(linked_list_${suffix}_head), intent(inout) :: lst_head
+    ${type}, intent(in) :: val
+    type(linked_list_${suffix}), pointer :: lst_elem
+    lst_elem => linked_list_${suffix}(val)
+    lst_elem%next_ => lst_head%head_
+    lst_head%head_ => lst_elem
+  end subroutine add_linked_list_${suffix}_head
+#+end_src
+***** delete
+=Subroutine delete= delete elements in linked list.
+#+name: delete-linked_list_head
+#+begin_src fortran :exports code
+  !> delete_linked_list_${suffix}: Delete val from element of linked list.
+  !> Do nothing if lst does not elem val.
+  subroutine delete_linked_list_${suffix}_head(lst_head, val)
+    class(linked_list_${suffix}_head), intent(inout) :: lst_head
+    ${type}, intent(in) :: val
+    type(linked_list_${suffix}), pointer :: lst_elem, lst_del
+    if (.not. associated(lst_head%head_)) return
+    lst_elem => lst_head%head_
+    if (lst_elem%val_ == val) then
+       lst_head%head_ => lst_elem%next_
+       deallocate(lst_elem)
+       return
+    end if
+    do
+       if (.not. associated(lst_elem%next_)) return
+       if (lst_elem%next_%val_ == val) then
+          lst_del => lst_elem%next_
+          lst_elem%next_ => lst_elem%next_%next_
+          deallocate(lst_del)
+          return
+       end if
+    end do
+  end subroutine delete_linked_list_${suffix}_head
+#+end_src
+***** search
+=Subroutine search= search value from linked list and return =.true.= if success.
+#+name: search-linked_list_head
+#+begin_src fortran :exports code
+  !> search_linked_list_${suffix}: Search val from element of linked list.
+  !> Return .true. if success.
+  logical function search_linked_list_${suffix}_head(lst_head, val) result(find)
+    class(linked_list_${suffix}_head), intent(in) :: lst_head
+    ${type}, intent(in) :: val
+    type(linked_list_${suffix}), pointer :: lst_elem
+    if (.not. associated(lst_head%head_)) return
+    lst_elem => lst_head%head_
+    find = .false.
+    do
+       if (.not. associated(lst_elem)) return
+       if (lst_elem%val_ == val) then
+          find = .true.
+          return
+       end if
+       lst_elem => lst_elem%next_
+    end do
+  end function search_linked_list_${suffix}_head
+#+end_src
+**** process definition and procedures of linked list
+#+name: declaration-linked_list-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type}" in
+      "character")
+          type="character(len=:), allocatable"
+          suffix="character"
+          ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  cat <<EOF
+  <<declaration-linked_list>>
+  EOF
+#+end_src
+#+name: procedures-linked_list-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type}" in
+      "character")
+          type="character(len=:), allocatable"
+          suffix="character"
+          ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  cat <<EOF
+  <<procedures-linked_list>>
+  EOF
+#+end_src
+**** test
+#+name: linked_list-test
+#+begin_src fortran :exports code :tangle "test/test_linked_list.f90"
+  program test_linked_list
+    use, intrinsic :: iso_fortran_env
+    use linked_list_m
+    implicit none
+    integer(int32) :: i
+    type(linked_list_int32_head) :: lst_i32
+    do i = 1, 10
+       call lst_i32%add(i)
+    end do
+    print*, lst_i32%search(3)
+    print*, lst_i32%search(-1)
+  end program test_linked_list
+#+end_src
+#+name: test-linked_list
+#+begin_src fortran :exports both :results output :noweb no-export :cache yes
+<<linked_list-module>>
+<<linked_list-test>>
+#+end_src
+
+#+RESULTS[94846b1ec8b475a77907acdcedad9a0da205232b]: test-linked_list
+: T
+: F
+
 ** tree
 *** integer
 #+begin_src fortran :exports code :results output :cache yes
