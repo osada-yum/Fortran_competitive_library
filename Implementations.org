@@ -276,6 +276,67 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
 
 #+RESULTS[e4ae4f05814e3cf4effe1357e4c9e1b426a73143]: test-is-sorted
 
+** polymorphic class(*)
+Fortran has polymorphic type =class(*)=.
+We can store any values in a variable of =class(*) :: var= and extract value from it by =select type= statement.
+*** test
+#+begin_src fortran :exports both :results output :cache yes
+  module polymorphic_class_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    ! interface operator(.as.)
+    !    module procedure :: class_to_int32
+    !    module procedure :: class_to_real32
+    ! end interface operator(.as.)
+
+  contains
+    pure integer(int32) function class_to_int32(v)
+      class(*), intent(in) :: v
+      select type(v)
+      type is(integer(int32))
+         class_to_int32 = v
+      class default
+         error stop 2
+      end select
+    end function class_to_int32
+
+    pure integer(int32) function class_to_int32_dash(v, n)
+      class(*), intent(in) :: v
+      integer(int32), intent(in) :: n
+      select type(v)
+      type is(integer(int32))
+         class_to_int32_dash = v
+      class default
+         error stop 2
+      end select
+    end function class_to_int32_dash
+    pure real(real32) function class_to_real32(v, x)
+      class(*), intent(in) :: v
+      real(real32), intent(in) :: x
+      select type(v)
+      type is(real(real32))
+         class_to_real32 = v
+      class default
+         error stop 3
+      end select
+    end function class_to_real32
+  end module polymorphic_class_m
+
+  program test_polymorphic_class
+    use, intrinsic :: iso_fortran_env
+    use polymorphic_class_m
+    implicit none
+    class(*), pointer :: val
+    allocate(val, source = 3)
+    ! print*, val .as. 0.0_real32
+    print*, class_to_int32(val)
+    ! print*, val .as. 0_int32
+  end program test_polymorphic_class
+#+end_src
+
+#+RESULTS[06aefb575a0f3b072e691d7711c5d7cce0c69e5c]:
+: 3
+
 * sorting
 ** insertion-sort
 *** base code
