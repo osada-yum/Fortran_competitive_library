@@ -10,12 +10,12 @@ program test_swap
   character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
 
   a_init(:) = a(:)
-  call swap(a, 1, 1)
+  call swap(a(1), a(1))
   if (sum(a_init - a) /= 0) then
      error stop 1
   end if
   ! print'(*(i0, " "))', (a(i), i = 1, size(a))
-  call swap(a, 2, 1)
+  call swap(a(2), a(1))
   ! print'(*(i0, " "))', (a(i), i = 1, size(a))
   if (a_init(2) /= a(1) .or. a_init(1) /= a(2)) then
      error stop 2
@@ -24,7 +24,7 @@ program test_swap
   call random_number(b)
   b_first(:) = b(:)
   ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
-  call swap(b, 3, 4)
+  call swap(b(3), b(4))
   ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
   if (abs(b_first(4) - b(3)) > epsilon .or. abs(b_first(3) - b(4)) > epsilon) then
      error stop 3
@@ -32,7 +32,7 @@ program test_swap
 
   strs_init = strs
   ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
-  call swap(strs, 4, 1)
+  call swap(strs(4), strs(1))
   ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
   if (strs_init(4) /= strs(1) .or. strs_init(1) /= strs(4)) then
      error stop 4

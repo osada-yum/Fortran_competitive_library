@@ -28,54 +28,46 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 * utilities
 ** swap
 *** base code
-The Fortran code for swap, which is impure subroutine.
-The subroutine =swap_${suffix}= is generated once or more in the below org source block.
-- =${bash variable}= will be expanded by bash.
-  + =${type}= is the type of =arr(:)=.
-  + =${type_tmp}= is the type of =tmp= and is usually the same as =${type}=.
-#+name: swap-subroutine-description
-#+begin_src text :exports code
-  ,swap_${suffix}: Swap two elements in arr.
-  arguments:
-  arr: array of ${type}.
-  i, j: integer, indices of array.
-  variables:
-  tmp: ${type_tmp}, temporary variable for swap.
-#+end_src
+We write a swap subroutine by ~Fortran~.
+This takes two variables and swaps values of them.
+So, this is impure.
+We can expand ~bash~ variables that are expressed by =${variable}=, so decide the type of variables later src block.
+- Let us explain ~bash~ variables.
+  + =${type_arg}= is the type of =i, j=.
+  + =${type_tmp}= is the type of =tmp= and is usually the same as =${type_arg}=.
+    If =${type_arg}= is src_fortran[:exports code]{character(len=*)}, =${type_tmp}= must be src_fortran[:exports code]{character(len=:), allocatable}.
+  + =${suffix}= is the suffix of name of subroutine for generic.
 This is the whole subroutine.
-The comment of the subroutine is [[cref:swap-subroutine-description]].
-The body of the subroutine is [[cref:swap-subroutine-body]].
+The algorithm of the swap is [[cref:swap-subroutine-body]].
 #+name: swap-subroutine
 #+begin_src fortran :exports code :noweb no-export
-  !> <<swap-subroutine-description>>
-  subroutine swap_${suffix}(arr, i, j)
-    ${type}, intent(inout) :: arr(:)
-    integer(int32), intent(in) :: i, j
+  subroutine swap_${suffix}(i, j)
+    ${type_arg}, intent(inout) :: i, j
     ${type_tmp} :: tmp
     <<swap-subroutine-body>>
   end subroutine swap_${suffix}
 #+end_src
-The algorithm of the swap subroutine is simple.
-We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =arr= into \(i\)th element of =arr= and =tmp= into \(j\)th element of =arr=.
+The algorithm of the swap is simple.
+We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
 #+name: swap-subroutine-body
 #+begin_src fortran :exports code
-  tmp    = arr(i)
-  arr(i) = arr(j)
-  arr(j) = tmp
+  tmp = i
+  i   = j
+  j   = tmp
 #+end_src
 *** process base code by bash
 #+name: swap-subroutine-var
-#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export
-  case "${type}" in
+#+begin_src bash :exports code :var type_arg="integer" type_kind="int32" :results output :noweb no-export
+  case "${type_arg}" in
       "character")
           suffix="character"
           type_tmp="character(len=:), allocatable"
-          type="character(len=*)"
+          type_arg="character(len=*)"
           ;;
       ,*)
           suffix="${type_kind}"
-          type_tmp="${type}(${type_kind})"
-          type="${type_tmp}"
+          type_tmp="${type_arg}(${type_kind})"
+          type_arg="${type_tmp}"
           ;;
   esac
   cat <<EOF
@@ -100,11 +92,11 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
 
   contains
 
-    <<swap-subroutine-var(type="integer", type_kind="int32")>>
-    <<swap-subroutine-var(type="integer", type_kind="int64")>>
-    <<swap-subroutine-var(type="real", type_kind="real32")>>
-    <<swap-subroutine-var(type="real", type_kind="real64")>>
-    <<swap-subroutine-var(type="character")>>
+    <<swap-subroutine-var(type_arg="integer", type_kind="int32")>>
+    <<swap-subroutine-var(type_arg="integer", type_kind="int64")>>
+    <<swap-subroutine-var(type_arg="real", type_kind="real32")>>
+    <<swap-subroutine-var(type_arg="real", type_kind="real64")>>
+    <<swap-subroutine-var(type_arg="character")>>
 
   end module swap_m
 #+end_src
@@ -123,12 +115,12 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
     character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
 
     a_init(:) = a(:)
-    call swap(a, 1, 1)
+    call swap(a(1), a(1))
     if (sum(a_init - a) /= 0) then
        error stop 1
     end if
     ! print'(*(i0, " "))', (a(i), i = 1, size(a))
-    call swap(a, 2, 1)
+    call swap(a(2), a(1))
     ! print'(*(i0, " "))', (a(i), i = 1, size(a))
     if (a_init(2) /= a(1) .or. a_init(1) /= a(2)) then
        error stop 2
@@ -137,7 +129,7 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
     call random_number(b)
     b_first(:) = b(:)
     ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
-    call swap(b, 3, 4)
+    call swap(b(3), b(4))
     ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
     if (abs(b_first(4) - b(3)) > epsilon .or. abs(b_first(3) - b(4)) > epsilon) then
        error stop 3
@@ -145,7 +137,7 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
 
     strs_init = strs
     ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
-    call swap(strs, 4, 1)
+    call swap(strs(4), strs(1))
     ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
     if (strs_init(4) /= strs(1) .or. strs_init(1) /= strs(4)) then
        error stop 4
@@ -159,7 +151,7 @@ We store the \(i\)th element of =arr= in =tmp=, substitute \(j\)th element of =a
   <<swap-test>>
 #+end_src
 
-#+RESULTS[b955861b0de716ad37774a1e11928e855c0ddac2]:
+#+RESULTS[a94a71dff98cf62e1fbe16bcbb50843d178a9d3f]: test-swap
 
 ** is-sorted
 *** base
@@ -503,7 +495,7 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
              mini_index = i
           end if
        end do
-       call swap(arr, j, mini_index)
+       call swap(arr(j), arr(mini_index))
     end do
 #+end_src
 *** module
@@ -585,7 +577,7 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
     do i = 1, size_arr
        do j = size_arr, i+1, -1
           if (arr(j) < arr(j-1)) then
-             call swap(arr, j, j-1)
+             call swap(arr(j), arr(j-1))
           end if
        end do
     end do
