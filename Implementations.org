@@ -61,7 +61,7 @@ We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
   case "${type_arg}" in
       "character")
           suffix="character"
-          type_tmp="character(len=:), allocatable"
+          type_tmp="character(len=max(len(i), len(j)))"
           type_arg="character(len=*)"
           ;;
       ,*)
@@ -151,7 +151,7 @@ We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
   <<swap-test>>
 #+end_src
 
-#+RESULTS[a94a71dff98cf62e1fbe16bcbb50843d178a9d3f]: test-swap
+#+RESULTS[812b722e6fbca1b993444bade70915aaa90f1da8]: test-swap
 
 ** is-sorted
 *** base
