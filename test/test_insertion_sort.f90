@@ -5,7 +5,8 @@ program test_insertion_sort
   implicit none
   integer      :: i
   integer      :: a(6) = [31, 41, 59, 26, 41, 58]
-  real(real64) :: b(6)
+  real(real64) :: b(100)
+  character(len=42) :: c(5) = ["a    ", "zzz  ", "123  ", "0    ", "     "]
 
   ! print'(*(i0, " "))', (a(i), i = 1, size(a))
   call insertion_sort(a)
@@ -16,5 +17,6 @@ program test_insertion_sort
   call insertion_sort(b)
   if (.not. is_sorted(b)) error stop 2
   ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
-
+  call insertion_sort(c)
+  if (.not. is_sorted(c)) error stop 3
 end program test_insertion_sort
