@@ -29,7 +29,7 @@ contains
              mini_index = i
           end if
        end do
-       call swap(arr, j, mini_index)
+       call swap(arr(j), arr(mini_index))
     end do
   end subroutine selection_sort_int32
   subroutine selection_sort_int64(arr)
@@ -50,7 +50,7 @@ contains
              mini_index = i
           end if
        end do
-       call swap(arr, j, mini_index)
+       call swap(arr(j), arr(mini_index))
     end do
   end subroutine selection_sort_int64
   subroutine selection_sort_real32(arr)
@@ -71,7 +71,7 @@ contains
              mini_index = i
           end if
        end do
-       call swap(arr, j, mini_index)
+       call swap(arr(j), arr(mini_index))
     end do
   end subroutine selection_sort_real32
   subroutine selection_sort_real64(arr)
@@ -92,7 +92,7 @@ contains
              mini_index = i
           end if
        end do
-       call swap(arr, j, mini_index)
+       call swap(arr(j), arr(mini_index))
     end do
   end subroutine selection_sort_real64
 

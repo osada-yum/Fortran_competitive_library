@@ -11,7 +11,7 @@ module insertion_sort_m
      module procedure :: insertion_sort_real32, insertion_sort_real64
      module procedure :: insertion_sort_character
   end interface insertion_sort
-  !> ,insertion_sort_descending: Sort arr in desceding order.
+  !> ,insertion_sort_descending: Sort arr in descending order.
   !> This is generic subroutine for (int32, int64, real32, real64, character).
   interface insertion_sort_descending
      module procedure :: insertion_sort_descending_int32, insertion_sort_descending_int64
@@ -32,7 +32,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_int32(arr)
     integer(int32), intent(inout) :: arr(:)
-    integer(int32)                :: key
+    integer(int32) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -55,7 +55,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_int64(arr)
     integer(int64), intent(inout) :: arr(:)
-    integer(int64)                :: key
+    integer(int64) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -78,7 +78,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_real32(arr)
     real(real32), intent(inout) :: arr(:)
-    real(real32)                :: key
+    real(real32) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -101,7 +101,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_real64(arr)
     real(real64), intent(inout) :: arr(:)
-    real(real64)                :: key
+    real(real64) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -124,7 +124,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_character(arr)
     character(len=*), intent(inout) :: arr(:)
-    character(len=:), allocatable                :: key
+    character(len=:), allocatable :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -137,7 +137,7 @@ contains
     end do
   end subroutine insertion_sort_character
   
-!!! Sort an array in the desceding order.
+!!! Sort an array in the descending order.
   !> ,insertion_sort_descending_int32: Sort arr in the > order by insertion-sort.
   !> arguments:
   !> arr: Array of integer(int32).
@@ -148,7 +148,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_descending_int32(arr)
     integer(int32), intent(inout) :: arr(:)
-    integer(int32)                :: key
+    integer(int32) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -171,7 +171,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_descending_int64(arr)
     integer(int64), intent(inout) :: arr(:)
-    integer(int64)                :: key
+    integer(int64) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -194,7 +194,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_descending_real32(arr)
     real(real32), intent(inout) :: arr(:)
-    real(real32)                :: key
+    real(real32) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -217,7 +217,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_descending_real64(arr)
     real(real64), intent(inout) :: arr(:)
-    real(real64)                :: key
+    real(real64) :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size
@@ -240,7 +240,7 @@ contains
   !> i, j: integer, loop counter.
   subroutine insertion_sort_descending_character(arr)
     character(len=*), intent(inout) :: arr(:)
-    character(len=:), allocatable                :: key
+    character(len=:), allocatable :: key
     integer(int32) :: arr_size, i, j
     arr_size = size(arr)
     do i = 2, arr_size

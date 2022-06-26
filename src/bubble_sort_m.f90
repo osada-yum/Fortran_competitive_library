@@ -24,7 +24,7 @@ contains
     do i = 1, size_arr
        do j = size_arr, i+1, -1
           if (arr(j) < arr(j-1)) then
-             call swap(arr, j, j-1)
+             call swap(arr(j), arr(j-1))
           end if
        end do
     end do
@@ -42,7 +42,7 @@ contains
     do i = 1, size_arr
        do j = size_arr, i+1, -1
           if (arr(j) < arr(j-1)) then
-             call swap(arr, j, j-1)
+             call swap(arr(j), arr(j-1))
           end if
        end do
     end do
@@ -60,7 +60,7 @@ contains
     do i = 1, size_arr
        do j = size_arr, i+1, -1
           if (arr(j) < arr(j-1)) then
-             call swap(arr, j, j-1)
+             call swap(arr(j), arr(j-1))
           end if
        end do
     end do
@@ -78,7 +78,7 @@ contains
     do i = 1, size_arr
        do j = size_arr, i+1, -1
           if (arr(j) < arr(j-1)) then
-             call swap(arr, j, j-1)
+             call swap(arr(j), arr(j-1))
           end if
        end do
     end do

@@ -47,7 +47,7 @@ contains
   
   subroutine swap_character(i, j)
     character(len=*), intent(inout) :: i, j
-    character(len=:), allocatable :: tmp
+    character(len=max(len(i), len(j))) :: tmp
     tmp = i
     i   = j
     j   = tmp
