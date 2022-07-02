@@ -1542,7 +1542,270 @@ If =key= is already in the hash table, change to new =val= corresponding to =key
 #+RESULTS[7012e9003deba0e9eb25cf053fa62c3a4d23f793]: test-hash_table
 
 ** tree
-*** integer
+*** binary_tree
+We implement a binary tree that consists of the root, the pointers to its children, and some keys by ~Fortran~.
+The keys of the binary tree are not duplicated.
+**** The whole module of binary tree
+This is the whole module of the binary tree.
+The declaration [[cref:expand-declaration-binary_tree]] and procedures [[cref:expand-declaration-binary_tree]] are below.
+#+name: binary-tree-module
+#+begin_src fortran :exports code :tangle "src/binary_tree_m.f90" :comment link :noweb no-export
+  module binary_tree_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: size
+    public :: depth
+    <<expand-declaration-binary-tree(type="integer", type_kind="int32")>>
+    <<expand-declaration-binary-tree(type="integer", type_kind="int64")>>
+  contains
+    <<expand-procedures-binary-tree(type="integer", type_kind="int32")>>
+    <<expand-procedures-binary-tree(type="integer", type_kind="int64")>>
+  end module binary_tree_m
+#+end_src
+**** The type declaration of the binary tree
+${type_key} is the type of key that is comparable.
+${type_element} is the type of elements.
+#+name: declaration-binary-tree
+#+begin_src fortran :exports code
+  public :: ${binary_tree}
+  type :: ${binary_tree}
+     private
+     integer(int32) :: num_elems_
+     type(${binary_tree_node}), pointer :: root_ => null()
+   contains
+     procedure, pass :: insert => insert_${binary_tree}
+     procedure, pass :: delete => delete_${binary_tree}
+     procedure, pass :: search => search_${binary_tree}
+     procedure, pass :: write_${binary_tree}
+     generic :: write(formatted) => write_${binary_tree}
+  end type ${binary_tree}
+  type :: ${binary_tree_node}
+     private
+     ${type_element} :: elem_
+     type(${binary_tree_node}), pointer :: left_  => null()
+     type(${binary_tree_node}), pointer :: right_ => null()
+  end type ${binary_tree_node}
+
+  interface ${binary_tree}
+     module procedure :: init_${binary_tree}, init_${binary_tree}_by_arr
+  end interface ${binary_tree}
+  interface ${binary_tree_node}
+     module procedure :: init_${binary_tree_node}
+  end interface ${binary_tree_node}
+  interface size
+     module procedure :: size_${binary_tree}
+  end interface size
+  interface depth
+     module procedure :: depth_${binary_tree}
+  end interface depth
+#+end_src
+**** The procedures of the binary tree
+:PROPERTIES:
+:header-args: :noweb-ref procedures-binary-tree
+:END:
+***** initialize the binary tree
+There are two procedures for initializing.
+The first procedure initializes the values to zero or null.
+#+begin_src fortran :exports code
+  impure type(${binary_tree}) function init_${binary_tree}() result(res)
+    res%num_elems_ = 0
+    res%root_ => null()
+  end function init_${binary_tree}
+#+end_src
+The second procedure initializes the values by elements of an array.
+#+begin_src fortran :exports code
+  impure type(${binary_tree}) function init_${binary_tree}_by_arr(arr) result(res)
+    ${type_element}, intent(in) :: arr(:)
+    integer(int32) :: i, n
+    res%num_elems_ = 0
+    n = size(arr)
+    do i = 1, n
+       call res%insert(arr(i))
+    end do
+  end function init_${binary_tree}_by_arr
+#+end_src
+#+begin_src fortran :exports code
+  impure function init_${binary_tree_node}(val) result(node)
+    type(${binary_tree_node}), pointer :: node
+    ${type_element}, intent(in) :: val
+    allocate(node)
+    node%elem_  = val
+    node%left_  => null()
+    node%right_ => null()
+    return
+  end function init_${binary_tree_node}
+#+end_src
+***** insert an element in the binary tree
+#+begin_src fortran :exports code
+  subroutine insert_${binary_tree}(tree, val)
+    class(${binary_tree}), intent(inout) :: tree
+    ${type_element}, intent(in) :: val
+    type(${binary_tree_node}), pointer :: child
+    if (.not. associated(tree%root_)) then
+       tree%root_ => ${binary_tree_node}(val)
+       tree%num_elems_ = 1
+       return
+    end if
+    child => tree%root_
+    do
+       if (val == child%elem_) then
+          return
+       else if (val < child%elem_) then
+          if (.not. associated(child%left_)) then
+             child%left_ => ${binary_tree_node}(val)
+             tree%num_elems_ = tree%num_elems_ + 1
+             return
+          end if
+          child => child%left_
+       else
+          if (.not. associated(child%right_)) then
+             child%right_ => ${binary_tree_node}(val)
+             tree%num_elems_ = tree%num_elems_ + 1
+             return
+          end if
+          child => child%right_
+       end if
+    end do
+  end subroutine insert_${binary_tree}
+#+end_src
+***** delete an element in the binary tree
+#+begin_src fortran :exports code
+  subroutine delete_${binary_tree}(tree, val)
+    class(${binary_tree}), intent(inout) :: tree
+    ${type_element}, intent(in) :: val
+    type(${binary_tree_node}), pointer :: child, left, right
+    if (.not. associated(tree%root_)) then
+       return
+    end if
+    child => tree%root_
+    do
+       !> undefined...
+    end do
+  end subroutine delete_${binary_tree}
+#+end_src
+***** search an element in the binary tree
+#+begin_src fortran :exports code
+  logical function search_${binary_tree}(tree, val) result(found)
+    class(${binary_tree}), intent(in) :: tree
+    ${type_element}, intent(in) :: val
+    !> undefined...
+  end function search_${binary_tree}
+#+end_src
+***** size
+#+begin_src fortran :exports code
+  pure integer(int32) function size_${binary_tree}(tree) result(res)
+    type(${binary_tree}), intent(in) :: tree
+    res = tree%num_elems_
+  end function size_${binary_tree}
+#+end_src
+***** depth
+#+begin_src fortran :exports code
+  integer(int32) function depth_${binary_tree}(tree) result(res)
+    type(${binary_tree}), intent(in) :: tree
+    type(${binary_tree_node}), pointer :: child
+    child => tree%root_
+    if (.not. associated(child)) then
+       res = 0
+    end if
+    res = depth_${binary_tree_node}(child)
+  end function depth_${binary_tree}
+  pure recursive integer(int32) function depth_${binary_tree_node}(node) result(res)
+    type(${binary_tree_node}), intent(in) :: node
+    logical :: exist_left, exist_right
+    exist_left  = associated(node%left_)
+    exist_right = associated(node%right_)
+    if (exist_left .and. exist_right) then
+       res = 1 + max(depth_${binary_tree_node}(node%left_)&
+            , depth_${binary_tree_node}(node%right_))
+    else if (exist_left) then
+       res = 1 + depth_${binary_tree_node}(node%left_)
+    else if (exist_right) then
+       res = 1 + depth_${binary_tree_node}(node%right_)
+    else
+       res = 1
+    end if
+  end function depth_${binary_tree_node}
+#+end_src
+***** write the whole elements in the binary tree
+#+begin_src fortran :exports code
+  subroutine write_${binary_tree}(this, unit, iotype, v_list, iostat, iomsg)
+    class(${binary_tree}), intent(in) :: this
+    integer              , intent(in)    :: unit
+    character(len=*)     , intent(in)    :: iotype
+    integer              , intent(in)    :: v_list(:)
+    integer              , intent(out)   :: iostat
+    character(len=*)     , intent(inout) :: iomsg
+    if (.not. associated(this%root_)) return
+    write(unit, *, iostat=iostat, iomsg=iomsg) "| "
+    call print_nodes_${binary_tree}(this%root_, unit=unit, iostat=iostat, iomsg=iomsg)
+    write(unit, *, iostat=iostat, iomsg=iomsg) "| "
+  end subroutine write_${binary_tree}
+
+  recursive subroutine print_nodes_${binary_tree}(node, unit, iostat, iomsg)
+    type(${binary_tree_node}), intent(in) :: node
+    integer         , intent(in)    :: unit
+    integer         , intent(out)   :: iostat
+    character(len=*), intent(inout) :: iomsg
+    if (associated(node%left_)) call print_nodes_${binary_tree}(node%left_, unit=unit, iostat=iostat, iomsg=iomsg)
+    write(unit, *, iostat=iostat, iomsg=iomsg) node%elem_
+    if (associated(node%right_)) call print_nodes_${binary_tree}(node%right_, unit=unit, iostat=iostat, iomsg=iomsg)
+  end subroutine print_nodes_${binary_tree}
+#+end_src
+**** expand
+#+name: expand-binary-tree
+#+begin_src bash :exports code :shebang #!/bin/bash
+  type_element="${type}(${type_kind})"
+  binary_tree="binary_tree_${type_kind}"
+  binary_tree_node="binary_tree_node_${type_kind}"
+#+end_src
+#+name: expand-declaration-binary-tree
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<expand-binary-tree>>
+  cat <<EOF
+  <<declaration-binary-tree>>
+  EOF
+#+end_src
+#+name: expand-procedures-binary-tree
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<expand-binary-tree>>
+  cat <<EOF
+  <<procedures-binary-tree>>
+  EOF
+#+end_src
+**** test
+#+name: binary-tree-test
+#+begin_src fortran :exports code :tangle "test/test_binary_tree.f90" :comments link
+  program test_binary_tree
+    use, intrinsic :: iso_fortran_env
+    use binary_tree_m
+    implicit none
+    integer :: i
+    type(binary_tree_int32) :: bt_int32, bt2
+    bt_int32 = binary_tree_int32()
+    bt2 = binary_tree_int32([(i, i = 1,10)])
+    call bt_int32%insert(10)
+    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
+    call bt_int32%insert(1)
+    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
+    call bt_int32%insert(17)
+    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
+    write(output_unit, *) bt2, size(bt2), depth(bt2)
+  end program test_binary_tree
+#+end_src
+#+name: test-binary-tree
+#+begin_src fortran :flags -g -fbacktrace -fcheck=all :exports both :results output :noweb no-export :cache yes
+<<binary-tree-module>>
+<<binary-tree-test>>
+#+end_src
+
+#+RESULTS[77a553cd19dd723f34997f7ad7f3dd3d2efae278]: test-binary-tree
+: |           10 |            1           1
+: |            1          10 |            2           2
+: |            1          10          17 |            3           2
+: |            1           2           3           4           5           6           7           8           9          10 |           10          10
+
+*** integer tree
 #+begin_src fortran :exports code :results output :cache yes
   module tree_int_m
     use, intrinsic :: iso_fortran_env
