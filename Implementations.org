@@ -1576,15 +1576,38 @@ ${type_element} is the type of elements.
    contains
      procedure, pass :: insert => insert_${binary_tree}
      procedure, pass :: delete => delete_${binary_tree}
-     procedure, pass :: search => search_${binary_tree}
+     ! procedure, pass :: search => search_${binary_tree}
+     procedure, pass :: minimum => minimum_${binary_tree}
+     procedure, pass :: maximum => maximum_${binary_tree}
+     procedure, pass :: begin => begin_${binary_tree}
+     procedure, pass :: end   => end_${binary_tree}
+     procedure, pass :: to_array         => to_array_${binary_tree}
+     procedure, pass :: to_array_reverse => to_array_reverse_${binary_tree}
      procedure, pass :: write_${binary_tree}
      generic :: write(formatted) => write_${binary_tree}
   end type ${binary_tree}
+  public :: ${binary_tree_iterator}
+  type :: ${binary_tree_iterator}
+     private
+     type(${binary_tree_node}), pointer :: ptr_ => null()
+   contains
+     procedure, pass :: val => val_${binary_tree_iterator}
+     procedure, pass :: next => next_${binary_tree_iterator}
+     procedure, pass :: pred => pred_${binary_tree_iterator}
+     procedure, pass :: is_null => is_null_${binary_tree_iterator}
+     procedure, pass :: to => to_${binary_tree_iterator}
+  end type ${binary_tree_iterator}
   type :: ${binary_tree_node}
      private
      ${type_element} :: elem_
+     type(${binary_tree_node}), pointer :: p_     => null()
      type(${binary_tree_node}), pointer :: left_  => null()
      type(${binary_tree_node}), pointer :: right_ => null()
+   contains
+     procedure, pass :: minimum   => minimum_${binary_tree_node}
+     procedure, pass :: maximum   => maximum_${binary_tree_node}
+     procedure, pass :: successor   => successor_${binary_tree_node}
+     procedure, pass :: predecessor => predecessor_${binary_tree_node}
   end type ${binary_tree_node}
 
   interface ${binary_tree}
@@ -1631,40 +1654,50 @@ The second procedure initializes the values by elements of an array.
     ${type_element}, intent(in) :: val
     allocate(node)
     node%elem_  = val
+    node%p_     => null()
     node%left_  => null()
     node%right_ => null()
     return
   end function init_${binary_tree_node}
 #+end_src
 ***** insert an element in the binary tree
+The subroutine that inserts an element into the binary tree.
+If the root of tree is null, we create the new node in the root of tree.
 #+begin_src fortran :exports code
   subroutine insert_${binary_tree}(tree, val)
     class(${binary_tree}), intent(inout) :: tree
     ${type_element}, intent(in) :: val
-    type(${binary_tree_node}), pointer :: child
-    if (.not. associated(tree%root_)) then
-       tree%root_ => ${binary_tree_node}(val)
+    type(${binary_tree_node}), pointer :: node, new_node, parent
+    new_node => ${binary_tree_node}(val)
+    parent => null()
+    node => tree%root_
+    if (.not. associated(node)) then
+       tree%root_  => new_node
+       new_node%p_ => null()
        tree%num_elems_ = 1
        return
     end if
-    child => tree%root_
     do
-       if (val == child%elem_) then
+       if (val == node%elem_) then
           return
-       else if (val < child%elem_) then
-          if (.not. associated(child%left_)) then
-             child%left_ => ${binary_tree_node}(val)
+       else if (val < node%elem_) then
+          parent => node
+          node   => node%left_
+          if (.not. associated(node)) then
+             parent%left_ => new_node
+             new_node%p_  => parent
              tree%num_elems_ = tree%num_elems_ + 1
              return
           end if
-          child => child%left_
        else
-          if (.not. associated(child%right_)) then
-             child%right_ => ${binary_tree_node}(val)
+          parent => node
+          node   => node%right_
+          if (.not. associated(node)) then
+             parent%right_ => new_node
+             new_node%p_   => parent
              tree%num_elems_ = tree%num_elems_ + 1
              return
           end if
-          child => child%right_
        end if
     end do
   end subroutine insert_${binary_tree}
@@ -1684,13 +1717,207 @@ The second procedure initializes the values by elements of an array.
     end do
   end subroutine delete_${binary_tree}
 #+end_src
-***** search an element in the binary tree
+***** the minimum value in the binary tree
+#+begin_src fortran :exports code
+  ${type_element} function minimum_${binary_tree}(tree) result(mini)
+    class(${binary_tree}), intent(in) :: tree
+    type(${binary_tree_node}), pointer :: node, min_node
+    if (.not. associated(tree%root_)) then
+       write(error_unit, *) "Manipulation to empty tree is not allowed."
+       return
+    end if
+    node => tree%root_
+    min_node => node%minimum()
+    mini = min_node%elem_
+  end function minimum_${binary_tree}
+#+end_src
+***** the maximum value in the binary tree
+#+begin_src fortran :exports code
+  ${type_element} function maximum_${binary_tree}(tree) result(maxi)
+    class(${binary_tree}), intent(in) :: tree
+    type(${binary_tree_node}), pointer :: node, max_node
+    if (.not. associated(tree%root_)) then
+       write(error_unit, *) "Manipulation to empty tree is not allowed."
+       return
+    end if
+    node => tree%root_
+    max_node => node%maximum()
+    maxi = max_node%elem_
+  end function maximum_${binary_tree}
+#+end_src
+***** the begin node in the binary tree
+#+begin_src fortran :exports code
+  function begin_${binary_tree}(tree) result(begin)
+    class(${binary_tree}), intent(in) :: tree
+    type(${binary_tree_node}), pointer :: begin
+    if (.not. associated(tree%root_)) then
+       write(error_unit, *) "Manipulation to empty tree is not allowed."
+       return
+    end if
+    begin => tree%root_%minimum()
+  end function begin_${binary_tree}
+#+end_src
+***** the end node in the binary tree
+#+begin_src fortran :exports code
+  function end_${binary_tree}(tree) result(end)
+    class(${binary_tree}), intent(in) :: tree
+    type(${binary_tree_node}), pointer :: end
+    if (.not. associated(tree%root_)) then
+       write(error_unit, *) "Manipulation to empty tree is not allowed."
+       return
+    end if
+    end => tree%root_%maximum()
+  end function end_${binary_tree}
+#+end_src
+***** Convert the tree to sorted array
+#+begin_src fortran :exports code
+  subroutine to_array_${binary_tree}(tree, arr)
+    class(${binary_tree}), intent(in) :: tree
+    ${type_element}, intent(out) :: arr(:)
+    type(${binary_tree_iterator}) :: iter
+    type(${binary_tree_node}), pointer :: beg_ptr
+    integer(int32) :: i
+    beg_ptr => tree%begin()
+    call iter%to(beg_ptr)
+    do i = 1, size(tree)
+       if (iter%is_null()) exit
+       arr(i) = iter%val()
+       call iter%next()
+    end do
+  end subroutine to_array_${binary_tree}
+  subroutine to_array_reverse_${binary_tree}(tree, arr)
+    class(${binary_tree}), intent(in) :: tree
+    ${type_element}, intent(out) :: arr(:)
+    type(${binary_tree_iterator}) :: iter
+    type(${binary_tree_node}), pointer :: end_ptr
+    integer(int32) :: i
+    end_ptr => tree%end()
+    call iter%to(end_ptr)
+    do i = 1, size(tree)
+       if (iter%is_null()) exit
+       arr(i) = iter%val()
+       call iter%pred()
+    end do
+  end subroutine to_array_reverse_${binary_tree}
+#+end_src
+***** COMMENT search an element in the binary tree
+The search is not necessarily...?
 #+begin_src fortran :exports code
   logical function search_${binary_tree}(tree, val) result(found)
     class(${binary_tree}), intent(in) :: tree
     ${type_element}, intent(in) :: val
     !> undefined...
   end function search_${binary_tree}
+#+end_src
+***** node
+****** minimum
+The function minimum returns a pointer to the minimum node under the tree node.
+#+begin_src fortran :exports code
+  function minimum_${binary_tree_node}(this) result(min_node)
+    class(${binary_tree_node}), target, intent(in) :: this
+    type(${binary_tree_node}) , pointer :: min_node
+    min_node => this
+    do
+       if (.not. associated(min_node%left_)) return
+       min_node => min_node%left_
+    end do
+  end function minimum_${binary_tree_node}
+#+end_src
+****** maximum
+The function maximum returns a pointer to the maximum node under the tree node.
+#+begin_src fortran :exports code
+  function maximum_${binary_tree_node}(this) result(max_node)
+    class(${binary_tree_node}), target, intent(in) :: this
+    type(${binary_tree_node}) , pointer :: max_node
+    max_node => this
+    do
+       if (.not. associated(max_node%right_)) return
+       max_node => max_node%right_
+    end do
+  end function maximum_${binary_tree_node}
+#+end_src
+****** successor
+The function successor returns a pointer to the node whose next larger value.
+#+begin_src fortran :exports code
+  function successor_${binary_tree_node}(this) result(succ)
+    class(${binary_tree_node}), target, intent(in) :: this
+    type(${binary_tree_node}) , pointer :: succ
+    succ => this
+    if (associated(succ%right_)) then ! succ has right.
+       succ => succ%right_%minimum()
+       return
+    end if
+    do
+       if (.not. associated(succ%p_)) then
+          succ => null()
+          return
+       else if (associated(succ, succ%p_%left_)) then
+          succ => succ%p_
+          return
+       end if
+       succ => succ%p_
+    end do
+  end function successor_${binary_tree_node}
+#+end_src
+****** predecessor
+The function successor returns a pointer to the node whose next larger value.
+#+begin_src fortran :exports code
+  function predecessor_${binary_tree_node}(this) result(pred_node)
+    class(${binary_tree_node}), target, intent(in) :: this
+    type(${binary_tree_node}) , pointer :: node, pred_node
+    node => this
+    if (associated(node%left_)) then ! node has left.
+       pred_node => node%left_%maximum()
+       return
+    end if
+    do
+       if (.not. associated(node%p_)) then
+          pred_node => null()
+          return
+       else if (associated(node, node%p_%right_)) then
+          pred_node => node%p_
+          return
+       end if
+       node => node%p_
+    end do
+  end function predecessor_${binary_tree_node}
+#+end_src
+***** iterator
+****** point to node
+#+begin_src fortran :exports code
+  subroutine to_${binary_tree_iterator}(iter, node_ptr)
+    class(${binary_tree_iterator}), intent(out) :: iter
+    type(${binary_tree_node}), pointer, intent(in) :: node_ptr
+    iter%ptr_ => node_ptr
+  end subroutine to_${binary_tree_iterator}
+#+end_src
+****** val
+#+begin_src fortran :exports code
+  ${type_element} function val_${binary_tree_iterator}(iter) result(res)
+    class(${binary_tree_iterator}), intent(in) :: iter
+    res = iter%ptr_%elem_
+  end function val_${binary_tree_iterator}
+#+end_src
+****** next
+#+begin_src fortran :exports code
+  subroutine next_${binary_tree_iterator}(iter)
+    class(${binary_tree_iterator}), intent(inout) :: iter
+    if (associated(iter%ptr_)) iter%ptr_ => iter%ptr_%successor()
+  end subroutine next_${binary_tree_iterator}
+#+end_src
+****** pred
+#+begin_src fortran :exports code
+  subroutine pred_${binary_tree_iterator}(iter)
+    class(${binary_tree_iterator}), intent(inout) :: iter
+    iter%ptr_ => iter%ptr_%predecessor()
+  end subroutine pred_${binary_tree_iterator}
+#+end_src
+****** is_null
+#+begin_src fortran :exports code
+  logical function is_null_${binary_tree_iterator}(iter) result(is_null)
+    class(${binary_tree_iterator}), intent(in) :: iter
+    is_null = .not. associated(iter%ptr_)
+  end function is_null_${binary_tree_iterator}
 #+end_src
 ***** size
 #+begin_src fortran :exports code
@@ -1731,6 +1958,7 @@ The second procedure initializes the values by elements of an array.
 #+begin_src fortran :exports code
   subroutine write_${binary_tree}(this, unit, iotype, v_list, iostat, iomsg)
     class(${binary_tree}), intent(in) :: this
+    type(${binary_tree_iterator}) :: iter
     integer              , intent(in)    :: unit
     character(len=*)     , intent(in)    :: iotype
     integer              , intent(in)    :: v_list(:)
@@ -1758,6 +1986,7 @@ The second procedure initializes the values by elements of an array.
   type_element="${type}(${type_kind})"
   binary_tree="binary_tree_${type_kind}"
   binary_tree_node="binary_tree_node_${type_kind}"
+  binary_tree_iterator="binary_tree_iterator_${type_kind}"
 #+end_src
 #+name: expand-declaration-binary-tree
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
@@ -1778,32 +2007,111 @@ The second procedure initializes the values by elements of an array.
 #+begin_src fortran :exports code :tangle "test/test_binary_tree.f90" :comments link
   program test_binary_tree
     use, intrinsic :: iso_fortran_env
+    use is_sorted_m
     use binary_tree_m
     implicit none
-    integer :: i
-    type(binary_tree_int32) :: bt_int32, bt2
+    integer(int32) :: i
+    type(binary_tree_int32) :: bt_int32, bt2, bt_only_l, bt_only_r
+    type(binary_tree_iterator_int32) :: bt_iter
     bt_int32 = binary_tree_int32()
-    bt2 = binary_tree_int32([(i, i = 1,10)])
+    bt2 = binary_tree_int32([10, 5, 6, 7, 8, 9, 15, 3, 18, 2, 4, 19, 17, 1, 0, -1, -2, 11, 16, 14, 12, 13])
+    bt_only_l = binary_tree_int32([(i, i = 10, 1, -1)])
+    bt_only_r = binary_tree_int32([(i, i = 1, 10)])
     call bt_int32%insert(10)
-    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
+    call bt_int32%insert(-11)
     call bt_int32%insert(1)
-    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
+    call bt_int32%insert(20)
     call bt_int32%insert(17)
-    write(output_unit, *) bt_int32, size(bt_int32), depth(bt_int32)
-    write(output_unit, *) bt2, size(bt2), depth(bt2)
-  end program test_binary_tree
+    if (size(bt_int32) /= 5) then
+       write(error_unit, *) "size error: ", size(bt_int32)
+       error stop 1
+    end if
+    block
+      integer(int32) :: sorted_arr(size(bt_only_l)), sorted_arr2(size(bt_only_l))
+      call bt_iter%to(bt_only_l%begin())
+      do i = 1, size(bt_only_l)
+         if (bt_iter%is_null()) exit
+         sorted_arr(i) = bt_iter%val()
+         call bt_iter%next()
+      end do
+      if (.not. is_sorted(sorted_arr)) then
+         write(error_unit, *) sorted_arr(:)
+         error stop 2
+      end if
+      call bt_only_l%to_array(sorted_arr2)
+      if (any(sorted_arr2 /= sorted_arr)) then
+         write(error_unit, *) sorted_arr
+         write(error_unit, *) sorted_arr2
+         error stop 3
+      end if
+    end block
+    block
+      integer(int32) :: sorted_arr(size(bt_only_l)), sorted_arr2(size(bt_only_l))
+      call bt_iter%to(bt_only_l%end())
+      do i = 1, size(bt_only_l)
+         if (bt_iter%is_null()) exit
+         sorted_arr(i) = bt_iter%val()
+         call bt_iter%pred()
+      end do
+      if (.not. is_sorted_descending(sorted_arr)) then
+         write(error_unit, *) sorted_arr(:)
+         error stop 4
+      end if
+      call bt_only_l%to_array_reverse(sorted_arr2)
+      if (any(sorted_arr2 /= sorted_arr)) then
+         write(error_unit, *) sorted_arr
+         write(error_unit, *) sorted_arr2
+         error stop 5
+      end if
+    end block
+    block
+      integer(int32) :: sorted_arr(size(bt_only_r)), sorted_arr2(size(bt_only_r))
+      call bt_iter%to(bt_only_r%end())
+      do i = 1, size(bt_only_r)
+         if (bt_iter%is_null()) exit
+         sorted_arr(i) = bt_iter%val()
+         call bt_iter%pred()
+      end do
+      if (.not. is_sorted_descending(sorted_arr)) then
+         write(error_unit, *) sorted_arr(:)
+         error stop 6
+      end if
+      call bt_only_r%to_array_reverse(sorted_arr2)
+      if (any(sorted_arr2 /= sorted_arr)) then
+         write(error_unit, *) sorted_arr
+         write(error_unit, *) sorted_arr2
+         error stop 7
+      end if
+    end block
+    block
+      integer(int32) :: sorted_arr(size(bt2)), sorted_arr2(size(bt2))
+      call bt_iter%to(bt2%begin())
+      do i = 1, size(bt2)
+         if (bt_iter%is_null()) exit
+         sorted_arr(i) = bt_iter%val()
+         call bt_iter%next()
+      end do
+      if (.not. is_sorted(sorted_arr)) then
+         write(error_unit, *) sorted_arr(:)
+         error stop 8
+      end if
+      call bt2%to_array(sorted_arr2)
+      if (any(sorted_arr2 /= sorted_arr)) then
+         write(error_unit, *) sorted_arr
+         write(error_unit, *) sorted_arr2
+         error stop 9
+      end if
+    end block
+  end program
 #+end_src
 #+name: test-binary-tree
 #+begin_src fortran :flags -g -fbacktrace -fcheck=all :exports both :results output :noweb no-export :cache yes
+<<is-sorted-module>>
 <<binary-tree-module>>
 <<binary-tree-test>>
 #+end_src
 
-#+RESULTS[77a553cd19dd723f34997f7ad7f3dd3d2efae278]: test-binary-tree
-: |           10 |            1           1
-: |            1          10 |            2           2
-: |            1          10          17 |            3           2
-: |            1           2           3           4           5           6           7           8           9          10 |           10          10
+#+RESULTS[64e568d1e9d4160a294eced8983afb6ee0a5d3d8]: test-binary-tree
 
 *** integer tree
 #+begin_src fortran :exports code :results output :cache yes
