@@ -205,7 +205,7 @@ contains
     if (present(found)) found = .false.
   end function search_hash_table_int32
   subroutine write_hash_table_int32(this, unit, iotype, v_list, iostat, iomsg)
-    class(hash_table_int32), intent(in)    :: this
+    class(hash_table_int32), intent(in) :: this
     integer             , intent(in)    :: unit
     character(len=*)    , intent(in)    :: iotype
     integer             , intent(in)    :: v_list(:)
@@ -304,7 +304,7 @@ contains
     if (present(found)) found = .false.
   end function search_hash_table_int64
   subroutine write_hash_table_int64(this, unit, iotype, v_list, iostat, iomsg)
-    class(hash_table_int64), intent(in)    :: this
+    class(hash_table_int64), intent(in) :: this
     integer             , intent(in)    :: unit
     character(len=*)    , intent(in)    :: iotype
     integer             , intent(in)    :: v_list(:)
@@ -403,7 +403,7 @@ contains
     if (present(found)) found = .false.
   end function search_hash_table_real32
   subroutine write_hash_table_real32(this, unit, iotype, v_list, iostat, iomsg)
-    class(hash_table_real32), intent(in)    :: this
+    class(hash_table_real32), intent(in) :: this
     integer             , intent(in)    :: unit
     character(len=*)    , intent(in)    :: iotype
     integer             , intent(in)    :: v_list(:)
@@ -502,7 +502,7 @@ contains
     if (present(found)) found = .false.
   end function search_hash_table_real64
   subroutine write_hash_table_real64(this, unit, iotype, v_list, iostat, iomsg)
-    class(hash_table_real64), intent(in)    :: this
+    class(hash_table_real64), intent(in) :: this
     integer             , intent(in)    :: unit
     character(len=*)    , intent(in)    :: iotype
     integer             , intent(in)    :: v_list(:)

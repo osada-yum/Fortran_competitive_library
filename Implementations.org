@@ -1237,7 +1237,7 @@ There are three procedures for the linked list.
 We implement open addressing hash table that use double hash by ~Fortran~.
 The size of hash table is \(m\).
 We cannot store the number of elements that is over \(m\).
-**** The whole module of hash table
+**** The whole module of the hash table
 This is the whole module.
 The element of hash table is below.
 #+name: hash_table-module
@@ -1283,7 +1283,7 @@ The element of hash table is below.
     <<expand-procedures-hash_table(type="real", type_kind="real64")>>
   end module hash_table_m
 #+end_src
-**** The type declaration of hash table
+**** The type declaration of the hash table
 #+name: declaration-hash_table
 #+begin_src fortran :exports code
   public :: ${hash_table}
@@ -1309,7 +1309,7 @@ The element of hash table is below.
      module procedure :: size_${hash_table}
   end interface
 #+end_src
-**** procedures of hash table
+**** The procedures of the hash table
 #+name: procedures-hash_table
 #+begin_src fortran :exports code :noweb no-export
     <<init-hash_table>>
@@ -1436,7 +1436,7 @@ If =key= is already in the hash table, change to new =val= corresponding to =key
 #+name: write-hash_table
 #+begin_src fortran :exports code
   subroutine write_${hash_table}(this, unit, iotype, v_list, iostat, iomsg)
-    class(${hash_table}), intent(in)    :: this
+    class(${hash_table}), intent(in) :: this
     integer             , intent(in)    :: unit
     character(len=*)    , intent(in)    :: iotype
     integer             , intent(in)    :: v_list(:)
