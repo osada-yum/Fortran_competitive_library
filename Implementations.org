@@ -25,6 +25,57 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 #+begin_src emacs-lisp :exports both :results output :cache yes
   (customize-set-variable 'org-confirm-babel-evaluate nil)
 #+end_src
+* org-babel macros
+** assertion
+#+name: assert-fortran
+#+begin_src fortran :exports code
+  if (${cond}) then
+     write(error_unit, '(a, i0, a)')&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') "Assertion '${cond_origin}' must be ${true_false}."
+     if (len_trim("${message}") /= 0) then
+        write(error_unit, '(a)') "Extra message: '${message}'"
+     end if
+     error stop ${code}
+  end if
+#+end_src
+#+name: assert-true
+#+begin_src bash :exports code :var cond=".true." code="127" message="" :results output :noweb no-export
+  true_false=false
+  cond_origin="${cond}"
+  cond="${cond}"
+  code=${code}
+  message="${message}"
+  cat << EOF
+  <<assert-fortran>>
+  EOF
+#+end_src
+#+name: assert-false
+#+begin_src bash :exports code :var cond=".true." code="127" message="" :results output :noweb no-export
+  true_false=true
+  cond_origin="${cond}"
+  cond=".not. (${cond})"
+  code=${code}
+  message="${message}"
+  cat << EOF
+  <<assert-fortran>>
+  EOF
+#+end_src
+#+name: assert-test
+#+begin_src fortran :exports code :noweb yes
+  program hi
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    integer(int32) :: a = 1, b = 2
+    <<assert-true(cond="2<1", code=1, message="in main")>>
+    <<assert-false(cond="a < b", code=2, message="")>>
+  end program hi
+#+end_src
+
+#+RESULTS: assert-test
+
 * utilities
 ** swap
 *** base code
