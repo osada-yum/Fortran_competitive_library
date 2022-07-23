@@ -1012,6 +1012,190 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 ** prime
 *** prime factorization
 * data structure
+** Comparable
+*** whole module of comparable class
+The children of =comparable= implement relational operators(=<=, =>=, =<==, =>==, ====, =/==).
+The user of the child class must implement two operators (=<== and ===), (=<==, and =/==).
+#+name: comparable-module
+#+begin_src fortran :exports code :tangle "src/comparable_m.f90" :comments link :noweb no-export
+  module comparable_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    <<declaration-comparable>>
+  contains
+    <<procedures-comparable>>
+  end module comparable_m
+#+end_src
+**** declaration of the comparable class
+#+name: declaration-comparable
+#+begin_src fortran :exports code
+    public :: comparable
+    type :: comparable
+     contains
+       procedure, pass :: less    => less_comparable
+       procedure, pass :: less_equal    => less_equal_comparable
+       procedure, pass :: greater => greater_comparable
+       procedure, pass :: greater_equal => greater_equal_comparable
+       procedure, pass :: equal => equal_comparable
+       procedure, pass :: not_equal => not_equal_comparable
+       generic :: operator(<) => less
+       generic :: operator(<=) => less_equal
+       generic :: operator(>) => greater
+       generic :: operator(>=) => greater_equal
+       generic :: operator(==) => equal
+       generic :: operator(/=) => not_equal
+    end type comparable
+#+end_src
+**** procedures of the comparable class
+:PROPERTIES:
+:header-args: :noweb-ref procedures-comparable
+:END:
+***** definition of <
+
+The definition of =<= is given by =<== and =/==.
+#+name: definition-less
+#+begin_src fortran :exports code
+  logical function less_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    less_comparable = (lhs <= rhs) .and. (lhs /= rhs)
+  end function less_comparable
+#+end_src
+***** definition of <=
+
+The definition of =<== must be overridden.
+#+name: definition-less-equal
+#+begin_src fortran :exports code
+  logical function less_equal_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    error stop "You must implement less_equal in the child class of comparable."
+  end function less_equal_comparable
+#+end_src
+***** definition of >
+
+The definition of =>= is given by =<==.
+#+name: definition-greater
+#+begin_src fortran :exports code
+  logical function greater_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    greater_comparable = .not. (lhs <= rhs)
+  end function greater_comparable
+#+end_src
+***** definition of >=
+
+The definition of =>== is given by ==== and =<==.
+#+name: definition-greater-equal
+#+begin_src fortran :exports code
+  logical function greater_equal_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    greater_equal_comparable = (lhs == rhs) .or. (.not. (lhs <= rhs))
+  end function greater_equal_comparable
+#+end_src
+***** definition of ==
+
+The definition of ==== is given by =/==.
+The definition of either ==== or =/== must be overridden.
+#+name: definition-equal
+#+begin_src fortran :exports code
+  logical function equal_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    equal_comparable = .not. (lhs /= rhs)
+  end function equal_comparable
+#+end_src
+***** definition of =/==
+
+The definition of =/== is given by ====.
+The definition of either ==== or =/== must be overridden.
+#+name: definition-not-equal
+#+begin_src fortran :exports code
+  logical function not_equal_comparable(lhs, rhs)
+    class(comparable), intent(in) :: lhs
+    class(comparable), intent(in) :: rhs
+    not_equal_comparable = .not. (lhs == rhs)
+  end function not_equal_comparable
+#+end_src
+*** test
+**** test module
+#+name: comparable-test-module
+#+begin_src fortran :exports code :tangle "test/test_comparable_m.F90" :comments link :noweb no-export
+  module comparable_test_m
+    use, intrinsic :: iso_fortran_env
+    use comparable_m
+    implicit none
+    private
+    public :: comp_int
+    type, extends(comparable) :: comp_int
+       integer(int32) :: val_
+     contains
+       procedure, pass :: val => val_comp_int
+       procedure, pass :: less_equal => less_equal_comp_int
+       procedure, pass :: equal => equal_comp_int
+    end type comp_int
+  contains
+    pure integer(int32) function val_comp_int(this)
+      class(comp_int), intent(in) :: this
+      val_comp_int = this%val_
+    end function val_comp_int
+    logical function less_equal_comp_int(lhs, rhs)
+      class(comp_int), intent(in) :: lhs
+      class(comparable), intent(in) :: rhs
+      <<assert-false(cond="same_type_as(lhs, rhs)", code=1, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
+      select type (rhs)
+      type is (comp_int)
+         less_equal_comp_int = lhs%val() <= rhs%val()
+      end select
+    end function less_equal_comp_int
+    logical function equal_comp_int(lhs, rhs)
+      class(comp_int), intent(in) :: lhs
+      class(comparable), intent(in) :: rhs
+      <<assert-false(cond="same_type_as(lhs, rhs)", code=2, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
+      select type (rhs)
+      type is (comp_int)
+         equal_comp_int = lhs%val() == rhs%val()
+      end select
+    end function equal_comp_int
+  end module comparable_test_m
+#+end_src
+**** main
+#+name: comparable-test
+#+begin_src fortran :exports code :tangle "test/test_comparable.F90" :comments link :noweb no-export
+  program test_comparable
+    use, intrinsic :: iso_fortran_env
+    use comparable_m
+    use comparable_test_m
+    implicit none
+    type(comp_int) :: a
+    class(comparable), pointer :: b
+    a = comp_int(39)
+    allocate(b, source = comp_int(42))
+    <<assert-false(cond="a < b", code=1, message="in main")>>
+    <<assert-false(cond="a <= b", code=2, message="in main")>>
+    <<assert-true(cond="a >= b", code=3, message="in main")>>
+    <<assert-true(cond="a > b", code=4, message="in main")>>
+    <<assert-false(cond="a < b", code=5, message="in main")>>
+    <<assert-false(cond="a <= a", code=6, message="in main")>>
+    <<assert-false(cond="a == a", code=7, message="in main")>>
+    <<assert-true(cond="a /= a", code=8, message="in main")>>
+    <<assert-true(cond="b < a", code=9, message="in main")>>
+    <<assert-true(cond="b <= a", code=10, message="in main")>>
+    <<assert-false(cond="b >= a", code=11, message="in main")>>
+    <<assert-false(cond="b > a", code=12, message="in main")>>
+  end program test_comparable
+#+end_src
+**** whole test
+#+begin_src fortran :flags -fbacktrace -g :exports both :results output :cache yes :noweb no-export
+    <<comparable-module>>
+    <<comparable-test-module>>
+    <<comparable-test>>
+#+end_src
+
+#+RESULTS[8a03d93a42e56c4ce762831226dc68cbde7e917e]:
+
 ** linked list
 *** by pointer
 **** whole module of linked list
