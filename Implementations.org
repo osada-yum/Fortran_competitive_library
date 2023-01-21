@@ -919,6 +919,60 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 : 8 3 1 9 5 4 2 7 6
 : 1 2 3 4 5 6 7 8 9
 
+** heap-sort
+*** base code
+#+name: heap_sort
+#+begin_src fortran :exports code
+  subroutine heap_sort${suffix}(arr)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32) :: size, i
+    size = size(arr)
+    do i = 1, size
+       call shift_up(arr, i)
+    end do
+    do i = size-1, 1, -1
+       call swap(1, arr(i))
+       call shift_down(arr, i)
+    end do
+  end subroutine heap_sort${suffix}
+#+end_src
+#+name: shift_up
+#+begin_src fortran :exports code
+  subroutine shift_up${suffix}(arr, n)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: n
+    integer(int32) :: pos
+    pos = n
+    do
+       if (pos == 1) exit
+       if (arr(pos) > arr(pos/2)) exit
+       call swap(arr(pos), arr(pos/2))
+       pos = pos/2
+    end do
+  end subroutine shift_up${suffix}
+#+end_src
+#+name: shift_down
+#+begin_src fortran :exports code
+  subroutine shift_down${suffix}(arr, n)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: n
+    integer(int32) :: pos
+    pos = 1
+    do
+       if (pos*2 > n) exit
+       if (arr(pos*2) > arr(pos)) then
+          pos = pos*2
+          if (pos == n) then
+             call swap(arr(pos), arr(pos/2))
+             exit
+          end if
+          if (arr(pos*2+1) > arr(pos*2)) pos = pos+1
+          call swap(arr(pos), arr(pos/2))
+       end if
+    end do
+  end subroutine shift_down${suffix}
+#+end_src
+*** test
 * search
 ** binary-search
 *** base
@@ -1416,6 +1470,7 @@ There are three procedures for the linked list.
 : T
 : F
 
+** Variable array
 ** Hash table
 *** open addressing hash by double hash
 We implement open addressing hash table that use double hash by ~Fortran~.
