@@ -1500,7 +1500,344 @@ There are three procedures for the linked list.
 : T
 : F
 
-** Variable array
+** Vector (Variable array)
+*** whole module of the vector
+#+name: vector-module
+#+begin_src fortran :exports code :tangle "src/vector_m.F90" :comment link :noweb no-export
+  module vector_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+  <<declaration-vector-var(type="integer", type_kind="int32")>>
+  <<declaration-vector-var(type="integer", type_kind="int64")>>
+  <<declaration-vector-var(type="real", type_kind="real32")>>
+  <<declaration-vector-var(type="real", type_kind="real64")>>
+  <<declaration-vector-var(type="logical")>>
+  contains
+  <<procedures-vector-var(type="integer", type_kind="int32")>>
+  <<procedures-vector-var(type="integer", type_kind="int64")>>
+  <<procedures-vector-var(type="real", type_kind="real32")>>
+  <<procedures-vector-var(type="real", type_kind="real64")>>
+  <<procedures-vector-var(type="logical")>>
+  end module vector_m
+#+end_src
+*** declaration of the vector
+First, We define type of the vector.
+These vectors are implemented by the array that shrink and expand.
+The list can add new values, delete, and search some elements.
+
+Variables like ${variable} are expanded by bash.
+- ${type} is type of elements in the list.
+#+name: declaration-vector
+#+begin_src fortran :exports code
+  public :: vector_${suffix}
+  type :: vector_${suffix}
+     private
+     ${type}, allocatable :: arr_(:)
+     integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
+   contains
+     procedure, pass :: init      => init_vector_${suffix}, init_vector_range_${suffix}
+     procedure, pass :: push_back => push_back_vector_${suffix}
+     procedure, pass :: pop_back  => pop_back_vector_${suffix}
+     procedure, pass :: size      => size_vector_${suffix}
+     procedure, pass :: lbound    => lbound_vector_${suffix}
+     procedure, pass :: ubound    => ubound_vector_${suffix}
+     procedure, pass :: resize    => resize_vector_${suffix}, resize_range_vector_${suffix}
+     procedure, pass :: at        => at_vector_${suffix}
+     procedure, pass :: replace   => replace_vector_${suffix}
+     ! procedure, pass :: make_iter => make_iter_vector_${suffix}
+  end type vector_${suffix}
+
+  ! public :: iterator_vector_${suffix}
+  ! type :: iterator_vector_${suffix}
+  !    private
+  !    type(vector_${suffix}), pointer :: vec_ptr
+  !    integer(int32) :: iter_
+  !  contains
+  !    procedure, pass :: next  => next_iterator_vector_${suffix}
+  !    procedure, pass :: prev  => prev_iterator_vector_${suffix}
+  !    procedure, pass :: begin => begin_iterator_vector_${suffix}
+  !    procedure, pass :: end   => end_iterator_vector_${suffix}
+  !    procedure, pass :: val   => val_iterator_vector_${suffix}
+  ! end type vector_${suffix}
+#+end_src
+*** procedures of the vector
+There are three procedures for the linked list.
+#+name: procedures-vector
+#+begin_src fortran :exports code :noweb no-export
+  <<init-vector>>
+  <<push_back-vector>>
+  <<pop_back-vector>>
+  <<size-vector>>
+  <<lbound-vector>>
+  <<ubound-vector>>
+  <<resize-vector>>
+  <<at-vector>>
+  <<replace-vector>>
+#+end_src
+**** init
+=subroutine init= initialize vector by size.
+#+name: init-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> init_vector_${suffix}: Initialize the vector_${suffix} by size.
+  subroutine init_vector_${suffix}(this, n)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+       this%lb_   = 1
+  #ifdef DEBUG
+    else
+       <<error-handling-filename>>
+       <<error-handling-error_message-exit(err_num=1,string="Vector is already allocated...")>>
+  #endif
+    end if
+  end subroutine init_vector_${suffix}
+
+  !> init_vector_range_${suffix}: Initialize the vector_${suffix} by size.
+  subroutine init_vector_range_${suffix}(this, lb, ub, ierr)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(in) :: lb, ub
+    integer(int32), intent(out), optional :: ierr
+    if (lb > ub) then
+       <<error-handling-return-ierr(ierr=1)>>
+       <<error-handling-filename>>
+       <<error-handling-error_message-exit(err_num=2,string="init_vector_range_${suffix}: `ub` must be larger than or equal tox `lb`")>>
+    end if
+    call this%init(ub-lb+1)
+    this%lb_ = lb
+    if (present(ierr)) ierr = 0
+  end subroutine init_vector_range_${suffix}
+#+end_src
+**** push_back
+=subroutine push_back= insert value to the tail of elements of the vector.
+#+name: push_back-vector
+#+begin_src fortran :exports code
+  !> push_back_vector_${suffix}: Insert value to the tail of elements of the vector.
+  subroutine push_back_vector_${suffix}(this, val)
+    class(vector_${suffix}), intent(inout) :: this
+    ${type}, intent(in) :: val
+    if (.not. allocated(this%arr_)) call this%init(1)
+    if (this%size_ == this%capa_) then
+       call this%resize(2*this%capa_)
+    end if
+    this%size_ = this%size_ + 1
+    this%arr_(this%size_) = val
+  end subroutine push_back_vector_${suffix}
+#+end_src
+**** pop_back
+=function pop_back= deletes the value in the end of arr_(:) of the vector and returns it.
+#+name: pop_back-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> push_back_vector_${suffix}: Delete the value in the end of arr_(:) of the vector and return it.
+  ${type} function pop_back_vector_${suffix}(this, ierr)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(out), optional :: ierr
+    if (this%size_ == 0) then
+       <<error-handling-return-ierr(ierr=1)>>
+       <<error-handling-filename>>
+       <<error-handling-error_message-exit(err_num=3,string="There are no elements that can pop_back.">>
+    end if
+    pop_back_vector_${suffix} = this%arr_(this%size_)
+    this%size_ = this%size_ - 1
+    if (present(ierr)) ierr = 0
+  end function pop_back_vector_${suffix}
+#+end_src
+**** size
+=function size= return current size of the vector.
+#+name: size-vector
+#+begin_src fortran :exports code
+  !> size_vector_${suffix}: Return current size of the vector.
+  pure integer(int32) function size_vector_${suffix}(this)
+    class(vector_${suffix}), intent(in) :: this
+    size_vector_${suffix} = this%size_
+  end function size_vector_${suffix}
+#+end_src
+**** lbound
+=function size= return current lbound of the vector.
+#+name: lbound-vector
+#+begin_src fortran :exports code
+  !> size_vector_${suffix}: Return current lbound of the vector.
+  pure integer(int32) function lbound_vector_${suffix}(this)
+    class(vector_${suffix}), intent(in) :: this
+    lbound_vector_${suffix} = this%lb_
+  end function lbound_vector_${suffix}
+#+end_src
+**** ubound
+=function size= return current ubound of the vector.
+#+name: ubound-vector
+#+begin_src fortran :exports code
+  !> size_vector_${suffix}: Return current ubonud of the vector.
+  pure integer(int32) function ubound_vector_${suffix}(this)
+    class(vector_${suffix}), intent(in) :: this
+    ubound_vector_${suffix} = this%lb_ + this%size_ - 1
+  end function ubound_vector_${suffix}
+#+end_src
+**** resize
+=subroutine resize= shrinks or expands arr_(:) of the vector.
+#+name: resize-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> resize_vector_${suffix}: Shrink or expand arr_(:) of the vector.
+  subroutine resize_vector_${suffix}(this, resize)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(in) :: resize
+    ${type}, allocatable :: tmp(:)
+    if (this%capa_ == resize) return
+    allocate(tmp(resize))
+    this%size_ = min(this%size_, resize)
+    tmp(1:this%size_) = this%arr_(1:this%size_)
+    call move_alloc(from = tmp, to = this%arr_)
+    this%capa_ = resize
+  end subroutine resize_vector_${suffix}
+
+  !> resize_range_vector_${suffix}: Shrink or expand arr_(:) of the vector by lb and ub.
+  subroutine resize_range_vector_${suffix}(this, lb, ub, ierr)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(in) :: lb, ub
+    integer(int32), intent(out), optional :: ierr
+    if (ub > lb) then
+       <<error-handling-return-ierr(ierr=1)>>
+         <<error-handling-filename>>
+         <<error-handling-error_message-exit(err_num=2,string="resize_range_vector_range_${suffix}: `ub` must be larger than or equal tox `lb`")>>
+    end if
+    call this%resize(ub-lb+1)
+    this%lb_ = lb
+    if (present(ierr)) ierr = 0
+  end subroutine resize_range_vector_${suffix}
+#+end_src
+**** at
+=function at= return the element that locate at `i` of the vector.
+#+name: at-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> at_vector_${suffix}: Return the element that locate at `i` of the vector.
+  ${type} function at_vector_${suffix}(this, i, ierr)
+    class(vector_${suffix}), intent(in) :: this
+    integer(int32), intent(in) :: i
+    integer(int32), intent(out), optional :: ierr
+  <<error-handling-vector-bounds-out>>
+    at_vector_${suffix} = this%arr_(i - this%lb_ + 1)
+    if (present(ierr)) ierr = 0
+  end function at_vector_${suffix}
+#+end_src
+**** replace
+=subroutine replace= replace the element of arr_(i).
+#+name: replace-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> replace_vector_${suffix}: Shrink or expand arr_(:) of the vector.
+  subroutine replace_vector_${suffix}(this, i, val, ierr)
+    class(vector_${suffix}), intent(inout) :: this
+    integer(int32), intent(in) :: i
+    integer(int32), intent(out), optional :: ierr
+    ${type}, intent(in) :: val
+  <<error-handling-vector-bounds-out>>
+    this%arr_(i - this%lb_ + 1) = val
+    if (present(ierr)) ierr = 0
+  end subroutine replace_vector_${suffix}
+#+end_src
+**** error-handling
+#+name: error-handling-vector-bounds-out
+#+begin_src fortran :exports code :noweb no-export
+  if (i < this%lbound() .or. i > this%ubound()) then
+     <<error-handling-return-ierr(ierr="i - this%lbound()")>>
+  #ifdef DEBUG
+     <<error-handling-filename>>
+     write(error_unit, '(a, *(i0, a))')&
+          "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
+     <<error-handling-exit(err_num=1)>>
+  #endif
+  end if
+#+end_src
+*** process definition and procedures of the vector
+#+name: declaration-vector-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type}" in
+      "character")
+          type="character(len=:), allocatable"
+          suffix="character"
+          ;;
+      "logical")
+          type="logical"
+          suffix="logical"
+          ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  cat <<EOF
+  <<declaration-vector>>
+  EOF
+#+end_src
+#+name: procedures-vector-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type}" in
+      "character")
+          type="character(len=:), allocatable"
+          suffix="character"
+          ;;
+      "logical")
+          type="logical"
+          suffix="logical"
+          ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  cat <<EOF
+  <<procedures-vector>>
+  EOF
+#+end_src
+*** test
+#+name: vector-test
+#+begin_src fortran :exports code :tangle "test/test_vector.F90" :noweb no-export
+  program test_vector
+    use, intrinsic :: iso_fortran_env
+    use vector_m
+    implicit none
+    integer(int32) :: i, j
+    integer(int32) :: ierr
+    integer(int32), parameter :: n = 10
+    type(vector_int32) :: v
+    do i = 1, n
+       call v%push_back(i)
+    end do
+    do i = 1, n
+       if (v%at(i) /= i) then
+          <<error-handling-filename>>
+          <<error-handling-exit(err_num=20)>>
+       end if
+       call v%replace(i, -i)
+       if (v%at(i) /= -i) then
+          <<error-handling-filename>>
+          <<error-handling-exit(err_num=21)>>
+       end if
+    end do
+    j = v%at(n+1, ierr)
+    if (ierr == 0) then
+       write(error_unit, *) ierr
+       <<error-handling-filename>>
+       <<error-handling-error_message-exit(err_num=23,string="Return value of `at` is illegal.")>>
+    end if
+    do i = 1, n
+       j = v%pop_back()
+    end do
+    j = v%pop_back(ierr)
+    if (ierr == 0) then
+       <<error-handling-filename>>
+       <<error-handling-error_message-exit(err_num=24,string="Return value of `pop_back` is illegal.")>>
+    end if
+  end program test_vector
+#+end_src
+#+name: test-vector
+#+begin_src fortran :exports both :results output :noweb no-export :cache yes
+<<vector-module>>
+<<vector-test>>
+#+end_src
+
+#+RESULTS[0e0d8c8a48affab822b4ec9effcc3a39a94686dc]: test-vector
+
 ** Hash table
 *** open addressing hash by double hash
 We implement open addressing hash table that use double hash by ~Fortran~.
