@@ -1334,15 +1334,10 @@ Variables like ${variable} are expanded by bash.
   end interface linked_list_${suffix}_head
 #+end_src
 **** procedures of linked list
-There are three procedures for the linked list.
-#+name: procedures-linked_list
-#+begin_src fortran :exports code :noweb no-export
-    <<init-linked_list>>
-    <<init-linked_list_head>>
-    <<add-linked_list_head>>
-    <<delete-linked_list_head>>
-    <<search-linked_list_head>>
-#+end_src
+:PROPERTIES:
+:header-args: :noweb-ref procedures-linked_list
+:END:
+There are four procedures for the linked list.
 ***** init
 =function init= initialize linked_list and linked_list
 #+name: init-linked_list
@@ -1561,19 +1556,9 @@ Variables like ${variable} are expanded by bash.
   ! end type vector_${suffix}
 #+end_src
 *** procedures of the vector
-There are three procedures for the linked list.
-#+name: procedures-vector
-#+begin_src fortran :exports code :noweb no-export
-  <<init-vector>>
-  <<push_back-vector>>
-  <<pop_back-vector>>
-  <<size-vector>>
-  <<lbound-vector>>
-  <<ubound-vector>>
-  <<resize-vector>>
-  <<at-vector>>
-  <<replace-vector>>
-#+end_src
+:PROPERTIES:
+:header-args: :noweb-ref procedures-vector
+:END:
 **** init
 =subroutine init= initialize vector by size.
 #+name: init-vector
