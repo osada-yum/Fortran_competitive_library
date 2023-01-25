@@ -1502,6 +1502,7 @@ There are four procedures for the linked list.
   module vector_m
     use, intrinsic :: iso_fortran_env
     implicit none
+    private
   <<declaration-vector-var(type="integer", type_kind="int32")>>
   <<declaration-vector-var(type="integer", type_kind="int64")>>
   <<declaration-vector-var(type="real", type_kind="real32")>>
@@ -1826,7 +1827,7 @@ This handles the error about out-bounded index.
 <<vector-test>>
 #+end_src
 
-#+RESULTS[0e0d8c8a48affab822b4ec9effcc3a39a94686dc]: test-vector
+#+RESULTS[75154b7d0e6122f21d0daa25379c220ea7eae882]: test-vector
 
 ** Hash table
 *** open addressing hash by double hash

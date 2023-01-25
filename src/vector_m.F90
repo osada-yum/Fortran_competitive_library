@@ -1,6 +1,7 @@
 module vector_m
   use, intrinsic :: iso_fortran_env
   implicit none
+  private
 public :: vector_int32
 type :: vector_int32
    private
