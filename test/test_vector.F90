@@ -5,9 +5,11 @@ program test_vector
   integer(int32) :: i, j
   integer(int32) :: ierr
   integer(int32), parameter :: n = 10
-  type(vector_int32) :: v
+  type(vector_int32) :: v, v2
+  call v2%init(2, 12)
   do i = 1, n
      call v%push_back(i)
+     call v2%push_back(i)
   end do
   do i = 1, n
      if (v%at(i) /= i) then

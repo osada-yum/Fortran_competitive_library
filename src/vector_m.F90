@@ -7,13 +7,15 @@ type :: vector_int32
    integer(int32), allocatable :: arr_(:)
    integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
  contains
-   procedure, pass :: init      => init_vector_int32, init_vector_range_int32
+   procedure, pass :: init_vector_int32, init_vector_range_int32
+   generic         :: init      => init_vector_int32, init_vector_range_int32
    procedure, pass :: push_back => push_back_vector_int32
    procedure, pass :: pop_back  => pop_back_vector_int32
    procedure, pass :: size      => size_vector_int32
    procedure, pass :: lbound    => lbound_vector_int32
    procedure, pass :: ubound    => ubound_vector_int32
-   procedure, pass :: resize    => resize_vector_int32, resize_range_vector_int32
+   procedure, pass :: resize_vector_int32, resize_vector_range_int32
+   generic         :: resize    => resize_vector_int32, resize_vector_range_int32
    procedure, pass :: at        => at_vector_int32
    procedure, pass :: replace   => replace_vector_int32
    ! procedure, pass :: make_iter => make_iter_vector_int32
@@ -38,13 +40,15 @@ type :: vector_int64
    integer(int64), allocatable :: arr_(:)
    integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
  contains
-   procedure, pass :: init      => init_vector_int64, init_vector_range_int64
+   procedure, pass :: init_vector_int64, init_vector_range_int64
+   generic         :: init      => init_vector_int64, init_vector_range_int64
    procedure, pass :: push_back => push_back_vector_int64
    procedure, pass :: pop_back  => pop_back_vector_int64
    procedure, pass :: size      => size_vector_int64
    procedure, pass :: lbound    => lbound_vector_int64
    procedure, pass :: ubound    => ubound_vector_int64
-   procedure, pass :: resize    => resize_vector_int64, resize_range_vector_int64
+   procedure, pass :: resize_vector_int64, resize_vector_range_int64
+   generic         :: resize    => resize_vector_int64, resize_vector_range_int64
    procedure, pass :: at        => at_vector_int64
    procedure, pass :: replace   => replace_vector_int64
    ! procedure, pass :: make_iter => make_iter_vector_int64
@@ -69,13 +73,15 @@ type :: vector_real32
    real(real32), allocatable :: arr_(:)
    integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
  contains
-   procedure, pass :: init      => init_vector_real32, init_vector_range_real32
+   procedure, pass :: init_vector_real32, init_vector_range_real32
+   generic         :: init      => init_vector_real32, init_vector_range_real32
    procedure, pass :: push_back => push_back_vector_real32
    procedure, pass :: pop_back  => pop_back_vector_real32
    procedure, pass :: size      => size_vector_real32
    procedure, pass :: lbound    => lbound_vector_real32
    procedure, pass :: ubound    => ubound_vector_real32
-   procedure, pass :: resize    => resize_vector_real32, resize_range_vector_real32
+   procedure, pass :: resize_vector_real32, resize_vector_range_real32
+   generic         :: resize    => resize_vector_real32, resize_vector_range_real32
    procedure, pass :: at        => at_vector_real32
    procedure, pass :: replace   => replace_vector_real32
    ! procedure, pass :: make_iter => make_iter_vector_real32
@@ -100,13 +106,15 @@ type :: vector_real64
    real(real64), allocatable :: arr_(:)
    integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
  contains
-   procedure, pass :: init      => init_vector_real64, init_vector_range_real64
+   procedure, pass :: init_vector_real64, init_vector_range_real64
+   generic         :: init      => init_vector_real64, init_vector_range_real64
    procedure, pass :: push_back => push_back_vector_real64
    procedure, pass :: pop_back  => pop_back_vector_real64
    procedure, pass :: size      => size_vector_real64
    procedure, pass :: lbound    => lbound_vector_real64
    procedure, pass :: ubound    => ubound_vector_real64
-   procedure, pass :: resize    => resize_vector_real64, resize_range_vector_real64
+   procedure, pass :: resize_vector_real64, resize_vector_range_real64
+   generic         :: resize    => resize_vector_real64, resize_vector_range_real64
    procedure, pass :: at        => at_vector_real64
    procedure, pass :: replace   => replace_vector_real64
    ! procedure, pass :: make_iter => make_iter_vector_real64
@@ -131,13 +139,15 @@ type :: vector_logical
    logical, allocatable :: arr_(:)
    integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
  contains
-   procedure, pass :: init      => init_vector_logical, init_vector_range_logical
+   procedure, pass :: init_vector_logical, init_vector_range_logical
+   generic         :: init      => init_vector_logical, init_vector_range_logical
    procedure, pass :: push_back => push_back_vector_logical
    procedure, pass :: pop_back  => pop_back_vector_logical
    procedure, pass :: size      => size_vector_logical
    procedure, pass :: lbound    => lbound_vector_logical
    procedure, pass :: ubound    => ubound_vector_logical
-   procedure, pass :: resize    => resize_vector_logical, resize_range_vector_logical
+   procedure, pass :: resize_vector_logical, resize_vector_range_logical
+   generic         :: resize    => resize_vector_logical, resize_vector_range_logical
    procedure, pass :: at        => at_vector_logical
    procedure, pass :: replace   => replace_vector_logical
    ! procedure, pass :: make_iter => make_iter_vector_logical
@@ -261,7 +271,7 @@ subroutine resize_vector_int32(this, resize)
 end subroutine resize_vector_int32
 
 !> resize_range_vector_int32: Shrink or expand arr_(:) of the vector by lb and ub.
-subroutine resize_range_vector_int32(this, lb, ub, ierr)
+subroutine resize_vector_range_int32(this, lb, ub, ierr)
   class(vector_int32), intent(inout) :: this
   integer(int32), intent(in) :: lb, ub
   integer(int32), intent(out), optional :: ierr
@@ -282,7 +292,7 @@ subroutine resize_range_vector_int32(this, lb, ub, ierr)
   call this%resize(ub-lb+1)
   this%lb_ = lb
   if (present(ierr)) ierr = 0
-end subroutine resize_range_vector_int32
+end subroutine resize_vector_range_int32
 !> at_vector_int32: Return the element that locate at  of the vector.
 integer(int32) function at_vector_int32(this, i, ierr)
   class(vector_int32), intent(in) :: this
@@ -332,22 +342,6 @@ end if
   this%arr_(i - this%lb_ + 1) = val
   if (present(ierr)) ierr = 0
 end subroutine replace_vector_int32
-if (i < this%lbound() .or. i > this%ubound()) then
-     if (present(ierr)) then
-       ierr = i - this%lbound()
-       return
-     end if
-   
-#ifdef DEBUG
-   write(error_unit, '(a, i0, a)', advance = "no") &
-        __FILE__&
-        //": ", __LINE__, ": "
-   write(error_unit, '(a, *(i0, a))')&
-        "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
-     error stop 1
-   
-#endif
-end if
 
 !> init_vector_int64: Initialize the vector_int64 by size.
 subroutine init_vector_int64(this, n)
@@ -453,7 +447,7 @@ subroutine resize_vector_int64(this, resize)
 end subroutine resize_vector_int64
 
 !> resize_range_vector_int64: Shrink or expand arr_(:) of the vector by lb and ub.
-subroutine resize_range_vector_int64(this, lb, ub, ierr)
+subroutine resize_vector_range_int64(this, lb, ub, ierr)
   class(vector_int64), intent(inout) :: this
   integer(int32), intent(in) :: lb, ub
   integer(int32), intent(out), optional :: ierr
@@ -474,7 +468,7 @@ subroutine resize_range_vector_int64(this, lb, ub, ierr)
   call this%resize(ub-lb+1)
   this%lb_ = lb
   if (present(ierr)) ierr = 0
-end subroutine resize_range_vector_int64
+end subroutine resize_vector_range_int64
 !> at_vector_int64: Return the element that locate at  of the vector.
 integer(int64) function at_vector_int64(this, i, ierr)
   class(vector_int64), intent(in) :: this
@@ -524,22 +518,6 @@ end if
   this%arr_(i - this%lb_ + 1) = val
   if (present(ierr)) ierr = 0
 end subroutine replace_vector_int64
-if (i < this%lbound() .or. i > this%ubound()) then
-     if (present(ierr)) then
-       ierr = i - this%lbound()
-       return
-     end if
-   
-#ifdef DEBUG
-   write(error_unit, '(a, i0, a)', advance = "no") &
-        __FILE__&
-        //": ", __LINE__, ": "
-   write(error_unit, '(a, *(i0, a))')&
-        "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
-     error stop 1
-   
-#endif
-end if
 
 !> init_vector_real32: Initialize the vector_real32 by size.
 subroutine init_vector_real32(this, n)
@@ -645,7 +623,7 @@ subroutine resize_vector_real32(this, resize)
 end subroutine resize_vector_real32
 
 !> resize_range_vector_real32: Shrink or expand arr_(:) of the vector by lb and ub.
-subroutine resize_range_vector_real32(this, lb, ub, ierr)
+subroutine resize_vector_range_real32(this, lb, ub, ierr)
   class(vector_real32), intent(inout) :: this
   integer(int32), intent(in) :: lb, ub
   integer(int32), intent(out), optional :: ierr
@@ -666,7 +644,7 @@ subroutine resize_range_vector_real32(this, lb, ub, ierr)
   call this%resize(ub-lb+1)
   this%lb_ = lb
   if (present(ierr)) ierr = 0
-end subroutine resize_range_vector_real32
+end subroutine resize_vector_range_real32
 !> at_vector_real32: Return the element that locate at  of the vector.
 real(real32) function at_vector_real32(this, i, ierr)
   class(vector_real32), intent(in) :: this
@@ -716,22 +694,6 @@ end if
   this%arr_(i - this%lb_ + 1) = val
   if (present(ierr)) ierr = 0
 end subroutine replace_vector_real32
-if (i < this%lbound() .or. i > this%ubound()) then
-     if (present(ierr)) then
-       ierr = i - this%lbound()
-       return
-     end if
-   
-#ifdef DEBUG
-   write(error_unit, '(a, i0, a)', advance = "no") &
-        __FILE__&
-        //": ", __LINE__, ": "
-   write(error_unit, '(a, *(i0, a))')&
-        "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
-     error stop 1
-   
-#endif
-end if
 
 !> init_vector_real64: Initialize the vector_real64 by size.
 subroutine init_vector_real64(this, n)
@@ -837,7 +799,7 @@ subroutine resize_vector_real64(this, resize)
 end subroutine resize_vector_real64
 
 !> resize_range_vector_real64: Shrink or expand arr_(:) of the vector by lb and ub.
-subroutine resize_range_vector_real64(this, lb, ub, ierr)
+subroutine resize_vector_range_real64(this, lb, ub, ierr)
   class(vector_real64), intent(inout) :: this
   integer(int32), intent(in) :: lb, ub
   integer(int32), intent(out), optional :: ierr
@@ -858,7 +820,7 @@ subroutine resize_range_vector_real64(this, lb, ub, ierr)
   call this%resize(ub-lb+1)
   this%lb_ = lb
   if (present(ierr)) ierr = 0
-end subroutine resize_range_vector_real64
+end subroutine resize_vector_range_real64
 !> at_vector_real64: Return the element that locate at  of the vector.
 real(real64) function at_vector_real64(this, i, ierr)
   class(vector_real64), intent(in) :: this
@@ -908,22 +870,6 @@ end if
   this%arr_(i - this%lb_ + 1) = val
   if (present(ierr)) ierr = 0
 end subroutine replace_vector_real64
-if (i < this%lbound() .or. i > this%ubound()) then
-     if (present(ierr)) then
-       ierr = i - this%lbound()
-       return
-     end if
-   
-#ifdef DEBUG
-   write(error_unit, '(a, i0, a)', advance = "no") &
-        __FILE__&
-        //": ", __LINE__, ": "
-   write(error_unit, '(a, *(i0, a))')&
-        "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
-     error stop 1
-   
-#endif
-end if
 
 !> init_vector_logical: Initialize the vector_logical by size.
 subroutine init_vector_logical(this, n)
@@ -1029,7 +975,7 @@ subroutine resize_vector_logical(this, resize)
 end subroutine resize_vector_logical
 
 !> resize_range_vector_logical: Shrink or expand arr_(:) of the vector by lb and ub.
-subroutine resize_range_vector_logical(this, lb, ub, ierr)
+subroutine resize_vector_range_logical(this, lb, ub, ierr)
   class(vector_logical), intent(inout) :: this
   integer(int32), intent(in) :: lb, ub
   integer(int32), intent(out), optional :: ierr
@@ -1050,7 +996,7 @@ subroutine resize_range_vector_logical(this, lb, ub, ierr)
   call this%resize(ub-lb+1)
   this%lb_ = lb
   if (present(ierr)) ierr = 0
-end subroutine resize_range_vector_logical
+end subroutine resize_vector_range_logical
 !> at_vector_logical: Return the element that locate at  of the vector.
 logical function at_vector_logical(this, i, ierr)
   class(vector_logical), intent(in) :: this
@@ -1100,21 +1046,5 @@ end if
   this%arr_(i - this%lb_ + 1) = val
   if (present(ierr)) ierr = 0
 end subroutine replace_vector_logical
-if (i < this%lbound() .or. i > this%ubound()) then
-     if (present(ierr)) then
-       ierr = i - this%lbound()
-       return
-     end if
-   
-#ifdef DEBUG
-   write(error_unit, '(a, i0, a)', advance = "no") &
-        __FILE__&
-        //": ", __LINE__, ": "
-   write(error_unit, '(a, *(i0, a))')&
-        "Index ", i, " Out of bounds(", this%lbound(), ", ", this%ubound(), ")"
-     error stop 1
-   
-#endif
-end if
 
 end module vector_m

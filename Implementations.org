@@ -1530,13 +1530,15 @@ Variables like ${variable} are expanded by bash.
      ${type}, allocatable :: arr_(:)
      integer(int32) :: size_ = 0, capa_ = 0, lb_ = 0
    contains
-     procedure, pass :: init      => init_vector_${suffix}, init_vector_range_${suffix}
+     procedure, pass :: init_vector_${suffix}, init_vector_range_${suffix}
+     generic         :: init      => init_vector_${suffix}, init_vector_range_${suffix}
      procedure, pass :: push_back => push_back_vector_${suffix}
      procedure, pass :: pop_back  => pop_back_vector_${suffix}
      procedure, pass :: size      => size_vector_${suffix}
      procedure, pass :: lbound    => lbound_vector_${suffix}
      procedure, pass :: ubound    => ubound_vector_${suffix}
-     procedure, pass :: resize    => resize_vector_${suffix}, resize_range_vector_${suffix}
+     procedure, pass :: resize_vector_${suffix}, resize_vector_range_${suffix}
+     generic         :: resize    => resize_vector_${suffix}, resize_vector_range_${suffix}
      procedure, pass :: at        => at_vector_${suffix}
      procedure, pass :: replace   => replace_vector_${suffix}
      ! procedure, pass :: make_iter => make_iter_vector_${suffix}
@@ -1677,7 +1679,7 @@ Variables like ${variable} are expanded by bash.
   end subroutine resize_vector_${suffix}
 
   !> resize_range_vector_${suffix}: Shrink or expand arr_(:) of the vector by lb and ub.
-  subroutine resize_range_vector_${suffix}(this, lb, ub, ierr)
+  subroutine resize_vector_range_${suffix}(this, lb, ub, ierr)
     class(vector_${suffix}), intent(inout) :: this
     integer(int32), intent(in) :: lb, ub
     integer(int32), intent(out), optional :: ierr
@@ -1689,7 +1691,7 @@ Variables like ${variable} are expanded by bash.
     call this%resize(ub-lb+1)
     this%lb_ = lb
     if (present(ierr)) ierr = 0
-  end subroutine resize_range_vector_${suffix}
+  end subroutine resize_vector_range_${suffix}
 #+end_src
 **** at
 =function at= return the element that locate at `i` of the vector.
@@ -1720,7 +1722,8 @@ Variables like ${variable} are expanded by bash.
     if (present(ierr)) ierr = 0
   end subroutine replace_vector_${suffix}
 #+end_src
-**** error-handling
+*** error-handling
+This handles the error about out-bounded index.
 #+name: error-handling-vector-bounds-out
 #+begin_src fortran :exports code :noweb no-export
   if (i < this%lbound() .or. i > this%ubound()) then
@@ -1784,9 +1787,11 @@ Variables like ${variable} are expanded by bash.
     integer(int32) :: i, j
     integer(int32) :: ierr
     integer(int32), parameter :: n = 10
-    type(vector_int32) :: v
+    type(vector_int32) :: v, v2
+    call v2%init(2, 12)
     do i = 1, n
        call v%push_back(i)
+       call v2%push_back(i)
     end do
     do i = 1, n
        if (v%at(i) /= i) then
