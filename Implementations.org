@@ -1507,13 +1507,13 @@ There are four procedures for the linked list.
   <<declaration-vector-var(type="integer", type_kind="int64")>>
   <<declaration-vector-var(type="real", type_kind="real32")>>
   <<declaration-vector-var(type="real", type_kind="real64")>>
-  <<declaration-vector-var(type="logical")>>
+  <<declaration-vector-var(type="character")>>
   contains
   <<procedures-vector-var(type="integer", type_kind="int32")>>
   <<procedures-vector-var(type="integer", type_kind="int64")>>
   <<procedures-vector-var(type="real", type_kind="real32")>>
   <<procedures-vector-var(type="real", type_kind="real64")>>
-  <<procedures-vector-var(type="logical")>>
+  <<procedures-vector-var(type="character")>>
   end module vector_m
 #+end_src
 *** declaration of the vector
@@ -1542,6 +1542,7 @@ Variables like ${variable} are expanded by bash.
      generic         :: resize    => resize_vector_${suffix}, resize_vector_range_${suffix}
      procedure, pass :: at        => at_vector_${suffix}
      procedure, pass :: replace   => replace_vector_${suffix}
+     procedure, pass :: lower_bound => lower_bound_vector_${suffix}
      ! procedure, pass :: make_iter => make_iter_vector_${suffix}
   end type vector_${suffix}
 
@@ -1591,7 +1592,7 @@ Variables like ${variable} are expanded by bash.
     if (lb > ub) then
        <<error-handling-return-ierr(ierr=1)>>
        <<error-handling-filename>>
-       <<error-handling-error_message-exit(err_num=2,string="init_vector_range_${suffix}: `ub` must be larger than or equal tox `lb`")>>
+       <<error-handling-error_message-exit(err_num=2,string="init_vector_range_${suffix}: `ub` must be larger than or equal to `lb`")>>
     end if
     call this%init(ub-lb+1)
     this%lb_ = lb
@@ -1723,6 +1724,33 @@ Variables like ${variable} are expanded by bash.
     if (present(ierr)) ierr = 0
   end subroutine replace_vector_${suffix}
 #+end_src
+**** lower_bound
+=function lower_bound= returns the minimum index that is higher than or equal to `val`.
+#+name: lower_bonud-vector
+#+begin_src fortran :exports code :noweb no-export
+  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to `val`.
+  integer(int32) function lower_bound_vector_${suffix}(this, val)
+    class(vector_${suffix}), intent(in) :: this
+    ${type}, intent(in) :: val
+    integer(int32) :: p, q, r
+    p = 1
+    r = this%size_
+    if (this%arr_(r) < val) then
+       lower_bound_vector_${suffix} = r + 1 + (this%lb_ - 1)
+       return
+    end if
+    do
+       q = (p+r)/2
+       if (p + 1 > r) exit
+       if (this%arr_(q) >= val) then
+          r = q
+       else
+          p = q+1
+       end if
+    end do
+    lower_bound_vector_${suffix} = q + (this%lb_ - 1)
+  end function lower_bound_vector_${suffix}
+#+end_src
 *** error-handling
 This handles the error about out-bounded index.
 #+name: error-handling-vector-bounds-out
@@ -1742,12 +1770,8 @@ This handles the error about out-bounded index.
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
   case "${type}" in
       "character")
-          type="character(len=:), allocatable"
+          type="character"
           suffix="character"
-          ;;
-      "logical")
-          type="logical"
-          suffix="logical"
           ;;
       ,*)
           type="${type}(${type_kind})"
@@ -1762,12 +1786,8 @@ This handles the error about out-bounded index.
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
   case "${type}" in
       "character")
-          type="character(len=:), allocatable"
+          type="character"
           suffix="character"
-          ;;
-      "logical")
-          type="logical"
-          suffix="logical"
           ;;
       ,*)
           type="${type}(${type_kind})"
@@ -1787,47 +1807,57 @@ This handles the error about out-bounded index.
     implicit none
     integer(int32) :: i, j
     integer(int32) :: ierr
-    integer(int32), parameter :: n = 10
+    integer(int32), parameter :: n = 10, low = 5, high = low+n-1
     type(vector_int32) :: v, v2
-    call v2%init(2, 12)
     do i = 1, n
        call v%push_back(i)
-       call v2%push_back(i)
+    end do
+    do i = 0, v%size()+1
+       j = v%lower_bound(i)
+       <<assert-false(cond="j == max(1, i)", code=11, message="Return value of `lower_bound` is illegal in loop.")>>
     end do
     do i = 1, n
-       if (v%at(i) /= i) then
-          <<error-handling-filename>>
-          <<error-handling-exit(err_num=20)>>
-       end if
+       <<assert-false(cond="v%at(i) == i" ,code=12)>>
        call v%replace(i, -i)
-       if (v%at(i) /= -i) then
-          <<error-handling-filename>>
-          <<error-handling-exit(err_num=21)>>
-       end if
+       <<assert-false(cond="v%at(i) == -i" ,code=13)>>
     end do
     j = v%at(n+1, ierr)
-    if (ierr == 0) then
-       write(error_unit, *) ierr
-       <<error-handling-filename>>
-       <<error-handling-error_message-exit(err_num=23,string="Return value of `at` is illegal.")>>
-    end if
+    <<assert-true(cond="ierr == 0", code=14, message="Return value of `at` is illegal.")>>
     do i = 1, n
        j = v%pop_back()
     end do
     j = v%pop_back(ierr)
-    if (ierr == 0) then
-       <<error-handling-filename>>
-       <<error-handling-error_message-exit(err_num=24,string="Return value of `pop_back` is illegal.")>>
-    end if
+    <<assert-true(cond="ierr == 0", code=15, message="Return value of `pop_back` is illegal.")>>
+
+    call v2%init(low, high)
+    do i = low, high
+       call v2%push_back(i)
+    end do
+    do i = low-1, high+1
+       j = v2%lower_bound(i)
+       <<assert-false(cond="j == max(low, i)", code=21, message="Return value of `lower_bound` is illegal in loop.")>>
+    end do
+    do i = low, high
+       <<assert-false(cond="v2%at(i) == i" ,code=22)>>
+       call v2%replace(i, -i)
+       <<assert-false(cond="v2%at(i) == -i" ,code=23)>>
+    end do
+    j = v2%at(high+1, ierr)
+    <<assert-true(cond="ierr == 0", code=24, message="Return value of `at` is illegal.")>>
+    do i = 1, n
+       j = v2%pop_back()
+    end do
+    j = v2%pop_back(ierr)
+    <<assert-true(cond="ierr == 0", code=25, message="Return value of `pop_back` is illegal.")>>
   end program test_vector
 #+end_src
 #+name: test-vector
-#+begin_src fortran :exports both :results output :noweb no-export :cache yes
+#+begin_src fortran :flags "-cpp -g -fbacktrace" :exports both :results output :noweb no-export :cache yes
 <<vector-module>>
 <<vector-test>>
 #+end_src
 
-#+RESULTS[75154b7d0e6122f21d0daa25379c220ea7eae882]: test-vector
+#+RESULTS[40d25dd65db7fe9ba7c78c1b3a9f083b98eb52cd]: test-vector
 
 ** Hash table
 *** open addressing hash by double hash
