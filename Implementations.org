@@ -347,6 +347,79 @@ We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
 
 #+RESULTS[e4ae4f05814e3cf4effe1357e4c9e1b426a73143]: test-is-sorted
 
+** compress coordinate class
+*** base
+*** module
+#+begin_src fortran :exports both :results output :cache yes
+  module compress_m
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    use binary_search_m
+    implicit none
+    private
+    public :: compress
+    type :: compress
+       integer(int32) :: size_, ub_
+       integer(int32), allocatable :: sorted_(:)
+     contains
+       procedure, pass :: init       => init_compress
+       procedure, pass :: compress   => compress_compress
+       procedure, pass :: decompress => decompress_compress
+    end type compress
+  contains
+    subroutine init_compress(this, arr)
+      class(compress), intent(inout) :: this
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32), allocatable :: tmp(:)
+      integer(int32) :: i
+      this%size_ = size(arr)
+      allocate(this%sorted_(this%size_), tmp(this%size_))
+      this%sorted_ = arr
+      call merge_sort(this%sorted_)
+
+      i = 1
+      this%ub_ = 0
+      unique:do
+         if (i == this%size_) then
+            this%ub_ = this%ub_ + 1
+            this%sorted_(this%ub_) = this%sorted_(i)
+            exit
+         end if
+         if (this%sorted_(i) == this%sorted_(i+1)) then
+            i = i + 1
+            cycle
+         end if
+         this%ub_ = this%ub_ + 1
+         this%sorted_(this%ub_) = this%sorted_(i)
+         i = i + 1
+      end do unique
+      do i = 1, this%size_
+         tmp(i) = binary_search(arr(i), this%sorted_, 1, this%ub_)
+      end do
+      arr = tmp
+    end subroutine init_compress
+    impure elemental integer(int32) function compress_compress(this, v)
+      class(compress), intent(in) :: this
+      integer(int32), intent(in) :: v
+      compress_compress = binary_search(v, this%sorted_, 1, this%ub_)
+      if (compress_compress < 1) then
+         write(error_unit, '(a)') "Error in compress."
+         error stop 2
+      end if
+    end function compress_compress
+    impure elemental integer(int32) function decompress_compress(this, v, ierr)
+      class(compress), intent(in) :: this
+      integer(int32), intent(in) :: v
+      integer(int32), optional, intent(out) :: ierr
+      ierr = 0
+      if (v < 1 .or. v > size(this%sorted_)) then
+         if (present(ierr)) ierr = 1
+         return
+      end if
+      decompress_compress = this%sorted_(v)
+    end function decompress_compress
+  end module compress_m
+#+end_src
 ** polymorphic class(*)
 Fortran has polymorphic type =class(*)=.
 We can store any values in a variable of =class(*) :: var= and extract value from it by =select type= statement.
