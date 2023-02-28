@@ -26,15 +26,43 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   (customize-set-variable 'org-confirm-babel-evaluate nil)
 #+end_src
 * org-babel macros
+** error handling
+#+name: error-handling-return-ierr
+#+begin_src bash :exports code :var ierr=1 :results output :noweb no-export :cache no :shebang #!/bin/bash
+  cat <<EOF
+    if (present(ierr)) then
+      ierr = ${ierr}
+      return
+    end if
+  EOF
+#+end_src
+#+name: error-handling-filename
+#+begin_src fortran :exports code
+   write(error_unit, '(a, i0, a)', advance = "no")&
+        "Error in "//&
+        __FILE__&
+        //":", __LINE__, ":"
+#+end_src
+#+name: error-handling-error_message-exit
+#+begin_src bash :exports code :var err_num=1 string="error message." :results output :noweb no-export :cache no :shebang #!/bin/bash
+   cat <<EOF
+     write(error_unit, '(a)')&
+       "${string}"
+     error stop ${err_num}
+   EOF
+#+end_src
+#+name: error-handling-exit
+#+begin_src bash :exports code :var err_num=1 :results output :noweb no-export :cache no :shebang #!/bin/bash
+  cat <<EOF
+    error stop ${err_num}
+  EOF
+#+end_src
 ** assertion
 #+name: assert-fortran
-#+begin_src fortran :exports code
+#+begin_src fortran :exports code :noweb yes
   if (${cond}) then
-     write(error_unit, '(a, i0, a)')&
-          "Error in "//&
-          __FILE__&
-          //":", __LINE__, ":"
-     write(error_unit, '(a)') "Assertion '${cond_origin}' must be ${true_false}."
+     <<error-handling-filename>>
+     write(error_unit, '(a)') " Assertion '${cond_origin}' must be ${true_false}."
      if (len_trim("${message}") /= 0) then
         write(error_unit, '(a)') "Extra message: '${message}'"
      end if
@@ -53,7 +81,7 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   EOF
 #+end_src
 #+name: assert-false
-#+begin_src bash :exports code :var cond=".true." code="127" message="" :results output :noweb no-export
+#+begin_src bash :exports code :var cond=".false." code="127" message="" :results output :noweb no-export
   true_false=true
   cond_origin="${cond}"
   cond=".not. (${cond})"
@@ -76,36 +104,6 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
 
 #+RESULTS: assert-test
 
-** error handling
-#+name: error-handling-return-ierr
-#+begin_src bash :exports code :var ierr=1 :results output :noweb no-export :cache no :shebang #!/bin/bash
-  cat <<EOF
-    if (present(ierr)) then
-      ierr = ${ierr}
-      return
-    end if
-  EOF
-#+end_src
-#+name: error-handling-filename
-#+begin_src fortran :exports code
-  write(error_unit, '(a, i0, a)', advance = "no") &
-       __FILE__&
-       //": ", __LINE__, ": "
-#+end_src
-#+name: error-handling-error_message-exit
-#+begin_src bash :exports code :var err_num=1 string="error message." :results output :noweb no-export :cache no :shebang #!/bin/bash
-   cat <<EOF
-     write(error_unit, '(a)')&
-       "${string}"
-     error stop ${err_num}
-   EOF
-#+end_src
-#+name: error-handling-exit
-#+begin_src bash :exports code :var err_num=1 :results output :noweb no-export :cache no :shebang #!/bin/bash
-  cat <<EOF
-    error stop ${err_num}
-  EOF
-#+end_src
 * utilities
 ** swap
 *** base code
