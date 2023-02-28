@@ -3039,3 +3039,197 @@ The function successor returns a pointer to the node whose next larger value.
 
   end module tree_int_m
 #+end_src
+** stream of output
+*** type definition
+#+name: stream_out-module
+#+begin_src fortran :exports code :tangle "src/stream_out_m.f90"
+  module stream_out_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: stream_out
+    type :: stream_out
+       private
+       integer(int32) :: iounit_ = output_unit
+       character(len=:), allocatable :: sep_
+     contains
+       procedure, pass :: sep => sep_stream_out
+       procedure, private, pass :: &
+            print_i32, print_i64, print_r32, print_r64, &
+            print_char, print_logical, &
+            print_el
+       generic :: operator(.o.) => &
+            print_i32, print_i64, print_r32, print_r64, &
+            print_char, print_logical, &
+            print_el
+    end type stream_out
+    interface stream_out
+       module procedure :: init_stream
+    end interface stream_out
+    type(stream_out), public, parameter :: stdout = stream_out(iounit_ = output_unit)
+    type(stream_out), public, parameter :: stderr = stream_out(iounit_ = error_unit)
+    interface
+       module subroutine unit_stream_out(out, unit)
+         class(stream_out), intent(inout) :: out
+         integer(int32), intent(in) :: unit
+       end subroutine unit_stream_out
+       module subroutine sep_stream_out(out, sep)
+         class(stream_out), intent(inout) :: out
+         character(len=*), intent(in) :: sep
+       end subroutine sep_stream_out
+       module impure type(stream_out) function print_i32(out, i)
+         class(stream_out), intent(in) :: out
+         integer(int32), intent(in) :: i
+       end function print_i32
+       module pure type(stream_out) function init_stream(unit, sep) result(res)
+         integer(int32), intent(in) :: unit
+         character(len=*), intent(in) :: sep
+       end function init_stream
+       module impure type(stream_out) function print_i64(out, i)
+         class(stream_out), intent(in) :: out
+         integer(int64), intent(in) :: i
+       end function print_i64
+       module impure type(stream_out) function print_r32(out, r)
+         class(stream_out), intent(in) :: out
+         real(real32), intent(in) :: r
+       end function print_r32
+       module impure type(stream_out) function print_r64(out, r)
+         class(stream_out), intent(in) :: out
+         real(real64), intent(in) :: r
+       end function print_r64
+       module impure type(stream_out) function print_char(out, c)
+         class(stream_out), intent(in) :: out
+         character(len=*), intent(in) :: c
+       end function print_char
+       module impure type(stream_out) function print_logical(out, b)
+         class(stream_out), intent(in) :: out
+         logical, intent(in) :: b
+       end function print_logical
+    end interface
+
+    public :: stream_endl
+    type :: stream_endl
+    end type stream_endl
+    type(stream_endl), public :: endl
+    interface
+       module impure type(stream_out) function print_el(out, el)
+         class(stream_out), intent(in) :: out
+         type(stream_endl), intent(in) :: el
+       end function print_el
+    end interface
+
+    private :: stream_const
+    type :: stream_const
+     contains
+       procedure, pass :: stream_const_nothing
+       generic :: assignment(=) => stream_const_nothing
+    end type stream_const
+    type(stream_const), public :: const_stream
+    interface
+       module subroutine stream_const_nothing(const_stream, out)
+         class(stream_const), intent(out) :: const_stream
+         type(stream_out), intent(in) :: out
+       end subroutine stream_const_nothing
+    end interface
+
+  end module stream_out_m
+
+  submodule (stream_out_m) stream_out_implement_sm
+    implicit none
+  contains
+    module pure type(stream_out) function init_stream(unit, sep) result(res)
+      integer(int32), intent(in) :: unit
+      character(len=*), intent(in) :: sep
+      res%iounit_ = unit
+      res%sep_ = sep
+    end function init_stream
+    module subroutine unit_stream_out(out, unit)
+      class(stream_out), intent(inout) :: out
+      integer(int32), intent(in) :: unit
+      out%iounit_ = unit
+    end subroutine unit_stream_out
+    module subroutine sep_stream_out(out, sep)
+      class(stream_out), intent(inout) :: out
+      character(len=*), intent(in) :: sep
+      out%sep_ = sep
+    end subroutine sep_stream_out
+    module impure type(stream_out) function print_i32(out, i)
+      class(stream_out), intent(in) :: out
+      integer(int32), intent(in) :: i
+      integer(int32) :: len_i
+      print_i32 = out
+      write(out%iounit_, '(i0, a)', advance = "no") i, out%sep_
+    end function print_i32
+    module impure type(stream_out) function print_i64(out, i)
+      class(stream_out), intent(in) :: out
+      integer(int64), intent(in) :: i
+      print_i64 = out
+      write(out%iounit_, '(i0, a)', advance = "no") i, out%sep_
+    end function print_i64
+    module impure type(stream_out) function print_r32(out, r)
+      class(stream_out), intent(in) :: out
+      real(real32), intent(in) :: r
+      character(len=20) :: str
+      write(str, '(f20.8)') r
+      print_r32 = out
+      write(out%iounit_, '(a, a)', advance = "no") trim(adjustl(str)), out%sep_
+    end function print_r32
+    module impure type(stream_out) function print_r64(out, r)
+      class(stream_out), intent(in) :: out
+      real(real64), intent(in) :: r
+      character(len=40) :: str
+      write(str, *) r
+      print_r64 = out
+      write(out%iounit_, '(a, a)', advance = "no") trim(adjustl(str)), out%sep_
+    end function print_r64
+    module impure type(stream_out) function print_char(out, c)
+      class(stream_out), intent(in) :: out
+      character(len=*), intent(in) :: c
+      print_char = out
+      write(out%iounit_, '(a, a)', advance = "no") c, out%sep_
+    end function print_char
+    module impure type(stream_out) function print_logical(out, b)
+      class(stream_out), intent(in) :: out
+      logical, intent(in) :: b
+      print_logical = out
+      write(out%iounit_, '(L, a)', advance = "no") b, out%sep_
+    end function print_logical
+    module impure type(stream_out) function print_el(out, el)
+      class(stream_out), intent(in) :: out
+      type(stream_endl), intent(in) :: el
+      print_el = out
+      write(out%iounit_, *)
+    end function print_el
+    module subroutine stream_const_nothing(const_stream, out)
+      class(stream_const), intent(out) :: const_stream
+      type(stream_out), intent(in) :: out
+      ! do nothing.
+    end subroutine stream_const_nothing
+  end submodule stream_out_implement_sm
+#+end_src
+*** test
+#+name: stream_out-test
+#+begin_src fortran :exports code :tangle "test/test_steam_out.f90"
+  program test_stream_out
+    use, intrinsic :: iso_fortran_env
+    use stream_out_m, cstream => const_stream
+    implicit none
+    type(stream_out) :: myout
+    myout = stdout
+    call myout%sep(" ")
+    cstream = stdout .o. 3 .o. 4_int64 .o. 30.2/3 .o. 40.6d40/3 .o. endl
+    cstream = myout  .o. 3 .o. 4_int64 .o. 30.2/3 .o. 40.6d40/3 .o. endl
+    cstream = stderr .o. 3 .o. 4_int64 .o. 30.2/3 .o. 40.6d40/3 .o. endl
+    cstream = stdout .o. 2 .o. 4.2 .o. .true. .o. "hi" .o. endl
+  end program test_stream_out
+#+end_src
+#+name: test-stream_out
+#+begin_src fortran :flags -g -fbacktrace :exports both :results output :noweb no-export :cache yes
+<<stream_out-module>>
+<<stream_out-test>>
+#+end_src
+
+#+RESULTS[7180d27cac49410c73102321bde729aff897011d]: test-stream_out
+: 3410.066666601.3533333333333333E+041
+: 3 4 10.06666660 1.3533333333333333E+041
+: 24.19999981Thi
