@@ -1717,17 +1717,17 @@ There are four procedures for the linked list.
     use, intrinsic :: iso_fortran_env
     implicit none
     private
-  <<declaration-unwrapped_vector-var(type="integer", type_kind="int32")>>
-  <<declaration-unwrapped_vector-var(type="integer", type_kind="int64")>>
-  <<declaration-unwrapped_vector-var(type="real", type_kind="real32")>>
-  <<declaration-unwrapped_vector-var(type="real", type_kind="real64")>>
-  <<declaration-unwrapped_vector-var(type="character")>>
+    <<declaration-unwrapped_vector-var(type="integer", type_kind="int32")>>
+    <<declaration-unwrapped_vector-var(type="integer", type_kind="int64")>>
+    <<declaration-unwrapped_vector-var(type="real", type_kind="real32")>>
+    <<declaration-unwrapped_vector-var(type="real", type_kind="real64")>>
+    <<declaration-unwrapped_vector-var(type="character")>>
   contains
-  <<procedures-unwrapped_vector-var(type="integer", type_kind="int32")>>
-  <<procedures-unwrapped_vector-var(type="integer", type_kind="int64")>>
-  <<procedures-unwrapped_vector-var(type="real", type_kind="real32")>>
-  <<procedures-unwrapped_vector-var(type="real", type_kind="real64")>>
-  <<procedures-unwrapped_vector-var(type="character")>>
+    <<procedures-unwrapped_vector-var(type="integer", type_kind="int32")>>
+    <<procedures-unwrapped_vector-var(type="integer", type_kind="int64")>>
+    <<procedures-unwrapped_vector-var(type="real", type_kind="real32")>>
+    <<procedures-unwrapped_vector-var(type="real", type_kind="real64")>>
+    <<procedures-unwrapped_vector-var(type="character")>>
   end module unwrapped_vector_m
 #+end_src
 **** declaration of the unwrapped_vector
