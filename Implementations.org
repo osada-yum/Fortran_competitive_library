@@ -420,6 +420,39 @@ We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
     end function decompress_compress
   end module compress_m
 #+end_src
+** extend euclid
+#+begin_src fortran
+  module extend_euclid_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: extend_euclid
+  contains
+    subroutine extend_euclid(a, b, g, x, y)
+      integer(int32), intent(in)  :: a, b
+      integer(int32), intent(out) :: g, x, y
+      integer(int32) :: q, old, next
+      integer(int32) :: zs(0:1), xs(0:1), ys(0:1)
+      zs(0) = a; zs(1) = b
+      xs(0) = 1; xs(1) = 0
+      ys(0) = 0; ys(1) = 1
+      old = 1
+      do
+         next = ieor(old, 1)
+         if (zs(old) == 0) exit
+         q = zs(next) / zs(old)
+         zs(next) = zs(next) - q*zs(old)
+         xs(next) = xs(next) - q*xs(old)
+         ys(next) = ys(next) - q*ys(old)
+         ! write(error_unit, '(*(i0, 1x))') zs(next), q, xs(next), ys(next)
+         old = next
+      end do
+      x = xs(next)
+      y = ys(next)
+      g = a*x + b*y
+    end subroutine extend_euclid
+  end module extend_euclid_m
+#+end_src
 ** polymorphic class(*)
 Fortran has polymorphic type =class(*)=.
 We can store any values in a variable of =class(*) :: var= and extract value from it by =select type= statement.
