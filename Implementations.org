@@ -1107,6 +1107,109 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
   end subroutine shift_down${suffix}
 #+end_src
 *** test
+** radix-sort
+#+name: radix_sort
+#+begin_src fortran
+  module radix_sort_m
+    use, intrinsic :: iso_fortran_env
+    use unwrapped_vector_m
+    implicit none
+    private
+    integer(int32), parameter :: ten_pow(10) = [1, 10, 10**2, 10**3, 10**4, 10**5, 10**6, 10**7, 10**8, 10**9]
+    public :: radix_sort
+    interface radix_sort
+       module procedure :: radix_sort_int32
+    end interface radix_sort
+  contains
+    subroutine radix_sort_int32(arr, pow_max)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32), intent(in) :: pow_max
+      integer(int32) :: n, i, p, r, idx
+      integer(int32), allocatable :: arr_tmp(:, :)
+      integer(int32) :: old, next
+      type(unwrapped_vector_int32) :: radix(-9:9)
+      n = size(arr)
+      allocate(arr_tmp(n, 0:1))
+      old = 0
+      arr_tmp(:, old) = arr(:)
+      do p = 0, pow_max
+         next = ieor(old, 1)
+         do r = -9, 9
+            call radix(r)%resize(0)
+         end do
+         do i = 1, n
+            r = mod(arr_tmp(i, old) / ten_pow(p+1), 10)
+            ! write(error_unit, '(*(i0, 1x))') p, i, r
+            call radix(r)%push_back(i)
+         end do
+         idx = 0
+         do r = -9, 9
+            do i = 1, radix(r)%size()
+               idx = idx + 1
+               arr_tmp(idx, next) = arr_tmp(radix(r)%arr_(i), old)
+            end do
+         end do
+         old = next
+      end do
+      arr(:) = arr_tmp(:, old)
+    end subroutine radix_sort_int32
+  end module radix_sort_m
+
+  program radix_sort_test
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    use radix_sort_m
+    implicit none
+    integer(int32), parameter :: p = 3, n = 10**8+1
+    integer(int32) :: i, j
+    integer(int32) :: arr(n), arr2(n), arr_tmp(n)
+    integer(int32) :: t_beg, t_end, count_per_sec, count_max
+    call arr_init_by_rand(arr_tmp, p)
+    ! call arr_init(arr_tmp)
+    arr = arr_tmp
+    write(output_unit, '(a, *(i0, 1x))') "before: ", arr([1, 2, n/2, n-1, n])
+    call system_clock(t_beg, count_per_sec, count_max)
+    call radix_sort(arr, p)
+    call system_clock(t_end)
+    write(output_unit, '(a, g0, a)') "elapsed time: ", real(t_end - t_beg) / count_per_sec, " sec"
+    write(output_unit, '(a, *(i0, 1x))') "after: ", arr([1, 2, n/2, n-1, n])
+
+    arr2 = arr_tmp
+    write(output_unit, '(a, *(i0, 1x))') "before: ", arr2([1, 2, n/2, n-1, n])
+    call system_clock(t_beg)
+    call merge_sort(arr2)
+    call system_clock(t_end)
+    write(output_unit, '(a, g0, a)') "elapsed time: ", real(t_end - t_beg) / count_per_sec, " sec"
+    write(output_unit, '(a, *(i0, 1x))') "after: ", arr2([1, 2, n/2, n-1, n])
+
+    if (.not. all(arr(:) == arr2(:))) then
+       write(error_unit, '(a)') "algorithm error"
+       error stop 2
+    end if
+  contains
+    subroutine arr_init(arr)
+      integer(int32), intent(out) :: arr(:)
+      integer(int32) :: n
+      integer(int32) :: i, j
+      n = size(arr)
+      j = 0
+      do i = n/2, -(n+1)/2+1, -1
+         j = j + 1
+         arr(j) = i
+      end do
+    end subroutine arr_init
+    subroutine arr_init_by_rand(arr, pow_max)
+      integer(int32), intent(out) :: arr(:)
+      integer(int32), intent(in) :: pow_max
+      integer(int32) :: n
+      real(real32), allocatable :: rnds(:)
+      n = size(arr)
+      allocate(rnds(n))
+      call random_number(rnds)
+      arr(:) = int(10**pow_max * rnds) - 10**pow_max/2
+    end subroutine arr_init_by_rand
+  end program radix_sort_test
+#+end_src
 * search
 ** binary-search
 *** base
