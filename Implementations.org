@@ -69,22 +69,24 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
      error stop ${code}
   end if
 #+end_src
-#+name: assert-true
+~${cond}~ が ~.false.~ ならエラー.
+#+name: assert
 #+begin_src bash :exports code :var cond=".true." code="127" message="" :results output :noweb no-export
   true_false=false
   cond_origin="${cond}"
-  cond="${cond}"
+  cond=".not. (${cond})"
   code=${code}
   message="${message}"
   cat << EOF
   <<assert-fortran>>
   EOF
 #+end_src
+~${cond}~ が ~.true.~ ならエラー.
 #+name: assert-false
 #+begin_src bash :exports code :var cond=".false." code="127" message="" :results output :noweb no-export
-  true_false=true
+  true_false=false
   cond_origin="${cond}"
-  cond=".not. (${cond})"
+  cond="${cond}"
   code=${code}
   message="${message}"
   cat << EOF
@@ -97,8 +99,8 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
     use, intrinsic :: iso_fortran_env
     implicit none
     integer(int32) :: a = 1, b = 2
-    <<assert-true(cond="2<1", code=1, message="in main")>>
-    <<assert-false(cond="a < b", code=2, message="")>>
+    <<assert-false(cond="2<1", code=1, message="in main")>>
+    <<assert(cond="a < b", code=2, message="")>>
   end program hi
 #+end_src
 
@@ -1412,25 +1414,25 @@ Index starts from 1.
     ! arr
     do i = 0, n+1
        j = lower_bound(arr, i)
-       <<assert-false(cond="j == max(1, i)",code=11,message="`lower_bound` does not work well...")>>
+       <<assert(cond="j == max(1, i)",code=11,message="`lower_bound` does not work well...")>>
     end do
     ! arr2
     arr2(1) = 7
-    <<assert-false(cond="lower_bound(arr2, 6) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
-    <<assert-false(cond="lower_bound(arr2, 7) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
-    <<assert-false(cond="lower_bound(arr2, 8) == 2",code=12,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 6) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 7) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 8) == 2",code=12,message="`lower_bound` does not work well for one element array...")>>
     ! dup_arr
     dup_arr = [1, 1, 2, 3, 3, 3, 3, 5, 5, 5]
-    <<assert-false(cond="lower_bound(dup_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert-false(cond="lower_bound(dup_arr, 2) == 3",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert-false(cond="lower_bound(dup_arr, 3) == 4",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert-false(cond="lower_bound(dup_arr, 5) == 8",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert-false(cond="lower_bound(dup_arr, 7) == 11",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 2) == 3",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 3) == 4",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 5) == 8",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 7) == 11",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
     ! allsame_arr
     allsame_arr = [(1, i = 1, n)]
-    <<assert-false(cond="lower_bound(allsame_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
-    <<assert-false(cond="lower_bound(allsame_arr, 1) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
-    <<assert-false(cond="lower_bound(allsame_arr, 2) == 11",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 1) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 2) == 11",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
   end program test_lower_bound
 #+end_src
 #+name: test-vector
@@ -1439,7 +1441,7 @@ Index starts from 1.
 <<lower_bound-test>>
 #+end_src
 
-#+RESULTS[8bdad10991244b1976c0a57ff71ca710c49b40fc]: test-vector
+#+RESULTS[0565c652816f22840ea4e3e4271b629849a852f1]: test-vector
 
 * math
 ** prime
@@ -1577,7 +1579,7 @@ The definition of either ==== or =/== must be overridden.
     logical function less_equal_comp_int(lhs, rhs)
       class(comp_int), intent(in) :: lhs
       class(comparable), intent(in) :: rhs
-      <<assert-false(cond="same_type_as(lhs, rhs)", code=1, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
+      <<assert(cond="same_type_as(lhs, rhs)", code=1, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
       select type (rhs)
       type is (comp_int)
          less_equal_comp_int = lhs%val() <= rhs%val()
@@ -1586,7 +1588,7 @@ The definition of either ==== or =/== must be overridden.
     logical function equal_comp_int(lhs, rhs)
       class(comp_int), intent(in) :: lhs
       class(comparable), intent(in) :: rhs
-      <<assert-false(cond="same_type_as(lhs, rhs)", code=2, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
+      <<assert(cond="same_type_as(lhs, rhs)", code=2, message="in comparable_test_m:less_equal_comp_int: Do not compare different types.")>>
       select type (rhs)
       type is (comp_int)
          equal_comp_int = lhs%val() == rhs%val()
@@ -1606,18 +1608,18 @@ The definition of either ==== or =/== must be overridden.
     class(comparable), pointer :: b
     a = comp_int(39)
     allocate(b, source = comp_int(42))
-    <<assert-false(cond="a < b", code=1, message="in main")>>
-    <<assert-false(cond="a <= b", code=2, message="in main")>>
-    <<assert-true(cond="a >= b", code=3, message="in main")>>
-    <<assert-true(cond="a > b", code=4, message="in main")>>
-    <<assert-false(cond="a < b", code=5, message="in main")>>
-    <<assert-false(cond="a <= a", code=6, message="in main")>>
-    <<assert-false(cond="a == a", code=7, message="in main")>>
-    <<assert-true(cond="a /= a", code=8, message="in main")>>
-    <<assert-true(cond="b < a", code=9, message="in main")>>
-    <<assert-true(cond="b <= a", code=10, message="in main")>>
-    <<assert-false(cond="b >= a", code=11, message="in main")>>
-    <<assert-false(cond="b > a", code=12, message="in main")>>
+    <<assert(cond="a < b", code=1, message="in main")>>
+    <<assert(cond="a <= b", code=2, message="in main")>>
+    <<assert-false(cond="a >= b", code=3, message="in main")>>
+    <<assert-false(cond="a > b", code=4, message="in main")>>
+    <<assert(cond="a < b", code=5, message="in main")>>
+    <<assert(cond="a <= a", code=6, message="in main")>>
+    <<assert(cond="a == a", code=7, message="in main")>>
+    <<assert-false(cond="a /= a", code=8, message="in main")>>
+    <<assert-false(cond="b < a", code=9, message="in main")>>
+    <<assert-false(cond="b <= a", code=10, message="in main")>>
+    <<assert(cond="b >= a", code=11, message="in main")>>
+    <<assert(cond="b > a", code=12, message="in main")>>
   end program test_comparable
 #+end_src
 **** whole test
@@ -1627,7 +1629,7 @@ The definition of either ==== or =/== must be overridden.
     <<comparable-test>>
 #+end_src
 
-#+RESULTS[8a03d93a42e56c4ce762831226dc68cbde7e917e]:
+#+RESULTS[4e7776f0a64b041373bc095de23aa0f5f3557984]:
 
 ** linked list
 *** by pointer
@@ -2098,11 +2100,11 @@ Variables like ${variable} are expanded by bash.
     type(unwrapped_vector_int32) :: v, v2
     store:do i = 1, n
        call v%push_back(i)
-       <<assert-false(cond="v%arr_(i) == i", code=10, message="Stored value in `v%arr_(i)` is illegal in loop.")>>
+       <<assert(cond="v%arr_(i) == i", code=10, message="Stored value in `v%arr_(i)` is illegal in loop.")>>
     end do store
     test_lower_bound:do i = 0, v%size()+1
        j = v%lower_bound(i)
-       <<assert-false(cond="j == max(1, i)", code=11, message="Return value of `lower_bound` is illegal in loop.")>>
+       <<assert(cond="j == max(1, i)", code=11, message="Return value of `lower_bound` is illegal in loop.")>>
     end do test_lower_bound
     do i = 1, n
        j = v%pop_back()
@@ -2111,21 +2113,21 @@ Variables like ${variable} are expanded by bash.
     v2 = unwrapped_vector_int32(5)
     v2%arr_(:) = 1
     do i = 1, 5
-       <<assert-false(cond="v2%arr_(i) == 1", code=20, message="Initialization by size of `v2` is illegal.")>>
+       <<assert(cond="v2%arr_(i) == 1", code=20, message="Initialization by size of `v2` is illegal.")>>
     end do
     v2 = unwrapped_vector_int32([(i, i = 1,5)])
     do i = 1, 5
-       <<assert-false(cond="v2%arr_(i) == i", code=21, message="Initialization by array of `v2` is illegal.")>>
+       <<assert(cond="v2%arr_(i) == i", code=21, message="Initialization by array of `v2` is illegal.")>>
     end do
     v2 = unwrapped_vector_int32(size = 5, val = 2)
     do i = 1, 5
-       <<assert-false(cond="v2%arr_(i) == 2", code=22, message="Initialization by init_val of `v2` is illegal.")>>
+       <<assert(cond="v2%arr_(i) == 2", code=22, message="Initialization by init_val of `v2` is illegal.")>>
     end do
 
     call v2%resize(0)
     do i = 1, 5
        call v2%push_back(i)
-       <<assert-false(cond="v2%back() == i", code=23, message="Resize or back for `v2` is illegal.")>>
+       <<assert(cond="v2%back() == i", code=23, message="Resize or back for `v2` is illegal.")>>
     end do
   end program test_unwrapped_vector
 #+end_src
@@ -2135,12 +2137,15 @@ Variables like ${variable} are expanded by bash.
 <<unwrapped_vector-test>>
 #+end_src
 
-#+RESULTS[1a980011ba9f528ddfd7da7d9e1eb46a59c550e3]: test-unwrapped_vector
+#+RESULTS[f4d58e4595aecbf77553fdd0fd7c8ef6c1f77d67]: test-unwrapped_vector
 
+*** wrapped Vector
+**** whole module of the vector
 #+name: vector-module
 #+begin_src fortran :exports code :tangle "src/vector_m.F90" :comment link :noweb no-export
   module vector_m
     use, intrinsic :: iso_fortran_env
+    use unwrapped_vector_m
     implicit none
     private
   <<declaration-vector-var(type="integer", type_kind="int32")>>
