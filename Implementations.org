@@ -69,6 +69,21 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
      error stop ${code}
   end if
 #+end_src
+#+name: assert-eq-fortran
+#+begin_src fortran :exports code :noweb yes
+  if (${cond}) then
+     <<error-handling-filename>>
+     write(error_unit, '(a)') " Assertion '${cond_origin}' must be ${true_false}."
+     write(error_unit, '(a)', advance = "no") "${eq1}: "
+     write(error_unit, *) ${eq1}
+     write(error_unit, '(a)', advance = "no") "${eq2}: "
+     write(error_unit, *) ${eq2}
+     if (len_trim("${message}") /= 0) then
+        write(error_unit, '(a)') "Extra message: '${message}'"
+     end if
+     error stop ${code}
+  end if
+#+end_src
 ~${cond}~ が ~.false.~ ならエラー.
 #+name: assert
 #+begin_src bash :exports code :var cond=".true." code="127" message="" :results output :noweb no-export
@@ -91,6 +106,17 @@ Modify org-babel function to avoid adding ~program...end program~ around ~module
   message="${message}"
   cat << EOF
   <<assert-fortran>>
+  EOF
+#+end_src
+#+name: assert-eq
+#+begin_src bash :exports code :var eq1="1" eq2="1" code="127" message="" :results output :noweb no-export
+  true_false=false
+  cond_origin="${eq1} == ${eq2}"
+  cond=".not. (${cond_origin})"
+  code=${code}
+  message="${message}"
+  cat << EOF
+  <<assert-eq-fortran>>
   EOF
 #+end_src
 #+name: assert-test
