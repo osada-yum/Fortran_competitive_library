@@ -2537,7 +2537,6 @@ priority queue モジュール全体は以下のとおり.
 #+begin_src fortran :exports code :tangle "src/priority_queue_m.F90" :comment link :noweb no-export
   module priority_queue_m
     use, intrinsic :: iso_fortran_env
-    use unwrapped_vector_m
     implicit none
     private
     <<declaration-priority_queue-var(type_base="integer", type_kind="int32")>>
@@ -2555,7 +2554,7 @@ priority queue モジュール全体は以下のとおり.
 #+end_src
 *** declaration of the priority queue
 まず, ~priority_queue~ 型を宣言する.
-ベクターを用いて優先度付きキューを実装する.
+配列を伸長させて優先度付きキューを実装する.
 挿入と削除操作は =O(log n)= で, 先頭の参照は =O(1)= で可能.
 
 ~bash~ を用いて ~${variable}~ を展開する.
@@ -2567,13 +2566,14 @@ priority queue モジュール全体は以下のとおり.
   public :: ${pq}
   type :: ${pq}
      private
-     type(unwrapped_vector_${suffix}) :: vec_
+     integer(int32) :: size_ = 0_int32, capa_ = 0_int32
+     ${type}, allocatable :: arr_(:)
    contains
      procedure, pass :: push  => push_${pq}
      procedure, pass :: pop   => pop_${pq}
      procedure, pass :: front => front_${pq}
      procedure, pass :: size => size_${pq}
-     procedure, pass :: dump => dump_${pq}
+     ! procedure, pass :: dump => dump_${pq}
   end type ${pq}
 #+end_src
 *** procedures of the priority queue
@@ -2590,19 +2590,34 @@ priority queue モジュール全体は以下のとおり.
     ${type}, intent(in) :: val
     ${type} :: tmp
     integer(int32) :: i
+    if (this%size_ == this%capa_) then
+       if (this%capa_ == 0) then
+          this%capa_ = 1
+          allocate(this%arr_(1))
+       else
+          this%capa_ = 2*this%capa_
+          block
+            ${type}, allocatable :: tmp_arr(:)
+            allocate(tmp_arr(this%capa_))
+            tmp_arr(1:this%size_) = this%arr_(1:this%size_)
+            call move_alloc(from = tmp_arr, to = this%arr_)
+          end block
+       end if
+    end if
+    this%size_ = this%size_ + 1
     ! add `val` to heap.
-    call this%vec_%push_back(val)
-    i = this%vec_%size()
+    this%arr_(this%size_) = val
+    i = this%size_
     tmp = val
     upheap:do ! reconstruct the heap by ${op}.
        if (i == 1) then ! top of the heap
-          this%vec_%arr_(1) = tmp
+          this%arr_(1) = tmp
           exit
-       else if (tmp ${op} this%vec_%arr_(i/2)) then ! move the element up in the heap
-          this%vec_%arr_(i) = this%vec_%arr_(i/2)
+       else if (tmp ${op} this%arr_(i/2)) then ! move the element up in the heap
+          this%arr_(i) = this%arr_(i/2)
        else ! move the element up in the heap
-          this%vec_%arr_(i) = tmp
-          tmp = this%vec_%arr_(i/2)
+          this%arr_(i) = tmp
+          tmp = this%arr_(i/2)
        end if
        i = i / 2
     end do upheap
@@ -2618,22 +2633,23 @@ priority queue モジュール全体は以下のとおり.
     integer(int32) :: n, prev, next
     ! add `val` to heap.
     ! swap `arr(1)` and `arr(n)` and delete ${op} element, `arr(1)`.
-    res = this%vec_%arr_(1)
-    this%vec_%arr_(1) = this%vec_%pop_back()
-    n = this%vec_%size()
+    res = this%arr_(1)
+    this%arr_(1) = this%arr_(this%size_)
+    this%size_ = this%size_ - 1
+    n = this%size_
     ! reconstruct the heap by moving the element `arr(n)` downwards.
     next = 1
     downheap:do ! reconstruct the heap by ${op}.
        prev = next
        if (2*prev > n) exit
-       if (this%vec_%arr_(2*prev)      ${op} this%vec_%arr_(next)) &
+       if (this%arr_(2*prev)      ${op} this%arr_(next)) &
             next = 2*prev
        if (2*prev+1 <= n) then
-          if (this%vec_%arr_(2*prev+1) ${op} this%vec_%arr_(next)) &
+          if (this%arr_(2*prev+1) ${op} this%arr_(next)) &
                next = 2*prev+1
        end if
        if (prev == next) exit ! arr(next) < arr(2*prev) .and. arr(next) < arr(2*prev+1)
-       call swap(this%vec_%arr_(prev), this%vec_%arr_(next))
+       call swap(this%arr_(prev), this%arr_(next))
     end do downheap
   contains
     subroutine swap(x, y)
@@ -2652,7 +2668,7 @@ priority queue モジュール全体は以下のとおり.
   !> front_${pq}: returns the top of the element of the heap, which has either the minimum or maximum value depending on the type of heap.
   pure ${type} function front_${pq}(this) result(res)
     class(${pq}), intent(in) :: this
-    res = this%vec_%arr_(1)
+    res = this%arr_(1)
   end function front_${pq}
 #+end_src
 **** size
@@ -2662,18 +2678,18 @@ priority queue モジュール全体は以下のとおり.
   !> size_${pq}: returns the size of the heap.
   pure integer(int32) function size_${pq}(this) result(res)
     class(${pq}), intent(in) :: this
-    res = this%vec_%size()
+    res = this%size_
   end function size_${pq}
 #+end_src
 **** dump
 ~dump~
 #+name: dump_priority_queue
 #+begin_src fortran :exports code
-  !> dump_${pq}: output the heap.
-  subroutine dump_${pq}(this)
-    class(${pq}), intent(in) :: this
-    write(error_unit, '(*(g0, 1x))') this%vec_%arr_(1:this%size())
-  end subroutine dump_${pq}
+  ! !> dump_${pq}: output the heap.
+  ! subroutine dump_${pq}(this)
+  !   class(${pq}), intent(in) :: this
+  !   write(error_unit, '(*(g0, 1x))') this%arr_(1:this%size_)
+  ! end subroutine dump_${pq}
 #+end_src
 *** process definition and procedures of the priority queue
 #+name: priority_queue-var
@@ -2682,6 +2698,10 @@ priority queue モジュール全体は以下のとおり.
       "character")
           type="${type_base}"
           suffix="${type_base}"
+          ;;
+      "type")
+          type="type(${type_kind})"
+          suffix="${type_kind}"
           ;;
       ,*)
           type="${type_base}(${type_kind})"
@@ -2747,13 +2767,12 @@ priority queue モジュール全体は以下のとおり.
   end program test_priority_queue
 #+end_src
 #+name: test-priority_queue
-#+begin_src fortran :flags "-cpp -g -fbacktrace" :exports both :results output :noweb no-export :cache yes
-<<unwrapped_vector-module>>
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports both :results output :noweb no-export :cache yes
 <<priority_queue-module>>
 <<priority_queue-test>>
 #+end_src
 
-#+RESULTS[d89dc881fe94f846f0270014c30b5b6888baf761]: test-priority_queue
+#+RESULTS[d0505353c7380d864b2e3f430aaea5ec571bf268]: test-priority_queue
 
 ** Hash table
 *** open addressing hash by double hash
