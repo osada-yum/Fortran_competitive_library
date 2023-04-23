@@ -860,18 +860,63 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 
 ** merge-sort
-*** base
-#+name: merge-sentinel
+*** module
+#+name: merge-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/merge_sort_m.f90"
+  module merge_sort_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: merge_sort, merge_sort_descending
+    <<declaration-merge_sort-var(type_base="integer", type_kind="int32")>>
+    <<declaration-merge_sort-var(type_base="integer", type_kind="int64")>>
+    <<declaration-merge_sort-var(type_base="real", type_kind="real32")>>
+    <<declaration-merge_sort-var(type_base="real", type_kind="real64")>>
+  contains
+    <<procedures-merge_sort-var(type_base="integer", type_kind="int32")>>
+    <<procedures-merge_sort-var(type_base="integer", type_kind="int64")>>
+    <<procedures-merge_sort-var(type_base="real", type_kind="real32")>>
+    <<procedures-merge_sort-var(type_base="real", type_kind="real64")>>
+  end module merge_sort_m
+#+end_src
+*** merge_sort モジュールの宣言
+#+name: declaration-merge_sort
 #+begin_src fortran :exports code
-    !> ,merge_sentinel: Algorithm for merge_sort, set sentinel in end of Left and, Right.
-    !> arguments:
-    !> arr: array of some type, (out) arr(p:r) is sorted.
-    !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
-    !> variables:
-    !> Left, Right: array of typeof(arr), sorted
-    !> i, j, k: integer, loop counter.
+  interface merge_sort${order}
+     module procedure :: merge_sort_${suffix}
+     module procedure :: merge_sort_with_key_${suffix}
+  end interface merge_sort${order}
+#+end_src
+*** merge_sort 関連の関数
+:PROPERTIES:
+:header-args: :noweb-ref procedures-merge_sort
+:END:
+**** merge_sort
+#+name: merge_sort
+#+begin_src fortran
+  !> merge_sort_${suffix}: Sort arr(:) by sub function merge_sort_sub_${suffix}.
+  !> arguments:
+  !> arr: array of some type.
+  subroutine merge_sort_${suffix}(arr)
+    ${type}, intent(inout) :: arr(:)
+    call merge_sort_sub_${suffix}(arr, 1, size(arr))
+  end subroutine merge_sort_${suffix}
+#+end_src
+**** COMMENT merge_sort_sentinel
+#+name: merge_sentinel
+#+begin_src fortran :exports code
+  !> merge_sentinel_${suffix}: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+  !> arguments:
+  !> arr: array of some type, (out) arr(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> Left, Right: array of typeof(arr), sorted
+  !> i, j, k: integer, loop counter.
+  subroutine merge_sentinel_${suffix}(arr, p, q, r)
+    ${type}, intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32)             :: i, j, k
+    ${type} :: Left(1:q-p+2), Right(1:r-q+1)
+    integer(int32) :: i, j, k
     Left(1:q-p+1) = arr(p:q)
     Right(1:r-q)  = arr(q+1:r)
     Left(q-p+2)   = huge(arr(p))
@@ -879,7 +924,7 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
     i = 1
     j = 1
     do k = p, r
-       if (Left(i) <= Right(j)) then
+       if (Left(i) ${op} Right(j)) then
           arr(k) = Left(i)
           i = i + 1
        else
@@ -887,18 +932,23 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
           j = j + 1
        end if
     end do
+  end subroutine merge_sentinel_${suffix}
 #+end_src
+**** merge
 #+name: merge
 #+begin_src fortran :exports code
+  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> arguments:
+  !> arr: array of some type, (out) arr(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> Left, Right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of Left or Right.
+  subroutine merge_${suffix}(arr, p, q, r)
+    ${type}, intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
+    ${type}                :: Left(1:q-p+1), Right(1:r-q)
     integer(int32)             :: l_max, r_max
-    !> ,merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
-    !> arguments:
-    !> arr: array of some type, (out) arr(p:r) is sorted.
-    !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
-    !> variables:
-    !> Left, Right: array of typeof(arr), sorted
-    !> l_max, r_max: integer, max index of Left or Right.
     l_max = q-p+1
     r_max = r-q
     block
@@ -909,7 +959,7 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) <= Right(j)) then
+         if (Left(i) ${op} Right(j)) then
             arr(k) = Left(i)
             i = i + 1
             if (i > l_max) then
@@ -926,149 +976,183 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
          end if
       end do
     end block
+  end subroutine merge_${suffix}
 #+end_src
-#+name: merge-sort-sub
+**** merge_sort_sub
+#+name: merge_sort_sub
 #+begin_src fortran :exports code
+  !> merge_sort_sub: Recursive function used by merge_sort.
+  !> arguments:
+  !> arr: array of some type.
+  !> p, r: integer, p is start of arr, r is end of arr.
+  !> variables:
+  !> q: integer, q = floor( (p+q)/2 )
+  recursive subroutine merge_sort_sub_${suffix}(arr, p, r)
+    ${type}, intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, r
     integer(int32)             :: q
-    !> ,merge_sort_sub: Recursive function used by merge_sort.
-    !> arguments:
-    !> arr: array of some type.
-    !> p, r: integer, p is start of arr, r is end of arr.
-    !> variables:
-    !> q: integer, q = floor( (p+q)/2 )
     if (p < r) then
-       q = int((r+p)/2, int32)
-       call merge_sort_sub(arr, p, q)
-       call merge_sort_sub(arr, q+1, r)
-       call merge(arr, p, q, r)
+       q = (p+r)/2
+       call merge_sort_sub_${suffix}(arr, p, q)
+       call merge_sort_sub_${suffix}(arr, q+1, r)
+       call merge_${suffix}(arr, p, q, r)
     end if
+  end subroutine merge_sort_sub_${suffix}
 #+end_src
-#+name: merge-sort
+**** merge_sort_with_key
+#+name: merge_sort_with_key
+#+begin_src fortran
+  !> merge_sort_with_key_${suffix}: Sort key(:) sub function merge_sort_sub_with_key_${suffix}.
+  !> arguments:
+  !> key: array of some type.
+  !> indices: array of some type.
+  subroutine merge_sort_with_key_${suffix}(key, indices)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    call merge_sort_sub_with_key_${suffix}(key, indices, 1, size(key))
+  end subroutine merge_sort_with_key_${suffix}
+#+end_src
+**** merge_with_key
+#+name: merge_with_key
 #+begin_src fortran :exports code
-    !> ,merge_sort: Sort arr(:) by sub function merge_sort_sub.
-    !> arguments:
-    !> arr: array of some type.
-    call merge_sort_sub(arr, 1, size(arr))
+  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> arguments:
+  !> indices: array of indices.
+  !> key: array of some type, (out) key(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> Left, Right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of Left or Right.
+  subroutine merge_with_key_${suffix}(key, indices, p, q, r)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    integer(int32), intent(in) :: p, q, r
+    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
+    ${type} :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: l_max, r_max
+    l_max = q-p+1
+    r_max = r-q
+    block
+      !> i, j, k: integer, loop counters.
+      integer(int32) :: i, j, k
+      Left(1:l_max)  = indices(p:q)
+      Right(1:r_max) = indices(q+1:r)
+      Left_key(1:l_max)  = key(p:q)
+      Right_key(1:r_max) = key(q+1:r)
+      i = 1
+      j = 1
+      do k = p, r
+         if (Left_key(i) ${op} Right_key(j)) then
+            key(k) = Left_key(i)
+            indices(k) = Left(i)
+            i = i + 1
+            if (i > l_max) then
+               key(k+1:r) = Right_key(j:)
+               indices(k+1:r) = Right(j:)
+               return
+            end if
+         else
+            key(k) = Right_key(j)
+            indices(k) = Right(j)
+            j = j + 1
+            if (j > r_max) then
+               key(k+1:r) = Left_key(i:)
+               indices(k+1:r) = Left(i:)
+               return
+            end if
+         end if
+      end do
+    end block
+  end subroutine merge_with_key_${suffix}
 #+end_src
-*** module
-#+name: merge-sort-module
-#+begin_src fortran :exports code :noweb yes :tangle "src/merge_sort_m.f90"
-  module merge_sort_m
-    use, intrinsic :: iso_fortran_env
-    implicit none
-    private
-    public :: merge_sort
-    interface merge_sentinel
-       module procedure :: merge_sentinel_int32, merge_sentinel_int64
-       module procedure :: merge_sentinel_real32, merge_sentinel_real64
-    end interface merge_sentinel
-    interface merge
-       module procedure :: merge_int32, merge_int64
-       module procedure :: merge_real32, merge_real64
-    end interface merge
-    interface merge_sort
-       module procedure :: merge_sort_int32, merge_sort_int64
-       module procedure :: merge_sort_real32, merge_sort_real64
-    end interface merge_sort
-    interface merge_sort_sub
-       module procedure :: merge_sort_sub_int32, merge_sort_sub_int64
-       module procedure :: merge_sort_sub_real32, merge_sort_sub_real64
-    end interface merge_sort_sub
-  contains
-
-    subroutine merge_sentinel_int32(arr, p, q, r)
-      integer(int32), intent(inout) :: arr(:)
-      integer(int32)                :: Left(1:q-p+2), Right(1:r-q+1)
-      <<merge-sentinel>>
-    end subroutine merge_sentinel_int32
-    subroutine merge_sentinel_int64(arr, p, q, r)
-      integer(int64), intent(inout) :: arr(:)
-      integer(int64)                :: Left(1:q-p+2), Right(1:r-q+1)
-      <<merge-sentinel>>
-    end subroutine merge_sentinel_int64
-    subroutine merge_sentinel_real32(arr, p, q, r)
-      real(real32), intent(inout) :: arr(:)
-      real(real32)                :: Left(1:q-p+2), Right(1:r-q+1)
-      <<merge-sentinel>>
-    end subroutine merge_sentinel_real32
-    subroutine merge_sentinel_real64(arr, p, q, r)
-      real(real64), intent(inout) :: arr(:)
-      real(real64)                :: Left(1:q-p+2), Right(1:r-q+1)
-      <<merge-sentinel>>
-    end subroutine merge_sentinel_real64
-
-    subroutine merge_int32(arr, p, q, r)
-      integer(int32), intent(inout) :: arr(:)
-      integer(int32)                :: Left(1:q-p+1), Right(1:r-q)
-      <<merge>>
-    end subroutine merge_int32
-    subroutine merge_int64(arr, p, q, r)
-      integer(int64), intent(inout) :: arr(:)
-      integer(int64)                :: Left(1:q-p+1), Right(1:r-q)
-      <<merge>>
-    end subroutine merge_int64
-    subroutine merge_real32(arr, p, q, r)
-      real(real32), intent(inout) :: arr(:)
-      real(real32)                :: Left(1:q-p+1), Right(1:r-q)
-      <<merge>>
-    end subroutine merge_real32
-    subroutine merge_real64(arr, p, q, r)
-      real(real64), intent(inout) :: arr(:)
-      real(real64)                :: Left(1:q-p+1), Right(1:r-q)
-      <<merge>>
-    end subroutine merge_real64
-
-    recursive subroutine merge_sort_sub_int32(arr, p, r)
-      integer(int32), intent(inout) :: arr(:)
-      <<merge-sort-sub>>
-    end subroutine merge_sort_sub_int32
-    recursive subroutine merge_sort_sub_int64(arr, p, r)
-      integer(int64), intent(inout) :: arr(:)
-      <<merge-sort-sub>>
-    end subroutine merge_sort_sub_int64
-    recursive subroutine merge_sort_sub_real32(arr, p, r)
-      real(real32), intent(inout) :: arr(:)
-      <<merge-sort-sub>>
-    end subroutine merge_sort_sub_real32
-    recursive subroutine merge_sort_sub_real64(arr, p, r)
-      real(real64), intent(inout) :: arr(:)
-      <<merge-sort-sub>>
-    end subroutine merge_sort_sub_real64
-
-    subroutine merge_sort_int32(arr)
-      integer(int32), intent(inout) :: arr(:)
-      <<merge-sort>>
-    end subroutine merge_sort_int32
-    subroutine merge_sort_int64(arr)
-      integer(int64), intent(inout) :: arr(:)
-      <<merge-sort>>
-    end subroutine merge_sort_int64
-    subroutine merge_sort_real32(arr)
-      real(real32), intent(inout) :: arr(:)
-      <<merge-sort>>
-    end subroutine merge_sort_real32
-    subroutine merge_sort_real64(arr)
-      real(real64), intent(inout) :: arr(:)
-      <<merge-sort>>
-    end subroutine merge_sort_real64
-
-  end module merge_sort_m
+**** merge_sort_sub_with_key
+#+name: merge_sort_sub_with_key
+#+begin_src fortran :exports code
+  !> merge_sort_sub_with_key: Recursive function used by merge_sort_with_key.
+  !> arguments:
+  !> indices: array of indices.
+  !> key: array of some type.
+  !> p, r: integer, p is start of arr, r is end of arr.
+  !> variables:
+  !> q: integer, q = floor( (p+q)/2 )
+  recursive subroutine merge_sort_sub_with_key_${suffix}(key, indices, p, r)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    integer(int32), intent(in) :: p, r
+    integer(int32)             :: q
+    if (p < r) then
+       q = (p+r)/2
+       call merge_sort_sub_with_key_${suffix}(key, indices, p, q)
+       call merge_sort_sub_with_key_${suffix}(key, indices, q+1, r)
+       call merge_with_key_${suffix}(key, indices, p, q, r)
+    end if
+  end subroutine merge_sort_sub_with_key_${suffix}
+#+end_src
+*** merge_sort 関連の変数の展開
+#+name: merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type_base}" in
+      "character")
+          type="character"
+          suffix="character"
+          ;;
+      ,*)
+          type="${type_base}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  case "${op}" in
+      "<=")
+          order=""
+          ;;
+      ">=")
+          order="_descending"
+          ;;
+  esac
+  suffix="${suffix}${order}"
+#+end_src
+#+name: declaration-merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  for op in "<=" ">="
+  do
+  <<merge_sort-var>>
+  cat <<EOF
+  <<declaration-merge_sort>>
+  EOF
+  done
+#+end_src
+#+name: procedures-merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  for op in "<=" ">="
+  do
+  <<merge_sort-var>>
+  cat <<EOF
+  <<procedures-merge_sort>>
+  EOF
+  done
 #+end_src
 *** test
 #+name: merge-sort-test
-#+begin_src fortran :exports code :tangle "test/test_merge_sort.f90"
+#+begin_src fortran :exports code :tangle "test/test_merge_sort.f90" :noweb yes
   program test_merge
     use, intrinsic :: iso_fortran_env
     use merge_sort_m
     implicit none
-    integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
-    integer :: i
+    integer(int32) :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer(int32), allocatable :: indices(:)
+    integer(int32) :: i
 
-    print'(*(i0, " "))', (arr(i), i = 1, size(arr))
-    call merge_sort(arr)
-    print'(*(i0, " "))', (arr(i), i = 1, size(arr))
-
+    indices = [(i, i = 1, 9)]
+    call merge_sort(arr, indices)
+    <<assert(cond="all(arr(:) == [1,2,3,4,5,6,7,8,9])", code=11, message="merge_sort with key is illegal.")>>
+    <<assert(cond="all(indices(:) == [3,7,2,6,5,9,8,1,4])", code=12, message="merge_sort with key is illegal.")>>
+    call merge_sort_descending(arr)
+    <<assert(cond="all(arr(:) == [9,8,7,6,5,4,3,2,1])", code=21, message="merge_sort_descending is illegal.")>>
+    arr(1:9) = [1, 1, 1, 1, 1, 2, 2, 2, 2]
+    indices(:) = [(i, i = 1, 9)]
+    call merge_sort(arr, indices)
+    <<assert(cond="all(arr(:) == [1,1,1,1,1,2,2,2,2])", code=31, message="merge_sort with key is illegal.")>>
+    <<assert(cond="all(indices(:) == [(i, i = 1, 9)])", code=32, message="merge_sort with key is not stable sort.")>>
   end program test_merge
 #+end_src
 
@@ -1077,9 +1161,7 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
   <<merge-sort-test>>
 #+end_src
 
-#+RESULTS[000d13091ef6658230c2841b92c81c674f0f65c8]:
-: 8 3 1 9 5 4 2 7 6
-: 1 2 3 4 5 6 7 8 9
+#+RESULTS[90512ca95c869ead0fff5d7179475e6f0a8018e9]:
 
 ** heap-sort
 *** base code
