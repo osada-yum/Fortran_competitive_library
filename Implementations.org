@@ -1657,6 +1657,518 @@ The definition of either ==== or =/== must be overridden.
 
 #+RESULTS[4e7776f0a64b041373bc095de23aa0f5f3557984]:
 
+** Tuple
+*** Tuple2
+**** Tuple2モジュール全体
+#+name: tuple2-module
+#+begin_src fortran :exports code :tangle "src/tuple2_m.F90" :comment link :noweb no-export
+  module tuple2_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    <<declaration-tuple2-var(type1="integer", type1_kind="int32", type2="integer", type2_kind="int32")>>
+    <<declaration-tuple2-var(type1="integer", type1_kind="int64", type2="integer", type2_kind="int64")>>
+  contains
+    <<procedures-tuple2-var(type1="integer", type1_kind="int32", type2="integer", type2_kind="int32")>>
+    <<procedures-tuple2-var(type1="integer", type1_kind="int64", type2="integer", type2_kind="int64")>>
+  end module tuple2_m
+#+end_src
+**** Tuple2の宣言
+まず, 型 ~${tuple2}~ の宣言を行う.
+~${tuple2}~ は2つの要素を持つ.
+2つの要素の型は異なる型でも構わない.
+
+変数 ~${variable}~ は =bash= で展開される.
+- ~${tuple2}~ は Tuple2型.
+- ~${type1}~ は Tuple2型の一番目の型.
+- ~${type2}~ は Tuple2型の二番目の型.
+#+name: declaration-tuple2
+#+begin_src fortran :exports code
+  public :: ${tuple2}
+  type :: ${tuple2}
+     private
+     ${type1} :: fst_
+     ${type2} :: snd_
+   contains
+     procedure, pass :: fst  => fst_${tuple2}
+     procedure, pass :: snd  => snd_${tuple2}
+  end type ${tuple2}
+  private :: construct_${tuple2}
+  interface ${tuple2}
+     module procedure :: construct_${tuple2}
+  end interface ${tuple2}
+  interface operator(<)
+     module procedure :: less_${tuple2}
+  end interface operator(<)
+  interface operator(<=)
+     module procedure :: less_equal_${tuple2}
+  end interface operator(<=)
+  interface operator(>)
+     module procedure :: greater_${tuple2}
+  end interface operator(>)
+  interface operator(>=)
+     module procedure :: greater_equal_${tuple2}
+  end interface operator(>=)
+  interface operator(==)
+     module procedure :: equal_${tuple2}
+  end interface operator(==)
+  interface operator(/=)
+     module procedure :: not_equal_${tuple2}
+  end interface operator(/=)
+#+end_src
+**** Tuple2の関数とか
+:PROPERTIES:
+:header-args: :noweb-ref procedures-tuple2
+:END:
+***** constructor
+=function construct= は Tuple2型を生成する.
+#+name: construct-tuple2
+#+begin_src fortran
+  !> construct_${tuple2}_by_size: Construct ${tuple2}.
+  impure function construct_${tuple2}(val1, val2) result(res)
+    type(${tuple2}) :: res
+    ${type1}, intent(in) :: val1
+    ${type2}, intent(in) :: val2
+    res%fst_ = val1
+    res%snd_ = val2
+  end function construct_${tuple2}
+#+end_src
+***** fst
+=function fst= は Tuple2 の一番目の要素を返す.
+#+name: fst-tuple2
+#+begin_src fortran :exports code
+  !> fst_${tuple2}: Return the first element of ${tuple2}.
+  ${type1} function fst_${tuple2}(this) result(res)
+    class(${tuple2}), intent(in) :: this
+    res = this%fst_
+  end function fst_${tuple2}
+#+end_src
+***** snd
+=function snd= は Tuple2 の二番目の要素を返す.
+#+name: snd-tuple2
+#+begin_src fortran :exports code
+  !> snd_${tuple2}: Return the second element of ${tuple2}.
+  ${type1} function snd_${tuple2}(this) result(res)
+    class(${tuple2}), intent(in) :: this
+    res = this%snd_
+  end function snd_${tuple2}
+#+end_src
+***** compare_operator
+比較演算子たち.
+#+name: compare-tuple2
+#+begin_src fortran :exports code :noweb no-export
+  !> less_${tuple2}: Compare the first elements.
+  !> Compare the second elements if the first elements are same.
+  logical function less_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ < rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ < rhs%snd_
+    end if
+  end function less_${tuple2}
+  logical function less_equal_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ < rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ <= rhs%snd_
+    end if
+  end function less_equal_${tuple2}
+  logical function greater_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ > rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ > rhs%snd_
+    end if
+  end function greater_${tuple2}
+  logical function greater_equal_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ > rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ >= rhs%snd_
+    end if
+  end function greater_equal_${tuple2}
+  logical function equal_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_
+  end function equal_${tuple2}
+  logical function not_equal_${tuple2}(lhs, rhs) result(res)
+    type(${tuple2}), intent(in) :: lhs, rhs
+    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_
+  end function not_equal_${tuple2}
+#+end_src
+**** Tuple2の展開
+#+name: tuple2-var
+#+begin_src bash :exports code :cache no :shebang #!/bin/bash
+  suffix=""
+  case "${type1}" in
+      "character")
+          type1="character"
+          suffix="${suffix}_character"
+          ;;
+      ,*)
+          type1="${type1}(${type1_kind})"
+          suffix="${suffix}_${type1_kind}"
+          ;;
+  esac
+  case "${type2}" in
+      "character")
+          type2="character"
+          suffix="${suffix}_character"
+          ;;
+      ,*)
+          type2="${type2}(${type2_kind})"
+          suffix="${suffix}_${type2_kind}"
+          ;;
+  esac
+  tuple2="tuple2${suffix}"
+#+end_src
+#+name: declaration-tuple2-var
+#+begin_src bash :exports code :var type1="integer" type1_kind="int32" type2="integer" type2_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<tuple2-var>>
+  cat <<EOF
+  <<declaration-tuple2>>
+  EOF
+#+end_src
+#+name: procedures-tuple2-var
+#+begin_src bash :exports code :var type1="integer" type1_kind="int32" type2="integer" type2_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<tuple2-var>>
+  cat <<EOF
+  <<procedures-tuple2>>
+  EOF
+#+end_src
+**** test
+#+name: tuple2-test
+#+begin_src fortran :exports code :tangle "test/test_tuple2.F90" :noweb no-export
+  program test_tuple2
+    use, intrinsic :: iso_fortran_env
+    use tuple2_m
+    implicit none
+    type(tuple2_int32_int32) :: t1, t2
+    t1 = tuple2_int32_int32(1, 1)
+    <<assert(cond="t1 == t1",       code=10, message="`==` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 /= t1", code=11, message="`/=` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 < t1",  code=12, message="`<` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 >= t1",       code=13, message="`>=` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 > t1",  code=14, message="`>` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 <= t1",       code=15, message="`<=` for Tuple2 is illegal.")>>
+    t2 = tuple2_int32_int32(1, 2)
+    <<assert-false(cond="t1 == t2", code=20, message="`==` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=21, message="`/=` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 < t2",        code=22, message="`<` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 >= t2", code=23, message="`>=` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 > t2",  code=24, message="`>` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 <= t2",       code=25, message="`<=` for Tuple2 is illegal.")>>
+    t2 = tuple2_int32_int32(100, 2)
+    <<assert-false(cond="t1 == t2", code=30, message="`==` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=31, message="`/=` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 < t2",        code=32, message="`<` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 >= t2", code=33, message="`>=` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 > t2",  code=34, message="`>` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 <= t2",       code=35, message="`<=` for Tuple2 is illegal.")>>
+    t2 = tuple2_int32_int32(1, -100)
+    <<assert-false(cond="t1 == t2", code=40, message="`==` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=41, message="`/=` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 < t2",  code=42, message="`<` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 >= t2",       code=43, message="`>=` for Tuple2 is illegal.")>>
+    <<assert(cond="t1 > t2",        code=44, message="`>` for Tuple2 is illegal.")>>
+    <<assert-false(cond="t1 <= t2", code=45, message="`<=` for Tuple2 is illegal.")>>
+  end program test_tuple2
+#+end_src
+#+name: test-tuple2
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports both :results output :noweb no-export :cache yes
+<<tuple2-module>>
+<<tuple2-test>>
+#+end_src
+
+#+RESULTS[d6ff89889b87909e33444adf30a2eeb71bd211a9]: test-tuple2
+
+*** Tuple3
+**** Tuple3モジュール全体
+#+name: tuple3-module
+#+begin_src fortran :exports code :tangle "src/tuple3_m.F90" :comment link :noweb no-export
+  module tuple3_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    <<declaration-tuple3-var(type1="integer", type1_kind="int32", type2="integer", type2_kind="int32", type3="integer", type3_kind="int32")>>
+    <<declaration-tuple3-var(type1="integer", type1_kind="int64", type2="integer", type2_kind="int64", type3="integer", type3_kind="int64")>>
+  contains
+    <<procedures-tuple3-var(type1="integer", type1_kind="int32", type2="integer", type2_kind="int32", type3="integer", type3_kind="int32")>>
+    <<procedures-tuple3-var(type1="integer", type1_kind="int64", type2="integer", type2_kind="int64", type3="integer", type3_kind="int64")>>
+  end module tuple3_m
+#+end_src
+**** Tuple3の宣言
+まず, 型 ~${tuple3}~ の宣言を行う.
+~${tuple3}~ は3つの要素を持つ.
+3つの要素の型は異なる型でも構わない.
+
+変数 ~${variable}~ は =bash= で展開される.
+- ~${tuple3}~ は Tuple3型.
+- ~${type1}~ は Tuple3型の一番目の型.
+- ~${type2}~ は Tuple3型の二番目の型.
+- ~${type3}~ は Tuple3型の三番目の型.
+#+name: declaration-tuple3
+#+begin_src fortran :exports code
+  public :: ${tuple3}
+  type :: ${tuple3}
+     private
+     ${type1} :: fst_
+     ${type2} :: snd_
+     ${type3} :: thr_
+   contains
+     procedure, pass :: fst  => fst_${tuple3}
+     procedure, pass :: snd  => snd_${tuple3}
+     procedure, pass :: thr  => thr_${tuple3}
+  end type ${tuple3}
+  public :: construct_${tuple3}
+  interface ${tuple3}
+     module procedure :: construct_${tuple3}
+  end interface ${tuple3}
+  interface operator(<)
+     module procedure :: less_${tuple3}
+  end interface operator(<)
+  interface operator(<=)
+     module procedure :: less_equal_${tuple3}
+  end interface operator(<=)
+  interface operator(>)
+     module procedure :: greater_${tuple3}
+  end interface operator(>)
+  interface operator(>=)
+     module procedure :: greater_equal_${tuple3}
+  end interface operator(>=)
+  interface operator(==)
+     module procedure :: equal_${tuple3}
+  end interface operator(==)
+  interface operator(/=)
+     module procedure :: not_equal_${tuple3}
+  end interface operator(/=)
+#+end_src
+**** Tuple3の関数とか
+:PROPERTIES:
+:header-args: :noweb-ref procedures-tuple3
+:END:
+***** constructor
+=function construct= は Tuple3型を生成する.
+#+name: construct-tuple3
+#+begin_src fortran
+  !> construct_${tuple3}_by_size: Construct ${tuple3}.
+  impure function construct_${tuple3}(val1, val2, val3) result(res)
+    type(${tuple3}) :: res
+    ${type1}, intent(in) :: val1
+    ${type2}, intent(in) :: val2
+    ${type3}, intent(in) :: val3
+    res%fst_ = val1
+    res%snd_ = val2
+    res%thr_ = val3
+  end function construct_${tuple3}
+#+end_src
+***** fst
+=function fst= は Tuple3 の一番目の要素を返す.
+#+name: fst-tuple3
+#+begin_src fortran :exports code
+  !> fst_${tuple3}: Return the first element of ${tuple3}.
+  ${type1} function fst_${tuple3}(this) result(res)
+    class(${tuple3}), intent(in) :: this
+    res = this%fst_
+  end function fst_${tuple3}
+#+end_src
+***** snd
+=function snd= は Tuple3 の二番目の要素を返す.
+#+name: snd-tuple3
+#+begin_src fortran :exports code
+  !> snd_${tuple3}: Return the second element of ${tuple3}.
+  ${type1} function snd_${tuple3}(this) result(res)
+    class(${tuple3}), intent(in) :: this
+    res = this%snd_
+  end function snd_${tuple3}
+#+end_src
+***** thr
+=function thr= は Tuple3 の三番目の要素を返す.
+#+name: snd-tuple3
+#+begin_src fortran :exports code
+  !> thr_${tuple3}: Return the second element of ${tuple3}.
+  ${type1} function thr_${tuple3}(this) result(res)
+    class(${tuple3}), intent(in) :: this
+    res = this%thr_
+  end function thr_${tuple3}
+#+end_src
+***** compare_operator
+比較演算子たち.
+#+name: compare-tuple3
+#+begin_src fortran :exports code :noweb no-export
+  !> less_${tuple3}: Compare the first elements.
+  !> Compare the second elements if the first elements are same.
+  logical function less_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ < rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ < rhs%snd_
+       if (lhs%snd_ == rhs%snd_) then
+          res = lhs%thr_ < rhs%thr_
+       end if
+    end if
+  end function less_${tuple3}
+  logical function less_equal_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ < rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ < rhs%snd_
+       if (lhs%snd_ == rhs%snd_) then
+          res = lhs%thr_ <= rhs%thr_
+       end if
+    end if
+  end function less_equal_${tuple3}
+  logical function greater_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ > rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ > rhs%snd_
+       if (lhs%snd_ == rhs%snd_) then
+          res = lhs%thr_ > rhs%thr_
+       end if
+    end if
+  end function greater_${tuple3}
+  logical function greater_equal_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ > rhs%fst_
+    if (lhs%fst_ == rhs%fst_) then
+       res = lhs%snd_ > rhs%snd_
+       if (lhs%snd_ == rhs%snd_) then
+          res = lhs%thr_ >= rhs%thr_
+       end if
+    end if
+  end function greater_equal_${tuple3}
+  logical function equal_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_ .and. lhs%thr_ == rhs%thr_
+  end function equal_${tuple3}
+  logical function not_equal_${tuple3}(lhs, rhs) result(res)
+    type(${tuple3}), intent(in) :: lhs, rhs
+    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_ .or. lhs%thr_ /= rhs%thr_
+  end function not_equal_${tuple3}
+#+end_src
+**** Tuple3の展開
+#+name: tuple3-var
+#+begin_src bash :exports code :cache no :shebang #!/bin/bash
+  suffix=""
+  case "${type1}" in
+      "character")
+          type1="character"
+          suffix="${suffix}_character"
+          ;;
+      ,*)
+          type1="${type1}(${type1_kind})"
+          suffix="${suffix}_${type1_kind}"
+          ;;
+  esac
+  case "${type2}" in
+      "character")
+          type2="character"
+          suffix="${suffix}_character"
+          ;;
+      ,*)
+          type2="${type2}(${type2_kind})"
+          suffix="${suffix}_${type2_kind}"
+          ;;
+  esac
+  case "${type3}" in
+      "character")
+          type3="character"
+          suffix="${suffix}_character"
+          ;;
+      ,*)
+          type3="${type3}(${type3_kind})"
+          suffix="${suffix}_${type3_kind}"
+          ;;
+  esac
+  tuple3="tuple3${suffix}"
+#+end_src
+#+name: declaration-tuple3-var
+#+begin_src bash :exports code :var type1="integer" type_kind1="int32" type2="integer" type2_kind="int32" type3="integer" type3_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<tuple3-var>>
+  cat <<EOF
+  <<declaration-tuple3>>
+  EOF
+#+end_src
+#+name: procedures-tuple3-var
+#+begin_src bash :exports code :var type1="integer" type_kind1="int32" type2="integer" type2_kind="int32" type3="integer" type3_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<tuple3-var>>
+  cat <<EOF
+  <<procedures-tuple3>>
+  EOF
+#+end_src
+**** test
+#+name: tuple3-test
+#+begin_src fortran :exports code :tangle "test/test_tuple3.F90" :noweb no-export
+  program test_tuple3
+    use, intrinsic :: iso_fortran_env
+    use tuple3_m
+    implicit none
+    type(tuple3_int32_int32_int32) :: t1, t2
+    t1 = tuple3_int32_int32_int32(1, 1, 1)
+    <<assert(cond="t1 == t1",       code=10, message="`==` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 /= t1", code=11, message="`/=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 < t1",  code=12, message="`<` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 >= t1",       code=13, message="`>=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 > t1",  code=14, message="`>` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 <= t1",       code=15, message="`<=` for Tuple3 is illegal.")>>
+    t2 = tuple3_int32_int32_int32(1, 1, 2)
+    <<assert-false(cond="t1 == t2", code=20, message="`==` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=21, message="`/=` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 < t2",        code=22, message="`<` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 >= t2", code=23, message="`>=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 > t2",  code=24, message="`>` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 <= t2",       code=25, message="`<=` for Tuple3 is illegal.")>>
+    t2 = tuple3_int32_int32_int32(1, 2, 2)
+    <<assert-false(cond="t1 == t2", code=30, message="`==` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=31, message="`/=` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 < t2",        code=32, message="`<` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 >= t2", code=33, message="`>=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 > t2",  code=34, message="`>` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 <= t2",       code=35, message="`<=` for Tuple3 is illegal.")>>
+    t2 = tuple3_int32_int32_int32(100, 1, 2)
+    <<assert-false(cond="t1 == t2", code=40, message="`==` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=41, message="`/=` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 < t2",        code=42, message="`<` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 >= t2", code=43, message="`>=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 > t2",  code=44, message="`>` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 <= t2",       code=45, message="`<=` for Tuple3 is illegal.")>>
+    t2 = tuple3_int32_int32_int32(0, 1, 2)
+    <<assert-false(cond="t1 == t2", code=50, message="`==` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=51, message="`/=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 < t2",        code=52, message="`<` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 >= t2", code=53, message="`>=` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 > t2",  code=54, message="`>` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 <= t2",       code=55, message="`<=` for Tuple3 is illegal.")>>
+    t2 = tuple3_int32_int32_int32(1, 1, -100)
+    <<assert-false(cond="t1 == t2", code=50, message="`==` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 /= t2",       code=51, message="`/=` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 < t2",        code=52, message="`<` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 >= t2", code=53, message="`>=` for Tuple3 is illegal.")>>
+    <<assert(cond="t1 > t2",  code=54, message="`>` for Tuple3 is illegal.")>>
+    <<assert-false(cond="t1 <= t2",       code=55, message="`<=` for Tuple3 is illegal.")>>
+  end program test_tuple3
+#+end_src
+#+name: test-tuple3
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports both :results output :noweb no-export :cache yes
+<<tuple3-module>>
+<<tuple3-test>>
+#+end_src
+
+#+RESULTS[dd3d26909f4b23a4e97114ec4e76bc094ff5f3ea]: test-tuple3
+**** Tuple3のpriority_queue
+#+name: tuple3-priority_queue-module
+#+begin_src fortran :exports code :tangle "src/tuple3_priority_queue_m.F90" :comment link :noweb no-export
+  module tuple3_priority_queue_m
+    use, intrinsic :: iso_fortran_env
+    use tuple3_m
+    implicit none
+    <<declaration-priority_queue-var(type_base="type", type_kind="tuple3_int32_int32_int32")>>
+    <<declaration-priority_queue-var(type_base="type", type_kind="tuple3_int64_int64_int64")>>
+  contains
+    <<procedures-priority_queue-var(type_base="type", type_kind="tuple3_int32_int32_int32")>>
+    <<procedures-priority_queue-var(type_base="type", type_kind="tuple3_int64_int64_int64")>>
+  end module tuple3_priority_queue_m
+#+end_src
+
 ** linked list
 *** by pointer
 **** whole module of linked list
