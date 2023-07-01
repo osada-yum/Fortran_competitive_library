@@ -4560,7 +4560,7 @@ BITは =n= 個の値の区間 =[1, r]= までの部分和を =O(\log n)= で求�
     <<procedures-binary_indexed_tree-var(type="real", type_kind="real64")>>
   end module binary_indexed_tree_m
 #+end_src
-**** BIT型の宣言
+*** BIT型の宣言
 まず, BIT型の宣言をする.
 BIT型の振舞いとして
 - =subroutine init(n)= でサイズ =n= , 値 =0= で初期化する.
@@ -4570,6 +4570,7 @@ BIT型の振舞いとして
 - =subroutine add(i, v)= でインデックス =i= へ =v= を加算する.
 - =${type} sum1(r)= で 閉区間 =[1, r]= の和を返す.
 - =${type} sum_range(l, r)= で 閉区間 =[l, r]= の和を返す.
+- =i32 lower_bound(w)= は和がw以上になる最小のインデックスを返す.
 - デコンストラクタ =destroy_${BIT}= はBIT型の配列を開放する.
 とする. 配列のインデックスはFortranらしく, =1= 始まりとする.
 
@@ -4594,10 +4595,11 @@ BIT型の振舞いとして
      procedure, pass :: add       => add_${BIT}
      procedure, pass :: sum1      => sum1_${BIT}
      procedure, pass :: sum_range => sum_range_${BIT}
+     procedure, pass :: lower_bound => lower_bound_${BIT}
      final :: destroy_${BIT}
   end type ${BIT}
 #+end_src
-**** BITのprocedures
+*** BITのprocedures
 :PROPERTIES:
 :header-args: :noweb-ref procedures-binary_indexed_tree
 :END:
@@ -4706,6 +4708,40 @@ BITへ配列 =arr(:)= を渡すと, その配列のBITができる.
     res = this%sum1(r) - this%sum1(l-1)
   end function sum_range_${BIT}
 #+end_src
+***** lower_bound
+=function lower_bound= は 和が =w= になるような最小のインデックスを返す.
+#+name: lower_bound-binary_indexed_tree
+#+begin_src fortran :exports code :noweb no-export
+  !> lower_bound_${BIT}: Return the minimum index, which `x1 + x2 + ... + xres >= w`.
+  !> Returun 0 if w <= ${zero}.
+  integer(int32) function lower_bound_${BIT}(this, w) result(res)
+    class(${BIT}), intent(in) :: this
+    ${type}, intent(in) :: w
+    ${type} :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= ${zero}) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_${BIT}
+#+end_src
 ***** final
 =subroutine destroy_${BIT}= はBITの配列を開放する.
 #+name: destroy-binary_indexed-tree
@@ -4718,7 +4754,7 @@ BITへ配列 =arr(:)= を渡すと, その配列のBITができる.
     end if
   end subroutine destroy_${BIT}
 #+end_src
-**** bash で展開
+*** bash で展開
 上で定義したものを NOWEB (この場合はbash)で展開する.
 型を ~case~ 分で ~Fortran~ 用に処理する.
 #+name: binary_indexed_tree-var
@@ -4749,7 +4785,7 @@ BITへ配列 =arr(:)= を渡すと, その配列のBITができる.
   <<procedures-binary_indexed_tree>>
   EOF
 #+end_src
-**** test
+*** test
 #+name: binary_indexed_tree-test
 #+begin_src fortran :exports code :tangle "test/test_binary_indexed_tree.F90" :noweb no-export
   program test_binary_indexed_tree
@@ -4757,18 +4793,57 @@ BITへ配列 =arr(:)= を渡すと, その配列のBITができる.
     use binary_indexed_tree_m
     implicit none
     integer(int32), parameter :: n = 10
-    integer(int32) :: i
-    integer(int32) :: arr(n)
-    type(binary_indexed_tree_int32) :: bit
-    arr(:) = [(i, i = 1, n)]
-    call bit%init(arr)
-    do i = 1, n
-       <<assert-true>>
-    end do
+    call check_summation(n)
+    call check_inversion(n)
+    call check_kth_element(n)
+  contains
+    subroutine check_summation(n)
+      integer(int32), intent(in) :: n
+      integer(int32), allocatable :: arr(:)
+      integer(int32) :: i
+      type(binary_indexed_tree_int32) :: bit
+      allocate(arr, source = [(i, i = 1, n)])
+      call bit%init(arr)
+      <<assert(eq1="bit%size()", eq2="n", code=2, message="Size of `bit` is wrong.")>>
+      do i = 1, n
+         <<assert-eq(eq1="bit%sum1(i)", eq2="i*(i+1)/2", code=3, message="The summation of bit is wrong.")>>
+      end do
+    end subroutine check_summation
+    subroutine check_inversion(n)
+      integer(int32), intent(in) :: n
+      integer(int32), allocatable :: arr(:)
+      integer(int32) :: i, cnts
+      type(binary_indexed_tree_int32) :: bit
+      allocate(arr, source = [(i, i = n, 1, -1)])
+      call bit%init(n)
+      cnts = 0_int32
+      do i = 1, n
+         cnts = cnts + (i-1) - bit%sum1(arr(i))
+         call bit%add(arr(i), 1)
+         <<assert-eq(eq1="cnts", eq2="i*(i-1)/2", code=3, message="The inversion number of bit is wrong.")>>
+      end do
+      <<assert(eq1="bit%size()", eq2="n", code=2, message="Size of `bit` is wrong.")>>
+    end subroutine check_inversion
+    subroutine check_kth_element(n)
+      integer(int32), intent(in) :: n
+      integer(int32), allocatable :: arr(:)
+      integer(int32) :: i, idx
+      type(binary_indexed_tree_int32) :: bit
+      allocate(arr, source = [(i, i = 1, n)])
+      call bit%init(maxval(arr))
+      do i = 1, n
+         call bit%add(arr(i), 1)
+      end do
+      <<assert(eq1="bit%size()", eq2="n", code=2, message="Size of `bit` is wrong.")>>
+      do i = 1, n
+         idx = bit%lower_bound(i)
+         <<assert-eq(eq1="idx", eq2="i", code=3, message="The `lower_bound` of bit is wrong.")>>
+      end do
+    end subroutine check_kth_element
   end program test_binary_indexed_tree
 #+end_src
 #+name: test-binary_indexed_tree
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports both :results output :noweb no-export :cache yes
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
 <<binary_indexed_tree-module>>
 <<binary_indexed_tree-test>>
 #+end_src

@@ -16,6 +16,7 @@ module binary_indexed_tree_m
      procedure, pass :: add       => add_binary_indexed_tree_int32
      procedure, pass :: sum1      => sum1_binary_indexed_tree_int32
      procedure, pass :: sum_range => sum_range_binary_indexed_tree_int32
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_int32
      final :: destroy_binary_indexed_tree_int32
   end type binary_indexed_tree_int32
   
@@ -33,6 +34,7 @@ module binary_indexed_tree_m
      procedure, pass :: add       => add_binary_indexed_tree_int64
      procedure, pass :: sum1      => sum1_binary_indexed_tree_int64
      procedure, pass :: sum_range => sum_range_binary_indexed_tree_int64
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_int64
      final :: destroy_binary_indexed_tree_int64
   end type binary_indexed_tree_int64
   
@@ -50,6 +52,7 @@ module binary_indexed_tree_m
      procedure, pass :: add       => add_binary_indexed_tree_real32
      procedure, pass :: sum1      => sum1_binary_indexed_tree_real32
      procedure, pass :: sum_range => sum_range_binary_indexed_tree_real32
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_real32
      final :: destroy_binary_indexed_tree_real32
   end type binary_indexed_tree_real32
   
@@ -67,6 +70,7 @@ module binary_indexed_tree_m
      procedure, pass :: add       => add_binary_indexed_tree_real64
      procedure, pass :: sum1      => sum1_binary_indexed_tree_real64
      procedure, pass :: sum_range => sum_range_binary_indexed_tree_real64
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_real64
      final :: destroy_binary_indexed_tree_real64
   end type binary_indexed_tree_real64
   
@@ -150,6 +154,35 @@ contains
     if (r < l) return
     res = this%sum1(r) - this%sum1(l-1)
   end function sum_range_binary_indexed_tree_int32
+  !> lower_bound_binary_indexed_tree_int32: Return the minimum index, which .
+  !> Returun 0 if w <= 0_int32.
+  integer(int32) function lower_bound_binary_indexed_tree_int32(this, w) result(res)
+    class(binary_indexed_tree_int32), intent(in) :: this
+    integer(int32), intent(in) :: w
+    integer(int32) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0_int32) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_int32
   !> destroy_binary_indexed_tree_int32: Replace  with .
   subroutine destroy_binary_indexed_tree_int32(this)
     type(binary_indexed_tree_int32), intent(inout) :: this
@@ -237,6 +270,35 @@ contains
     if (r < l) return
     res = this%sum1(r) - this%sum1(l-1)
   end function sum_range_binary_indexed_tree_int64
+  !> lower_bound_binary_indexed_tree_int64: Return the minimum index, which .
+  !> Returun 0 if w <= 0_int64.
+  integer(int32) function lower_bound_binary_indexed_tree_int64(this, w) result(res)
+    class(binary_indexed_tree_int64), intent(in) :: this
+    integer(int64), intent(in) :: w
+    integer(int64) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0_int64) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_int64
   !> destroy_binary_indexed_tree_int64: Replace  with .
   subroutine destroy_binary_indexed_tree_int64(this)
     type(binary_indexed_tree_int64), intent(inout) :: this
@@ -324,6 +386,35 @@ contains
     if (r < l) return
     res = this%sum1(r) - this%sum1(l-1)
   end function sum_range_binary_indexed_tree_real32
+  !> lower_bound_binary_indexed_tree_real32: Return the minimum index, which .
+  !> Returun 0 if w <= 0.0_real32.
+  integer(int32) function lower_bound_binary_indexed_tree_real32(this, w) result(res)
+    class(binary_indexed_tree_real32), intent(in) :: this
+    real(real32), intent(in) :: w
+    real(real32) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0.0_real32) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_real32
   !> destroy_binary_indexed_tree_real32: Replace  with .
   subroutine destroy_binary_indexed_tree_real32(this)
     type(binary_indexed_tree_real32), intent(inout) :: this
@@ -411,6 +502,35 @@ contains
     if (r < l) return
     res = this%sum1(r) - this%sum1(l-1)
   end function sum_range_binary_indexed_tree_real64
+  !> lower_bound_binary_indexed_tree_real64: Return the minimum index, which .
+  !> Returun 0 if w <= 0.0_real64.
+  integer(int32) function lower_bound_binary_indexed_tree_real64(this, w) result(res)
+    class(binary_indexed_tree_real64), intent(in) :: this
+    real(real64), intent(in) :: w
+    real(real64) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0.0_real64) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_real64
   !> destroy_binary_indexed_tree_real64: Replace  with .
   subroutine destroy_binary_indexed_tree_real64(this)
     type(binary_indexed_tree_real64), intent(inout) :: this
