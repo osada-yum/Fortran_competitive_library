@@ -9,14 +9,14 @@ program test_lower_bound
      arr(i) = i
   end do
   ! arr
-  do i = 0, n+1
+  do i = 0, n
      j = lower_bound(arr, i)
      if (.not. (j == max(1, i))) then
         write(error_unit, '(a, i0, a)', advance = "no")&
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'j == max(1, i)' must be true."
+        write(error_unit, '(a)') " Assertion 'j == max(1, i)' must be false."
         if (len_trim("`lower_bound` does not work well...") /= 0) then
            write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well...'"
         end if
@@ -24,6 +24,19 @@ program test_lower_bound
      end if
      
   end do
+  j = lower_bound(arr, n+1)
+  if (.not. (j == size(arr)+1)) then
+     write(error_unit, '(a, i0, a)', advance = "no")&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') " Assertion 'j == size(arr)+1' must be false."
+     if (len_trim("`lower_bound` does not work well...") /= 0) then
+        write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well...'"
+     end if
+     error stop 12
+  end if
+  
   ! arr2
   arr2(1) = 7
   if (.not. (lower_bound(arr2, 6) == 1)) then
@@ -31,11 +44,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 6) == 1' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 6) == 1' must be false."
      if (len_trim("`lower_bound` does not work well for one element array...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for one element array...'"
      end if
-     error stop 12
+     error stop 13
   end if
   
   if (.not. (lower_bound(arr2, 7) == 1)) then
@@ -43,11 +56,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 7) == 1' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 7) == 1' must be false."
      if (len_trim("`lower_bound` does not work well for one element array...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for one element array...'"
      end if
-     error stop 12
+     error stop 14
   end if
   
   if (.not. (lower_bound(arr2, 8) == 2)) then
@@ -55,11 +68,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 8) == 2' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(arr2, 8) == 2' must be false."
      if (len_trim("`lower_bound` does not work well for one element array...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for one element array...'"
      end if
-     error stop 12
+     error stop 15
   end if
   
   ! dup_arr
@@ -69,11 +82,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 0) == 1' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 0) == 1' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has same values...'"
      end if
-     error stop 13
+     error stop 21
   end if
   
   if (.not. (lower_bound(dup_arr, 2) == 3)) then
@@ -81,11 +94,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 2) == 3' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 2) == 3' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has same values...'"
      end if
-     error stop 13
+     error stop 22
   end if
   
   if (.not. (lower_bound(dup_arr, 3) == 4)) then
@@ -93,11 +106,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 3) == 4' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 3) == 4' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has same values...'"
      end if
-     error stop 13
+     error stop 23
   end if
   
   if (.not. (lower_bound(dup_arr, 5) == 8)) then
@@ -105,23 +118,23 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 5) == 8' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 5) == 8' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has same values...'"
      end if
-     error stop 13
+     error stop 24
   end if
   
-  if (.not. (lower_bound(dup_arr, 7) == 11)) then
+  if (.not. (lower_bound(dup_arr, 7) > size(dup_arr))) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 7) == 11' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(dup_arr, 7) > size(dup_arr)' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has same values...'"
      end if
-     error stop 13
+     error stop 25
   end if
   
   ! allsame_arr
@@ -131,11 +144,11 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 0) == 1' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 0) == 1' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has all same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has all same values...'"
      end if
-     error stop 13
+     error stop 31
   end if
   
   if (.not. (lower_bound(allsame_arr, 1) == 1)) then
@@ -143,23 +156,23 @@ program test_lower_bound
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 1) == 1' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 1) == 1' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has all same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has all same values...'"
      end if
-     error stop 13
+     error stop 32
   end if
   
-  if (.not. (lower_bound(allsame_arr, 2) == 11)) then
+  if (.not. (lower_bound(allsame_arr, 2) > size(allsame_arr))) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
           __FILE__&
           //":", __LINE__, ":"
-     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 2) == 11' must be true."
+     write(error_unit, '(a)') " Assertion 'lower_bound(allsame_arr, 2) > size(allsame_arr)' must be false."
      if (len_trim("`lower_bound` does not work well for the array that has all same values...") /= 0) then
         write(error_unit, '(a)') "Extra message: '`lower_bound` does not work well for the array that has all same values...'"
      end if
-     error stop 13
+     error stop 33
   end if
   
 end program test_lower_bound

@@ -1422,6 +1422,7 @@ There are several types for `lower_bound`.
     <<declaration-lower_bound-var(type="integer", type_kind="int8")>>
     <<declaration-lower_bound-var(type="integer", type_kind="int16")>>
     <<declaration-lower_bound-var(type="integer", type_kind="int32")>>
+    <<declaration-lower_bound-var(type="integer", type_kind="int64")>>
     <<declaration-lower_bound-var(type="real", type_kind="real32")>>
     <<declaration-lower_bound-var(type="real", type_kind="real64")>>
     public :: lower_bound
@@ -1447,26 +1448,32 @@ Index starts from 1.
 #+name: procedures-lower_bound
 #+begin_src fortran :exports code
   !> lower_bound_${suffix}: Search
-  pure integer(int32) function lower_bound_${suffix}(arr, val)
+  pure integer(int32) function lower_bound_${suffix}(arr, val) result(res)
     ${type}, intent(in) :: arr(:)
     ${type}, intent(in) :: val
     integer(int32) :: p, q, r
     p = 1
     r = size(arr)
-    if (arr(r) < val) then
-       lower_bound_${suffix} = r + 1
+    if (arr(p) >= val) then
+       res = p
+       return
+    else if (arr(r) < val) then
+       res = r + 1
        return
     end if
+    !> a, b, ..., k, val, l, ..., z
+    !> arr(p) < val
+    !> arr(r) >= val
     do
        q = (p+r)/2
-       if (p + 1 > r) exit
+       if (p + 1 >= r) exit
        if (arr(q) >= val) then
           r = q
        else
-          p = q+1
+          p = q
        end if
     end do
-    lower_bound_${suffix} = q
+    res = r
   end function lower_bound_${suffix}
 #+end_src
 *** process definition and procedures of the lower_bound
@@ -1520,36 +1527,38 @@ Index starts from 1.
        arr(i) = i
     end do
     ! arr
-    do i = 0, n+1
+    do i = 0, n
        j = lower_bound(arr, i)
        <<assert(cond="j == max(1, i)",code=11,message="`lower_bound` does not work well...")>>
     end do
+    j = lower_bound(arr, n+1)
+    <<assert(cond="j > size(arr)",code=12,message="`lower_bound` does not work well...")>>
     ! arr2
     arr2(1) = 7
-    <<assert(cond="lower_bound(arr2, 6) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
-    <<assert(cond="lower_bound(arr2, 7) == 1",code=12,message="`lower_bound` does not work well for one element array...")>>
-    <<assert(cond="lower_bound(arr2, 8) == 2",code=12,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 6) == 1",code=13,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 7) == 1",code=14,message="`lower_bound` does not work well for one element array...")>>
+    <<assert(cond="lower_bound(arr2, 8) > size(arr2)",code=15,message="`lower_bound` does not work well for one element array...")>>
     ! dup_arr
     dup_arr = [1, 1, 2, 3, 3, 3, 3, 5, 5, 5]
-    <<assert(cond="lower_bound(dup_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert(cond="lower_bound(dup_arr, 2) == 3",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert(cond="lower_bound(dup_arr, 3) == 4",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert(cond="lower_bound(dup_arr, 5) == 8",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
-    <<assert(cond="lower_bound(dup_arr, 7) == 11",code=13,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 0) == 1",code=21,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 2) == 3",code=22,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 3) == 4",code=23,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 5) == 8",code=24,message="`lower_bound` does not work well for the array that has same values...")>>
+    <<assert(cond="lower_bound(dup_arr, 7) > size(dup_arr)",code=25,message="`lower_bound` does not work well for the array that has same values...")>>
     ! allsame_arr
     allsame_arr = [(1, i = 1, n)]
-    <<assert(cond="lower_bound(allsame_arr, 0) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
-    <<assert(cond="lower_bound(allsame_arr, 1) == 1",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
-    <<assert(cond="lower_bound(allsame_arr, 2) == 11",code=13,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 0) == 1",code=31,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 1) == 1",code=32,message="`lower_bound` does not work well for the array that has all same values...")>>
+    <<assert(cond="lower_bound(allsame_arr, 2) > size(allsame_arr)",code=33,message="`lower_bound` does not work well for the array that has all same values...")>>
   end program test_lower_bound
 #+end_src
-#+name: test-vector
+#+name: test-lower_bound
 #+begin_src fortran :flags "-cpp -g -fbacktrace" :exports both :results output :noweb no-export :cache yes
 <<lower_bound-module>>
 <<lower_bound-test>>
 #+end_src
 
-#+RESULTS[0565c652816f22840ea4e3e4271b629849a852f1]: test-vector
+#+RESULTS[1c7fcd6441afbdf53e6b07a00585dbbe409d0bee]: test-lower_bound
 
 * math
 ** prime
