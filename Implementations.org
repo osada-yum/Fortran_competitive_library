@@ -1716,7 +1716,7 @@ Index starts from 1.
 ** prime
 *** prime factorization
 * data structure
-** Comparable
+** COMMENT Comparable
 *** whole module of comparable class
 The children of =comparable= implement relational operators(=<=, =>=, =<==, =>==, ====, =/==).
 The user of the child class must implement two operators (=<== and ===), (=<==, and =/==).
