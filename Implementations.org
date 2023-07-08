@@ -3036,7 +3036,7 @@ Variables like ${variable} are expanded by bash.
 
 #+RESULTS[f4d58e4595aecbf77553fdd0fd7c8ef6c1f77d67]: test-unwrapped_vector
 
-*** wrapped Vector
+*** COMMENT wrapped Vector
 **** whole module of the vector
 #+name: vector-module
 #+begin_src fortran :exports code :tangle "src/vector_m.F90" :comment link :noweb no-export
@@ -4204,7 +4204,7 @@ If =key= is already in the hash table, change to new =val= corresponding to =key
 
 #+RESULTS[7012e9003deba0e9eb25cf053fa62c3a4d23f793]: test-hash_table
 
-** tree
+** COMMENT tree
 *** binary_tree
 We implement a binary tree that consists of the root, the pointers to its children, and some keys by ~Fortran~.
 The keys of the binary tree are not duplicated.
@@ -5766,7 +5766,7 @@ contains
   end subroutine check_insertion_descending
 end program test_btree_m
 #+end_src
-** skip list(未実装)
+** COMMENT skip list(未実装)
 *** スキップリストのモジュールの全容
 スキップリストでmapを実現する.
 ツリーマップと同様に, mapの要素に順序関係を持つことを要請する.
@@ -5895,75 +5895,62 @@ skip_list_node型はモジュール内の ~private~ な型である.
   end subroutine insert_${skip_list}
 #+end_src
 ***** final
-=subroutine destroy_${BIT}= はBITの配列を開放する.
-#+name: destroy-binary_indexed-tree
+=subroutine destroy_${skip_list}= は skip_list を開放する.
+#+name: destroy-skip_list
 #+begin_src fortran :exports code :noweb no-export
-  !> destroy_${BIT}: Replace `this%arr_(:)` with `0`.
-  subroutine destroy_${BIT}(this)
-    type(${BIT}), intent(inout) :: this
+  !> destroy_${skip_list}: Replace `this%arr_(:)` with `0`.
+  subroutine destroy_${skip_list}(this)
+    type(${skip_list}), intent(inout) :: this
     if (allocated(this%arr_)) then
        deallocate(this%arr_)
     end if
-  end subroutine destroy_${BIT}
+  end subroutine destroy_${skip_list}
 #+end_src
 *** bash で展開
 上で定義したものを NOWEB (この場合はbash)で展開する.
 型を ~case~ 分で ~Fortran~ 用に処理する.
-#+name: binary_indexed_tree-var
+#+name: skip_list-var
 #+begin_src bash :exports code :cache no :shebang #!/bin/bash
-  case "${type}" in
-      "real")
-          zero="0.0_${type_kind}"
-          ;;
-      "integer")
-          zero="0_${type_kind}"
-          ;;
-  esac
   type="${type}(${type_kind})"
   suffix="${type_kind}"
-  BIT="binary_indexed_tree_${suffix}"
+  skip_list="skip_list_${suffix}"
+  skip_list_node="skip_list_node_${suffix}"
 #+end_src
-#+name: declaration-binary_indexed_tree-var
+#+name: declaration-skip_list-var
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
-  <<binary_indexed_tree-var>>
+  <<skip_list-var>>
   cat <<EOF
-  <<declaration-binary_indexed_tree>>
+  <<declaration-skip_list>>
   EOF
 #+end_src
-#+name: procedures-binary_indexed_tree-var
+#+name: procedures-skip_list-var
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
-  <<binary_indexed_tree-var>>
+  <<skip_list-var>>
   cat <<EOF
-  <<procedures-binary_indexed_tree>>
+  <<procedures-skip_list>>
   EOF
 #+end_src
 *** test
-#+name: binary_indexed_tree-test
+#+name: skip_list-test
 #+begin_src fortran :exports code :tangle "test/test_binary_indexed_tree.F90" :noweb no-export
-  program test_binary_indexed_tree
+  program test_skip_list
     use, intrinsic :: iso_fortran_env
-    use binary_indexed_tree_m
+    use skip_list_m
     implicit none
     integer(int32), parameter :: n = 10
     integer(int32) :: i
     integer(int32) :: arr(n)
-    type(binary_indexed_tree_int32) :: bit
-    arr(:) = [(i, i = 1, n)]
-    call bit%init(arr)
-    do i = 1, n
-       <<assert-true>>
-    end do
-  end program test_binary_indexed_tree
+    type(skip_list_int32) :: sl
+    !> ok
+  end program test_skip_list
 #+end_src
-#+name: test-binary_indexed_tree
+#+name: test-skip_list
 #+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
-<<binary_indexed_tree-module>>
-<<binary_indexed_tree-test>>
+<<skip_list-module>>
+<<skip_list-test>>
 #+end_src
 
-#+RESULTS[30f6c1d3311cee3d73d32a8d360d0cba76f9f03f]: test-binary_indexed_tree
-
-** stream of output
+** COMMENT stream of output
 *** type definition
 #+name: stream_out-module
 #+begin_src fortran :exports code :tangle "src/stream_out_m.f90"
