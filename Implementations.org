@@ -1628,8 +1628,8 @@ Index starts from 1.
   end function upper_bound_${suffix}
 #+end_src
 *** process definition and procedures of the upper_bound
-#+name: declaration-upper_bound-var
-#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+#+name: upper_bound-var
+#+begin_src bash :exports code :results code
   case "${type}" in
       "character")
           type="character"
@@ -1640,22 +1640,17 @@ Index starts from 1.
           suffix="${type_kind}"
           ;;
   esac
+#+end_src
+#+name: declaration-upper_bound-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<upper_bound-var>>
   cat <<EOF
   <<declaration-upper_bound>>
   EOF
 #+end_src
 #+name: procedures-upper_bound-var
 #+begin_src bash :exports code :var type="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
-  case "${type}" in
-      "character")
-          type="character"
-          suffix="character"
-          ;;
-      ,*)
-          type="${type}(${type_kind})"
-          suffix="${type_kind}"
-          ;;
-  esac
+  <<upper_bound-var>>
   cat <<EOF
   <<procedures-upper_bound>>
   EOF
@@ -1710,7 +1705,7 @@ Index starts from 1.
 <<upper_bound-test>>
 #+end_src
 
-#+RESULTS[0fe41ea123767751694d6cd559bb76b8f9343a71]: test-upper_bound
+#+RESULTS[9ad483b1186461560aa02129073bf2b917a08072]: test-upper_bound
 
 * math
 ** prime

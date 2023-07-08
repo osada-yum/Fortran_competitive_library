@@ -13,7 +13,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'v%arr_(i) == i' must be true."
+        write(error_unit, '(a)') " Assertion 'v%arr_(i) == i' must be false."
         if (len_trim("Stored value in `v%arr_(i)` is illegal in loop.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Stored value in `v%arr_(i)` is illegal in loop.'"
         end if
@@ -28,7 +28,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'j == max(1, i)' must be true."
+        write(error_unit, '(a)') " Assertion 'j == max(1, i)' must be false."
         if (len_trim("Return value of `lower_bound` is illegal in loop.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Return value of `lower_bound` is illegal in loop.'"
         end if
@@ -48,7 +48,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == 1' must be true."
+        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == 1' must be false."
         if (len_trim("Initialization by size of `v2` is illegal.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Initialization by size of `v2` is illegal.'"
         end if
@@ -63,7 +63,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == i' must be true."
+        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == i' must be false."
         if (len_trim("Initialization by array of `v2` is illegal.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Initialization by array of `v2` is illegal.'"
         end if
@@ -78,7 +78,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == 2' must be true."
+        write(error_unit, '(a)') " Assertion 'v2%arr_(i) == 2' must be false."
         if (len_trim("Initialization by init_val of `v2` is illegal.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Initialization by init_val of `v2` is illegal.'"
         end if
@@ -95,7 +95,7 @@ program test_unwrapped_vector
              "Error in "//&
              __FILE__&
              //":", __LINE__, ":"
-        write(error_unit, '(a)') " Assertion 'v2%back() == i' must be true."
+        write(error_unit, '(a)') " Assertion 'v2%back() == i' must be false."
         if (len_trim("Resize or back for `v2` is illegal.") /= 0) then
            write(error_unit, '(a)') "Extra message: 'Resize or back for `v2` is illegal.'"
         end if
