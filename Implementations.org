@@ -6148,7 +6148,7 @@ skip_list_node型はモジュール内の ~private~ な型である.
     private
     integer(int64), parameter :: modulo = 10**9 + 7
     public :: modint
-    public :: assignment(=), operator(+), operator(-), operator(*), operator(/), inv, operator(**)
+    public :: assignment(=), operator(+), operator(-), operator(*), operator(/), inv, operator(**), combination
     type :: modint
        integer(int64) :: val_
      contains
@@ -6178,6 +6178,9 @@ skip_list_node型はモジュール内の ~private~ な型である.
     interface operator(**)
        module procedure :: pow_m_i32, pow_m_i64
     end interface operator(**)
+    interface combination
+       module procedure :: combination_m_m, combination_m_i32, combination_m_i64, combination_i32_m, combination_i64_m
+    end interface combination
   contains
     pure integer(int64) function to_i64_modint(mx) result(res)
       class(modint), intent(in) :: mx
@@ -6369,6 +6372,34 @@ skip_list_node型はモジュール内の ~private~ な型である.
       end do
       res = mv
     end function pow_m_i64
+    pure type(modint) function combination_m_m(mn, mr) result(res)
+      type(modint), intent(in) :: mn, mr
+      integer(int64) :: i
+      res = modint(1)
+      do i = 1, mr%to_i64()
+         res = res * (mn%to_i64()-i+1) / i
+      end do
+    end function combination_m_m
+    pure type(modint) function combination_m_i32(mn, r) result(res)
+      type(modint), intent(in) :: mn
+      integer(int32), intent(in) :: r
+      res = combination(mn, modint(r))
+    end function combination_m_i32
+    pure type(modint) function combination_m_i64(mn, r) result(res)
+      type(modint), intent(in) :: mn
+      integer(int64), intent(in) :: r
+      res = combination(mn, modint(r))
+    end function combination_m_i64
+    pure type(modint) function combination_i32_m(n, mr) result(res)
+      integer(int32), intent(in) :: n
+      type(modint), intent(in) :: mr
+      res = combination(modint(n), mr)
+    end function combination_i32_m
+    pure type(modint) function combination_i64_m(n, mr) result(res)
+      integer(int64), intent(in) :: n
+      type(modint), intent(in) :: mr
+      res = combination(modint(n), mr)
+    end function combination_i64_m
   end module modint_m
 #+end_src
 *** procedures
