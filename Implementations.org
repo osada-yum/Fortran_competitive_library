@@ -3641,7 +3641,7 @@ priority queue モジュール全体は以下のとおり.
   pure logical function empty_${pq}(this) result(res)
     class(${pq}), intent(in) :: this
     res = this%size_ == 0
-  end function size_${pq}
+  end function empty_${pq}
 #+end_src
 **** not_empty
 ~not_empty~ はヒープが空の場合は.true.を返す.
@@ -3651,7 +3651,7 @@ priority queue モジュール全体は以下のとおり.
   pure logical function not_empty_${pq}(this) result(res)
     class(${pq}), intent(in) :: this
     res = .not. this%empty()
-  end function size_${pq}
+  end function not_empty_${pq}
 #+end_src
 **** dump
 ~dump~
@@ -3711,6 +3711,16 @@ priority queue モジュール全体は以下のとおり.
   done
 #+end_src
 *** test
+**** test本体
+#+name: test-priority_queue
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<priority_queue-module>>
+<<priority_queue-test>>
+#+end_src
+
+#+RESULTS[40adba9cd1b63a4b844c758c105e0cc6643b255d]: test-priority_queue
+
+**** testプログラム
 #+name: priority_queue-test
 #+begin_src fortran :exports code :tangle "test/test_priority_queue.F90" :noweb no-export
   program test_priority_queue
@@ -3721,10 +3731,14 @@ priority queue モジュール全体は以下のとおり.
     integer(int32) :: i
     type(priority_queue_min_int32) :: pq_min
     type(priority_queue_max_int32) :: pq_max
+    <<assert(cond="pq_min%empty()", code=1, message="pq_min must be empty.")>>
+    <<assert(cond="pq_max%empty()", code=2, message="pq_max must be empty.")>>
     do i = 1, n
        call pq_min%push(arr(i))
        call pq_max%push(arr(i))
     end do
+    <<assert(cond="pq_min%not_empty()", code=3, message="pq_min must be not empty.")>>
+    <<assert(cond="pq_max%not_empty()", code=4, message="pq_max must be not empty.")>>
     <<assert-eq(eq1="n", eq2="pq_min%size()", code=10, message="The size of pq_min is illegal.")>>
     <<assert-eq(eq1="n", eq2="pq_max%size()", code=11, message="The size of pq_max is illegal.")>>
     do i = 1, n
@@ -3738,13 +3752,6 @@ priority queue モジュール全体は以下のとおり.
     end do
   end program test_priority_queue
 #+end_src
-#+name: test-priority_queue
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
-<<priority_queue-module>>
-<<priority_queue-test>>
-#+end_src
-
-#+RESULTS[d0505353c7380d864b2e3f430aaea5ec571bf268]: test-priority_queue
 
 ** double ended queue
 #+begin_src fortran :exports code
@@ -4848,138 +4855,200 @@ The function successor returns a pointer to the node whose next larger value.
 #+end_src
 
 ** B-Tree
-*** B木
-Rustに習ってB木を実装する.
+*** B木モジュールの全体
+Rustに倣ってB木を実装する.
 \(t = 6\) でノード内の内部ノードの数は \(2t-1 = 11\) とする.
+=iter_max_depth= は30程度あればよい(というか過剰).
+#+name: btree-module
+#+begin_src fortran :exports code :tangle "src/btree_m.F90" :comment link :noweb no-export
+  module btree_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    !> `t-1` must be the least number of elements in `btree_node` without root (minimum degree).
+    integer(int32), parameter :: t = 6
+    !> the number of internal node in `btree_node`.
+    integer(int32), parameter :: inode = 2*t-1
+    integer(int32), parameter :: iter_max_depth = 30
+    <<declaration-btree-var(key_base="integer", key_kind="int32", val_base="integer", val_kind="int32")>>
+    <<declaration-btree-var(key_base="integer", key_kind="int64", val_base="integer", val_kind="int64")>>
+    <<declaration-btree-var(key_base="character", key_kind="100", val_base="integer", val_kind="int32")>>
+    <<declaration-btree-var(key_base="character", key_kind="100", val_base="integer", val_kind="int64")>>
+  contains
+    <<procedures-btree-var(key_base="integer", key_kind="int32", val_base="integer", val_kind="int32")>>
+    <<procedures-btree-var(key_base="integer", key_kind="int64", val_base="integer", val_kind="int64")>>
+    <<procedures-btree-var(key_base="character", key_kind="100", val_base="integer", val_kind="int32")>>
+    <<procedures-btree-var(key_base="character", key_kind="100", val_base="integer", val_kind="int64")>>
+  end module btree_m
+#+end_src
+*** B木の型宣言
+#+name: declaration-btree
 #+begin_src fortran :exports code
-module btree_m
-  use, intrinsic :: iso_fortran_env
-  implicit none
-  private
-  !> `t-1` must be the least number of elements in `btree_node` without root (minimum degree).
-  integer(int32), parameter :: t = 6
-  !> the number of internal node in `btree_node`.
-  integer(int32), parameter :: inode = 2*t-1
-  integer(int32), parameter :: iter_max_depth = 30
-
-  !> pointer to btree_node.
-  type :: btree_node_ptr
-     type(btree_node), pointer :: p_ => null()
+  !> pointer to ${btree_node}.
+  type :: ${btree_node_ptr}
+     type(${btree_node}), pointer :: p_ => null()
    contains
-     procedure, pass :: size => size_btree_node_ptr
-     procedure, pass :: is_leaf => is_leaf_btree_node_ptr
-     procedure, pass :: get => get_btree_node_ptr
-     procedure, pass :: split_child => split_child_btree_node_ptr
-     procedure, pass :: insert => insert_btree_node_ptr
-     procedure, pass :: remove => remove_btree_node_ptr
-     procedure, pass :: shrink_left  => shrink_left_btree_node_ptr
-     procedure, pass :: expand_right => expand_right_btree_node_ptr
-     procedure, pass :: print => print_btree_node_ptr
-     procedure, pass :: check_invariant => check_invariant_btree_node_ptr
-  end type btree_node_ptr
+     procedure, pass :: size => size_${btree_node_ptr}
+     procedure, pass :: is_leaf => is_leaf_${btree_node_ptr}
+     procedure, pass :: get_iter => get_iter_${btree_node_ptr}
+     procedure, pass :: split_child => split_child_${btree_node_ptr}
+     procedure, pass :: insert => insert_${btree_node_ptr}
+     procedure, pass :: remove     => remove_${btree_node_ptr}
+     procedure, pass :: remove_key => remove_key_${btree_node_ptr}
+     procedure, pass :: merge_children => merge_children_${btree_node_ptr}
+     procedure, pass :: rotate_left  => rotate_left_${btree_node_ptr}
+     procedure, pass :: rotate_right => rotate_right_${btree_node_ptr}
+     procedure, pass :: shrink_left  => shrink_left_${btree_node_ptr}
+     procedure, pass :: expand_right => expand_right_${btree_node_ptr}
+     procedure, pass :: print => print_${btree_node_ptr}
+     procedure, pass :: check_invariant => check_invariant_${btree_node_ptr}
+  end type ${btree_node_ptr}
   !> node of B-Tree.
-  type :: btree_node
+  type :: ${btree_node}
      integer(int32) :: nelem_ = 0
-     integer(int32) :: key_(inode)
-     integer(int32) :: val_(inode)
-     type(btree_node_ptr) :: children_(inode+1)
+     ${key} :: key_(inode)
+     ${val} :: val_(inode)
+     type(${btree_node_ptr}) :: children_(inode+1)
      logical :: is_leaf_ = .true.
-  end type btree_node
+  end type ${btree_node}
 
-  public :: btree
-  !> `btree` has pointer to root of B-Tree.
-  type :: btree
+  public :: ${btree}
+  !> `${btree}` has pointer to root of B-Tree.
+  type :: ${btree}
      private
-     type(btree_node_ptr) :: root_
+     type(${btree_node_ptr}) :: root_
      integer(int32) :: size_   = 0
      integer(int32) :: height_ = 0
    contains
-     procedure, pass :: size   => size_btree
-     procedure, pass :: height => height_btree
-     procedure, pass :: init   => init_btree
-     procedure, pass :: get    => get_btree
-     procedure, pass :: get_iter => get_iter_btree
-     procedure, pass :: contains => contains_btree
-     procedure, pass :: insert => insert_btree
-     procedure, pass :: remove => remove_btree
-     procedure, pass :: minimum => minimum_btree
-     procedure, pass :: maximum => maximum_btree
-     ! procedure, pass :: lower_bound => lower_bound_btree
-     ! procedure, pass :: upper_bound => upper_bound_btree
-     procedure, pass :: print => print_btree
-     procedure, pass :: check_invariant => check_invariant_btree
-  end type btree
-  public btree_node_iter
-  type :: btree_node_iter
+     procedure, pass :: size   => size_${btree}
+     procedure, pass :: height => height_${btree}
+     procedure, pass :: init   => init_${btree}
+     procedure, pass :: get      => get_${btree}
+     procedure, pass :: get_iter => get_iter_${btree}
+     procedure, pass :: contains => contains_${btree}
+     procedure, pass :: insert => insert_${btree}
+     procedure, pass :: remove => remove_${btree}
+     procedure, pass :: minimum => minimum_${btree}
+     procedure, pass :: maximum => maximum_${btree}
+     procedure, pass :: minimum_iter => minimum_iter_${btree}
+     procedure, pass :: maximum_iter => maximum_iter_${btree}
+     ! procedure, pass :: lower_bound => lower_bound_${btree}
+     ! procedure, pass :: upper_bound => upper_bound_${btree}
+     procedure, pass :: print => print_${btree}
+     procedure, pass :: check_invariant => check_invariant_${btree}
+  end type ${btree}
+  public ${btree_node_iter}
+  type :: ${btree_node_iter}
      private
      integer(int32) :: idx_ = -1
-     type(btree_node_ptr) :: nptr_
+     type(${btree_node_ptr}) :: nptr_
      integer(int32) :: depth_ = 1
      integer(int32) :: indices_(iter_max_depth)
-     type(btree_node_ptr) :: parents_(iter_max_depth)
+     type(${btree_node_ptr}) :: parents_(iter_max_depth)
    contains
-     procedure, pass :: key => key_btree_node_iter
-     procedure, pass :: val => val_btree_node_iter
-     procedure, pass :: mut => mut_btree_node_iter
-     procedure, pass :: next => next_btree_node_iter
-     procedure, pass :: prev => prev_btree_node_iter
-     procedure, pass :: is_begin => is_begin_btree_node_iter
-     procedure, pass :: is_end   => is_end_btree_node_iter
-     procedure, pass :: exist => exist_btree_node_iter
-  end type btree_node_iter
-contains
-  subroutine init_btree(this)
-    class(btree), intent(inout) :: this
-    type(btree_node), pointer :: x
+     procedure, pass :: key => key_${btree_node_iter}
+     procedure, pass :: val => val_${btree_node_iter}
+     procedure, pass :: mut_val => mut_val_${btree_node_iter}
+     procedure, pass :: next => next_${btree_node_iter}
+     procedure, pass :: prev => prev_${btree_node_iter}
+     procedure, pass :: is_begin     => is_begin_${btree_node_iter}
+     procedure, pass :: is_not_begin => is_not_begin_${btree_node_iter}
+     procedure, pass :: is_end     => is_end_${btree_node_iter}
+     procedure, pass :: is_not_end => is_not_end_${btree_node_iter}
+     procedure, pass :: exist     => exist_${btree_node_iter}
+     procedure, pass :: not_exist => not_exist_${btree_node_iter}
+  end type ${btree_node_iter}
+#+end_src
+*** B木 の実装
+:PROPERTIES:
+:header-args: :noweb-ref procedures-btree
+:END:
+**** btree のメソッド
+***** initialize
+B木を初期化する.
+#+name: initialize_btree
+#+begin_src fortran :exports code
+  subroutine init_${btree}(this)
+    class(${btree}), intent(inout) :: this
+    type(${btree_node}), pointer :: x
     allocate(x)
     x%is_leaf_ = .true.
     x%nelem_ = 0
     this%size_   = 0
     this%height_ = 0
     this%root_%p_ => x
-  end subroutine init_btree
-  pure integer(int32) function size_btree(this) result(res)
-    class(btree), intent(in) :: this
+  end subroutine init_${btree}
+#+end_src
+***** size
+B木に含まれている要素数を返す.
+#+name: size_btree
+#+begin_src fortran :exports code
+  pure integer(int32) function size_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
     res = this%size_
-  end function size_btree
-  pure integer(int32) function height_btree(this) result(res)
-    class(btree), intent(in) :: this
+  end function size_${btree}
+#+end_src
+***** height
+B木の高さを返す.
+#+name: height_btree
+#+begin_src fortran :exports code
+  pure integer(int32) function height_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
     res = this%height_
-  end function height_btree
-  integer(int32) function get_btree(this, key) result(res)
-    class(btree), intent(in) :: this
-    integer(int32), intent(in) :: key
-    type(btree_node_iter) :: iter
-    iter = this%root_%get(key)
+  end function height_${btree}
+#+end_src
+***** get
+`key` の位置の値を返す.
+#+name: get_btree
+#+begin_src fortran :exports code
+  ${val} function get_${btree}(this, key) result(res)
+    class(${btree}), intent(in) :: this
+    ${key}, intent(in) :: key
+    type(${btree_node_iter}) :: iter
+    iter = this%root_%get_iter(key)
     if (iter%idx_ /= -1) then
        res = iter%nptr_%p_%val_(iter%idx_)
     else
-       res = -1
     end if
-  end function get_btree
-  type(btree_node_iter) function get_iter_btree(this, key) result(res)
-    class(btree), intent(in) :: this
-    integer(int32), intent(in) :: key
-    res = this%root_%get(key)
-  end function get_iter_btree
-  logical function contains_btree(this, key) result(res)
-    class(btree), intent(in) :: this
-    integer(int32), intent(in) :: key
-    type(btree_node_iter) :: iter
-    iter = this%root_%get(key)
+  end function get_${btree}
+#+end_src
+***** get_iter
+`key` を指す iterator を返す.
+#+name: get_iter_btree
+#+begin_src fortran :exports code
+  type(${btree_node_iter}) function get_iter_${btree}(this, key) result(res)
+    class(${btree}), intent(in) :: this
+    ${key}, intent(in) :: key
+    res = this%root_%get_iter(key)
+  end function get_iter_${btree}
+#+end_src
+***** contains
+`key` がB木の中に含まれているかを返す.
+#+name: contains_btree
+#+begin_src fortran :exports code
+  logical function contains_${btree}(this, key) result(res)
+    class(${btree}), intent(in) :: this
+    ${key}, intent(in) :: key
+    type(${btree_node_iter}) :: iter
+    iter = this%root_%get_iter(key)
     res = iter%idx_ /= -1
-  end function contains_btree
-
-  subroutine insert_btree(this, key, val)
-    class(btree), intent(inout) :: this
-    integer(int32), intent(in) :: key
-    integer(int32), intent(in) :: val
-    type(btree_node_ptr) :: r
-    type(btree_node_iter) :: iter
+  end function contains_${btree}
+#+end_src
+***** insert
+`key` の位置に `val` を挿入する.
+実装は `btree_node_ptr` 任せる.
+#+name: insert_btree
+#+begin_src fortran :exports code
+  subroutine insert_${btree}(this, key, val)
+    class(${btree}), intent(inout) :: this
+    ${key}, intent(in) :: key
+    ${val}, intent(in) :: val
+    type(${btree_node_ptr}) :: r
+    type(${btree_node_iter}) :: iter
     r%p_ => this%root_%p_
     if (r%p_%nelem_ == 2*t - 1) then
        block
-         type(btree_node_ptr) :: s
+         type(${btree_node_ptr}) :: s
          allocate(s%p_)
          this%root_%p_ => s%p_
          s%p_%is_leaf_ = .false.
@@ -4994,11 +5063,17 @@ contains
     end if
     if (iter%idx_ > 0) &
          this%size_ = this%size_ + 1
-  end subroutine insert_btree
-  subroutine remove_btree(this, key)
-    class(btree), intent(inout) :: this
-    integer(int32), intent(in) :: key
-    type(btree_node_ptr) :: tmp
+  end subroutine insert_${btree}
+#+end_src
+***** remove
+`key` をB木から削除する.
+実装は `btree_node_ptr` に任せる.
+#+name: remove_btree
+#+begin_src fortran :exports code
+  subroutine remove_${btree}(this, key)
+    class(${btree}), intent(inout) :: this
+    ${key}, intent(in) :: key
+    type(${btree_node_ptr}) :: tmp
     call this%root_%remove(key)
     if (this%root_%p_%nelem_ == 0 .and. (.not. this%root_%is_leaf())) then
        tmp%p_ => this%root_%p_
@@ -5008,47 +5083,106 @@ contains
        this%height_ = this%height_ - 1
     end if
     this%size_ = this%size_ - 1
-  end subroutine remove_btree
-  !> minimum_btree: Return the iterator to node that has minimum key.
-  type(btree_node_iter) function minimum_btree(this) result(res)
-    class(btree), intent(in) :: this
+  end subroutine remove_${btree}
+#+end_src
+***** minimum
+#+name: minimum_btree
+#+begin_src fortran :exports code
+  !> minimum_${btree}: Return the minimum value.
+  ${val} function minimum_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
+    type(${btree_node_iter}) :: iter
+    iter%nptr_%p_ => this%root_%p_
+    iter%depth_ = 1
+    iter%idx_ = 0
+    call iter%next()
+    res = iter%val()
+  end function minimum_${btree}
+#+end_src
+***** minimum_iter
+最小値の場所を指す ${btree_node_iter} を返す.
+#+name: minimum_iter_${btree}
+#+begin_src fortran :exports code
+  !> minimum_iter_${btree}: Return the iterator to node that has minimum key.
+  type(${btree_node_iter}) function minimum_iter_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
     res%nptr_%p_ => this%root_%p_
     res%depth_ = 1
     res%idx_ = 0
     call res%next()
-  end function minimum_btree
-  !> maximum_btree: Return the iterator to node that has maximum key.
-  type(btree_node_iter) function maximum_btree(this) result(res)
-    class(btree), intent(in) :: this
+  end function minimum_iter_${btree}
+#+end_src
+***** maximum
+#+name: maximum_btree
+#+begin_src fortran :exports code
+  !> maximum_${btree}: Return the maximum value.
+  ${val} function maximum_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
+    type(${btree_node_iter}) :: iter
+    iter%nptr_%p_ => this%root_%p_
+    iter%depth_ = 1
+    iter%idx_ = iter%nptr_%size() + 1
+    call iter%prev()
+    res = iter%val()
+  end function maximum_${btree}
+#+end_src
+***** maximum_iter
+#+name: maximum_iter_btree
+#+begin_src fortran :exports code
+  !> maximum_iter_${btree}: Return the iterator to node that has maximum key.
+  type(${btree_node_iter}) function maximum_iter_${btree}(this) result(res)
+    class(${btree}), intent(in) :: this
     res%nptr_%p_ => this%root_%p_
     res%depth_ = 1
     res%idx_ = res%nptr_%size() + 1
     call res%prev()
-  end function maximum_btree
-
+  end function maximum_iter_${btree}
+#+end_src
+***** COMMENT lower_bound => lower_bound_${btree}
+#+name: lower_bound_btree
+#+begin_src fortran :exports code
+#+end_src
+***** COMMENT upper_bound => upper_bound_${btree}
+#+name: upper_bound_btree
+#+begin_src fortran :exports code
+#+end_src
+***** print
+デバッグ用. 全ての要素をprintする.
+#+name: print_btree
+#+begin_src fortran :exports code
   !> print_btree: Print whole node in B-tree for debug.
   !> For debug.
-  subroutine print_btree(this, unit)
-    class(btree), intent(in) :: this
+  subroutine print_${btree}(this, unit)
+    class(${btree}), intent(in) :: this
     integer(int32), intent(in) :: unit
     if (associated(this%root_%p_)) &
          call this%root_%print(unit, 0)
-  end subroutine print_btree
-  !> check_invariant_btree: Check invariant for debug.
+  end subroutine print_${btree}
+#+end_src
+***** check_invariant
+デバッグ用.
+B木の不変条件:
+- `root` を除く `node` は最小でも `t-1` 個の `key` を持つ.
+- 左側の `key` は右側の `key` よりも小さい.
+を確かめる.
+#+name: check_invariant_btree
+#+begin_src fortran :exports code
+  !> check_invariant_${btree}: Check invariant for debug.
   !> invariant condition: The number of keys of each node in B-tree excluded root node must have at least `t - 1` keys.
   !> The keys in left children is less than key of current node.
   !> The keys in right children is greater than key of current node.
-  subroutine check_invariant_btree(this)
-    class(btree), intent(in) :: this
+  subroutine check_invariant_${btree}(this)
+    class(${btree}), intent(in) :: this
+    type(${btree_node_iter}) :: bt_iter
+    ${key} :: k, k_bef
     integer(int32) :: i
-    type(btree_node_iter) :: bt_iter
-    integer(int32) :: k, k_bef
     if (this%root_%is_leaf()) return
     do i = 1, this%root_%size() + 1
        call this%root_%p_%children_(i)%check_invariant()
     end do
-    bt_iter = this%minimum()
-    k_bef = -huge(0_int32) - 1
+    bt_iter = this%minimum_iter()
+    k_bef = bt_iter%key()
+    call bt_iter%next()
     do while (.not. bt_iter%is_end())
        k = bt_iter%key()
        if (k_bef >= k) then
@@ -5058,30 +5192,46 @@ contains
        k_bef = k
        call bt_iter%next()
     end do
-    bt_iter = this%maximum()
-    k_bef = huge(0_int32)
+    bt_iter = this%maximum_iter()
+    k_bef = bt_iter%key()
+    call bt_iter%prev()
     do while (.not. bt_iter%is_begin())
        k = bt_iter%key()
-       if (k_bef < k) then
+       if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
           error stop 5
        end if
        k_bef = k
        call bt_iter%prev()
     end do
-  end subroutine check_invariant_btree
-
-  pure integer(int32) function size_btree_node_ptr(this) result(res)
-    class(btree_node_ptr), intent(in) :: this
+  end subroutine check_invariant_${btree}
+#+end_src
+**** btreee_node_ptr のメソッド
+***** size
+B木のノードに含まれている要素数を返す.
+#+name: size_btree_node_ptr
+#+begin_src fortran :exports code
+  pure integer(int32) function size_${btree_node_ptr}(this) result(res)
+    class(${btree_node_ptr}), intent(in) :: this
     res = this%p_%nelem_
-  end function size_btree_node_ptr
-  pure logical function is_leaf_btree_node_ptr(this) result(res)
-    class(btree_node_ptr), intent(in) :: this
+  end function size_${btree_node_ptr}
+#+end_src
+***** is_leaf
+ノードが葉か否かを返す.
+#+name: is_leaf_btree_node_ptr
+#+begin_src fortran :exports code
+  pure logical function is_leaf_${btree_node_ptr}(this) result(res)
+    class(${btree_node_ptr}), intent(in) :: this
     res = this%p_%is_leaf_
-  end function is_leaf_btree_node_ptr
-  type(btree_node_iter) function get_btree_node_ptr(this, key) result(res)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: key
+  end function is_leaf_${btree_node_ptr}
+#+end_src
+***** get_iter
+`key` の位置を指す iterator を返す.
+#+name: get_iter_btree_node_ptr
+#+begin_src fortran :exports code :noweb no-export
+  type(${btree_node_iter}) function get_iter_${btree_node_ptr}(this, key) result(res)
+    class(${btree_node_ptr}), intent(in) :: this
+    ${key}, intent(in) :: key
     integer(int32) :: pos
     res%nptr_%p_ => this%p_
     if (res%nptr_%size() == 0) then
@@ -5105,12 +5255,20 @@ contains
     nullify(res%nptr_%p_)
     res%idx_ = -1
     return
-  end function get_btree_node_ptr
-  subroutine split_child_btree_node_ptr(this, idx)
-    class(btree_node_ptr), intent(in) :: this
+  contains
+    <<btree_sub_lower_bound>>
+  end function get_iter_${btree_node_ptr}
+#+end_src
+***** split_child
+`insert` するときに, 不変条件を保つために用いる.
+要素数が上限に達した子ノードを分割する.
+#+name: split_child_btree_node_ptr
+#+begin_src fortran :exports code
+  subroutine split_child_${btree_node_ptr}(this, idx)
+    class(${btree_node_ptr}), intent(in) :: this
     integer(int32), intent(in) :: idx
+    type(${btree_node_ptr}) :: y, z
     integer(int32) :: i
-    type(btree_node_ptr) :: y, z
     allocate(z%p_)
     y%p_ => this%p_%children_(idx)%p_
     z%p_%is_leaf_ = y%p_%is_leaf_
@@ -5136,13 +5294,17 @@ contains
     this%p_%key_(idx) = y%p_%key_(t)
     this%p_%val_(idx) = y%p_%val_(t)
     this%p_%nelem_ = this%p_%nelem_ + 1
-  end subroutine split_child_btree_node_ptr
-  !> insert_btree_node_ptr: Insert (`key`, `val`) into B-tree.
-  type(btree_node_iter) function insert_btree_node_ptr(this, key, val) result(res)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: key
-    integer(int32), intent(in) :: val
-    type(btree_node_ptr) :: x
+  end subroutine split_child_${btree_node_ptr}
+#+end_src
+***** insert
+#+name: insert_btree_node_ptr
+#+begin_src fortran :exports code :noweb no-export
+  !> insert_${btree_node_ptr}: Insert (`key`, `val`) into B-tree.
+  type(${btree_node_iter}) function insert_${btree_node_ptr}(this, key, val) result(res)
+    class(${btree_node_ptr}), intent(in) :: this
+    ${key}, intent(in) :: key
+    ${val}, intent(in) :: val
+    type(${btree_node_ptr}) :: x
     integer(int32) :: pos
     x%p_ => this%p_
     if (x%size() == 0) then
@@ -5186,19 +5348,27 @@ contains
     x%p_%val_(pos) = val
     res%nptr_%p_ => x%p_
     res%idx_ = pos
-  end function insert_btree_node_ptr
-  !> remove_btree_node_ptr: Remove `key` from B-tree.
+  contains
+    <<btree_sub_lower_bound>>
+  end function insert_${btree_node_ptr}
+#+end_src
+***** remove
+B木から `key` を削除する.
+採用したアルゴリズムは "アルゴリズムイントロダクション 第3版 総合版 (世界標準MIT教科書)" を参考にしている.
+#+name: remove_btree_node_ptr
+#+begin_src fortran :exports code :noweb no-export
+  !> remove_${btree_node_ptr}: Remove `key` from B-tree.
   !> invariant condition: the node `this%p_` has at least `t` keys.
-  recursive subroutine remove_btree_node_ptr(this, key)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: key
-    type(btree_node_ptr) :: x, c
+  recursive subroutine remove_${btree_node_ptr}(this, key)
+    class(${btree_node_ptr}), intent(in) :: this
+    ${key}, intent(in) :: key
+    type(${btree_node_ptr}) :: x, c
     integer(int32) :: pos, s
     ! write(error_unit, '(a, i0)') "search: ", key
     x%p_ => this%p_
     pos = lower_bound(1, x%size(), x%p_%key_(1:x%size()), key)
     if (x%p_%key_(min(pos, x%size())) == key) then !> `key` exists in current internal node.
-       call remove_key_btree_node_ptr(x, key, pos)
+       call x%remove_key(key, pos)
        return
     end if
     !> `key` does not exist in current internal node.
@@ -5227,7 +5397,7 @@ contains
           !> x: _w
           !>       \
           !>         (c_to//key//c_from)
-          call merge_children_btree_node_ptr(x, s)
+          call x%merge_children(s)
           call x%p_%children_(x%size() + 1)%remove(key)
           ! write(error_unit, '(a, i0)') "pattern 3b end: ", key
           return
@@ -5241,7 +5411,7 @@ contains
           !>                    _w
           !>                   /   \
           !> c(c_to//x//c_from)      c3
-          call merge_children_btree_node_ptr(x, pos)
+          call x%merge_children(pos)
           call x%p_%children_(pos)%remove(key)
           ! write(error_unit, '(a, i0)') "pattern 3b end: ", key
           return
@@ -5258,7 +5428,7 @@ contains
        !> x:         v1
        !>          /    \
        !>   c_from        (x:c_to)
-       call rotate_right_btree_note_ptr(x, s)
+       call x%rotate_right(s)
        call x%p_%children_(x%size() + 1)%remove(key)
     else !> pos: [1, s]
        ! write(error_unit, '(a, i0)') "pattern 3a-2: ", key
@@ -5267,21 +5437,28 @@ contains
        !> ------------------------------
        !>          v1
        !> (c_to:x)    c_from
-       call rotate_left_btree_note_ptr(x, pos)
+       call x%rotate_left(pos)
        call x%p_%children_(pos)%remove(key)
     end if
     ! write(error_unit, '(a, i0)') "pattern 3a end: ", key
     return
-  end subroutine remove_btree_node_ptr
-  !> remove_key_btree_node_ptr: If some of current nodes have `key`, call this.
-  recursive subroutine remove_key_btree_node_ptr(x, key, pos)
-    type(btree_node_ptr), intent(in) :: x
-    integer(int32), intent(in) :: key
+  contains
+    <<btree_sub_lower_bound>>
+  end subroutine remove_${btree_node_ptr}
+#+end_src
+***** remove_key
+`key` のあるノードから `key` を削除する.
+#+name: remove_key_btree_node_ptr
+#+begin_src fortran :exports code
+  !> remove_key_${btree_node_ptr}: If some of current nodes have `key`, call this.
+  recursive subroutine remove_key_${btree_node_ptr}(x, key, pos)
+    class(${btree_node_ptr}), intent(in) :: x
+    ${key}, intent(in) :: key
     integer(int32), intent(in) :: pos
     !> pos: [1, x%size()].
     if (x%is_leaf()) then
        ! write(error_unit, '(a, i0)') "pattern 1: ", key
-       call x%shrink_left(pos, -1)
+       call x%shrink_left(pos, pos)
        return
     end if
     !> x is not leaf.
@@ -5300,8 +5477,8 @@ contains
        !>  \
        !>   c'
        block
-         integer(int32) :: key_tmp
-         type(btree_node_ptr) :: prev
+         ${key} :: key_tmp
+         type(${btree_node_ptr}) :: prev
          prev%p_ => x%p_%children_(pos)%p_
          do while (.not. prev%is_leaf())
             prev%p_ => prev%p_%children_(prev%size()+1)%p_
@@ -5327,8 +5504,8 @@ contains
        !>       /
        !>     c'
        block
-         integer(int32) :: key_tmp
-         type(btree_node_ptr) :: next
+         ${key} :: key_tmp
+         type(${btree_node_ptr}) :: next
          next%p_ => x%p_%children_(pos+1)%p_
          do while (.not. next%is_leaf())
             next%p_ => next%p_%children_(1)%p_
@@ -5347,65 +5524,27 @@ contains
        !> --------------------------------
        !>            _y
        !> (c//x//c2)    _c3
-       call merge_children_btree_node_ptr(x, pos)
+       call x%merge_children(pos)
        call x%p_%children_(pos)%remove(key)
        ! write(error_unit, '(a, i0)') "pattern 2c end: ", key
        return
     end if
-  end subroutine remove_key_btree_node_ptr
-
-  !> shrink_left_btree_node_ptr: Remove the `key` and `val` from the `pos` of `this%p_` and shrink it.
-  !> before: key(1), key(2), ... key(pos-1), key(pos), key(pos+1), ..., key(s)
-  !> after : key(1), key(2), ... key(pos-1), key(pos+1), ..., key(s)
-  !> unlink left pointer if `left_or_right` == 0
-  !> unlink right pointer if `left_or_right` == 1
-  !> `this%p_` is leaf if `left_or_right` == -1.
-  subroutine shrink_left_btree_node_ptr(this, pos, left_or_right)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: pos
-    integer(int32), intent(in) :: left_or_right
-    type(btree_node_ptr) :: x
-    integer(int32) :: i, s
-    x%p_ => this%p_
-    s = x%size()
-    !> copy [pos+1, s] to [pos, s-1].
-    !> delete `pos` of array.
-    x%p_%key_(pos:s-1) = x%p_%key_(pos+1:s)
-    x%p_%val_(pos:s-1) = x%p_%val_(pos+1:s)
-    if (left_or_right /= -1) then
-       do i = pos + left_or_right, s
-          x%p_%children_(i)%p_ => x%p_%children_(i+1)%p_
-       end do
-    end if
-    x%p_%nelem_ = s - 1
-  end subroutine shrink_left_btree_node_ptr
-  subroutine expand_right_btree_node_ptr(this, pos)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: pos
-    type(btree_node_ptr) :: x
-    integer(int32) :: i, s
-    x%p_ => this%p_
-    s = x%size()
-    !> copy [pos, s] to [pos+1, s+1].
-    !> `pos` of array is empty.
-    x%p_%key_(pos+1:s+1) = x%p_%key_(pos:s)
-    x%p_%val_(pos+1:s+1) = x%p_%val_(pos:s)
-    do i = s+1, pos, -1
-       x%p_%children_(i+1)%p_ => x%p_%children_(i)%p_
-    end do
-    x%p_%nelem_ = s + 1
-  end subroutine expand_right_btree_node_ptr
-  !> merge_btree_node_ptr: Merge left child, middle key and right child.
+  end subroutine remove_key_${btree_node_ptr}
+#+end_src
+***** merge_children
+#+name: merge_children_btree_node_ptr
+#+begin_src fortran :exports code
+  !> merge_${btree_node_ptr}: Merge left child, middle key and right child.
   !> Then shrink left and deallocate right child.
   !>      x                   _y
   !> left   right(deallocate)    _c
   !> --------------------------------
   !>                  _y
   !> (left//x//right)    _c
-  subroutine merge_children_btree_node_ptr(x, pos)
-    type(btree_node_ptr), intent(in) :: x
+  subroutine merge_children_${btree_node_ptr}(x, pos)
+    class(${btree_node_ptr}), intent(in) :: x
     integer(int32), intent(in) :: pos
-    type(btree_node_ptr) :: left, right
+    type(${btree_node_ptr}) :: left, right
     integer(int32) :: i
     left%p_  => x%p_%children_(pos)%p_
     right%p_ => x%p_%children_(pos+1)%p_
@@ -5420,33 +5559,13 @@ contains
     left%p_%nelem_ = 2*t - 1
     deallocate(right%p_)
     nullify(right%p_)
-    call x%shrink_left(pos, 1) ! unlink right child.
-  end subroutine merge_children_btree_node_ptr
-  !> rotate_right_btree_note_ptr: Rotate keys.
-  !> Increase the number of right node keys and decrease that of left node keys.
-  !> The number of left node keys must have at least `t` keys.
-  !> x:              key
-  !>               /     \
-  !> left(init:v1)         right
-  !> ------------------------------
-  !> x:       v1
-  !>        /    \
-  !>   init        (key:right)
-  subroutine rotate_right_btree_note_ptr(x, pos)
-    type(btree_node_ptr), intent(in) :: x
-    integer(int32), intent(in) :: pos
-    type(btree_node_ptr) :: left, right
-    left%p_  => x%p_%children_(pos)%p_
-    right%p_ => x%p_%children_(pos+1)%p_
-    call right%expand_right(1) !> right%size() += 1
-    right%p_%key_(1) = x%p_%key_(pos)
-    right%p_%val_(1) = x%p_%val_(pos)
-    right%p_%children_(1)%p_ => left%p_%children_(left%size() + 1)%p_
-    x%p_%key_(pos) = left%p_%key_(left%size())
-    x%p_%val_(pos) = left%p_%val_(left%size())
-    call left%shrink_left(left%size(), 1)
-  end subroutine rotate_right_btree_note_ptr
-  !> rotate_left_btree_note_ptr: Rotate keys.
+    call x%shrink_left(pos, pos+1) ! unlink right child.
+  end subroutine merge_children_${btree_node_ptr}
+#+end_src
+***** rotate_left
+#+name: rotate_left_btree_node_ptr
+#+begin_src fortran :exports code
+  !> rotate_left_${btree_node_ptr}: Rotate keys.
   !> Increase the number of left node keys and decrease that of right node keys.
   !> The number of right node keys must have at least `t` keys.
   !> x:     key
@@ -5456,10 +5575,10 @@ contains
   !> x:           v1
   !>            /    \
   !> (left:key)        rest
-  subroutine rotate_left_btree_note_ptr(x, pos)
-    type(btree_node_ptr), intent(in) :: x
+  subroutine rotate_left_${btree_node_ptr}(x, pos)
+    class(${btree_node_ptr}), intent(in) :: x
     integer(int32), intent(in) :: pos
-    type(btree_node_ptr) :: left, right
+    type(${btree_node_ptr}) :: left, right
     integer(int32) :: ls
     left%p_  => x%p_%children_(pos)%p_
     right%p_ => x%p_%children_(pos+1)%p_
@@ -5470,24 +5589,107 @@ contains
     left%p_%nelem_ = ls
     x%p_%key_(pos) = right%p_%key_(1)
     x%p_%val_(pos) = right%p_%val_(1)
-    call right%shrink_left(1, 0) !> right%size() -= 1
-  end subroutine rotate_left_btree_note_ptr
-
-  recursive subroutine print_btree_node_ptr(this, unit, depth)
-    class(btree_node_ptr), intent(in) :: this
-    integer(int32), intent(in) :: unit, depth
-    type(btree_node_ptr) :: x
+    call right%shrink_left(1, 1) !> right%size() -= 1
+  end subroutine rotate_left_${btree_node_ptr}
+#+end_src
+***** rotate_right
+#+name: rotate_right_btree_node_ptr
+#+begin_src fortran :exports code
+  !> rotate_right_${btree_node_ptr}: Rotate keys.
+  !> Increase the number of right node keys and decrease that of left node keys.
+  !> The number of left node keys must have at least `t` keys.
+  !> x:              key
+  !>               /     \
+  !> left(init:v1)         right
+  !> ------------------------------
+  !> x:       v1
+  !>        /    \
+  !>   init        (key:right)
+  subroutine rotate_right_${btree_node_ptr}(x, pos)
+    class(${btree_node_ptr}), intent(in) :: x
+    integer(int32), intent(in) :: pos
+    type(${btree_node_ptr}) :: left, right
+    left%p_  => x%p_%children_(pos)%p_
+    right%p_ => x%p_%children_(pos+1)%p_
+    call right%expand_right(1) !> right%size() += 1
+    right%p_%key_(1) = x%p_%key_(pos)
+    right%p_%val_(1) = x%p_%val_(pos)
+    right%p_%children_(1)%p_ => left%p_%children_(left%size() + 1)%p_
+    x%p_%key_(pos) = left%p_%key_(left%size())
+    x%p_%val_(pos) = left%p_%val_(left%size())
+    call left%shrink_left(left%size(), left%size()+1) !> unlink right child.
+  end subroutine rotate_right_${btree_node_ptr}
+#+end_src
+***** shrink_left
+#+name: shrink_left_btree_node_ptr
+#+begin_src fortran :exports code
+  !> shrink_left_${btree_node_ptr}: Remove the `key` and `val` from the `pos` of `this%p_` and shrink it.
+  !> before: key(1), key(2), ... key(pos-1), key(pos), key(pos+1), ..., key(s)
+  !> after : key(1), key(2), ... key(pos-1), key(pos+1), ..., key(s)
+  !> before: child(1), child(2), ... child(pos_child-1), child(pos_child), child(pos_child+1), ..., child(s+1)
+  !> after : child(1), child(2), ... child(pos_child-1),                   child(pos_child+1), ..., child(s+1)
+  subroutine shrink_left_${btree_node_ptr}(this, pos, pos_child)
+    class(${btree_node_ptr}), intent(in) :: this
+    integer(int32), intent(in) :: pos, pos_child
+    type(${btree_node_ptr}) :: x
+    integer(int32) :: s
     integer(int32) :: i
     x%p_ => this%p_
-    ! write(unit, '(L, 1x, i0, a, *(i0, 1x))') associated(x%p_), x%size(), ": ", x%p_%key_(:)
-    write(unit, '(a, i0, a, *(i0, 1x))') repeat("|", min(1, depth))//repeat("-", depth), depth, ": ", x%p_%key_(1:x%size())
+    s = x%size()
+    !> copy [pos+1, s] to [pos, s-1].
+    !> delete `pos` of array.
+    x%p_%key_(pos:s-1) = x%p_%key_(pos+1:s)
+    x%p_%val_(pos:s-1) = x%p_%val_(pos+1:s)
+    x%p_%nelem_ = s - 1
+    if (x%is_leaf()) return
+    do i = pos_child, s
+       x%p_%children_(i)%p_ => x%p_%children_(i+1)%p_
+    end do
+  end subroutine shrink_left_${btree_node_ptr}
+#+end_src
+***** expand_right
+#+name: expand_right_btree_node_ptr
+#+begin_src fortran :exports code
+  subroutine expand_right_${btree_node_ptr}(this, pos)
+    class(${btree_node_ptr}), intent(in) :: this
+    integer(int32), intent(in) :: pos
+    type(${btree_node_ptr}) :: x
+    integer(int32) :: s
+    integer(int32) :: i
+    x%p_ => this%p_
+    s = x%size()
+    !> copy [pos, s] to [pos+1, s+1].
+    !> `pos` of array is empty.
+    x%p_%key_(pos+1:s+1) = x%p_%key_(pos:s)
+    x%p_%val_(pos+1:s+1) = x%p_%val_(pos:s)
+    x%p_%nelem_ = s + 1
+    if (x%is_leaf()) return
+    do i = s+1, pos, -1
+       x%p_%children_(i+1)%p_ => x%p_%children_(i)%p_
+    end do
+  end subroutine expand_right_${btree_node_ptr}
+#+end_src
+***** print
+#+name: print_btree_node_ptr
+#+begin_src fortran :exports code
+  recursive subroutine print_${btree_node_ptr}(this, unit, depth)
+    class(${btree_node_ptr}), intent(in) :: this
+    integer(int32), intent(in) :: unit, depth
+    type(${btree_node_ptr}) :: x
+    integer(int32) :: i
+    x%p_ => this%p_
+    write(unit, *) repeat("|", min(1, depth))//repeat("-", depth), depth, ": ", x%p_%key_(1:x%size())
     if (x%is_leaf()) return
     do i = 1, x%p_%nelem_ + 1
        call x%p_%children_(i)%print(unit, depth + 1)
     end do
-  end subroutine print_btree_node_ptr
-  recursive subroutine check_invariant_btree_node_ptr(this)
-    class(btree_node_ptr), intent(in) :: this
+  end subroutine print_${btree_node_ptr}
+#+end_src
+***** check_invariant
+#+name: check_invariant_btree_node_ptr
+#+begin_src fortran :exports code
+  recursive subroutine check_invariant_${btree_node_ptr}(this)
+    class(${btree_node_ptr}), intent(in) :: this
     integer(int32) :: i
     if (this%size() < t - 1) then
        write(error_unit, '(a)') "Error: invariant, node must have at least `t - 1` keys."
@@ -5497,25 +5699,78 @@ contains
     do i = 1, this%size() + 1
        call this%p_%children_(i)%check_invariant()
     end do
-  end subroutine check_invariant_btree_node_ptr
-
-  pure integer(int32) function key_btree_node_iter(this) result(res)
-    class(btree_node_iter), intent(in) :: this
+  end subroutine check_invariant_${btree_node_ptr}
+#+end_src
+**** btreee_node_iter のメソッド
+***** key
+#+name: key_btree_node_ptr
+#+begin_src fortran :exports code
+  pure ${key} function key_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
-  end function key_btree_node_iter
-  pure integer(int32) function val_btree_node_iter(this) result(res)
-    class(btree_node_iter), intent(in) :: this
+  end function key_${btree_node_iter}
+#+end_src
+***** val
+#+name: val_btree_node_iter
+#+begin_src fortran :exports code
+  pure ${val} function val_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
-  end function val_btree_node_iter
-  subroutine mut_btree_node_iter(this, val)
-    class(btree_node_iter), intent(in) :: this
-    integer(int32), intent(in) :: val
-    type(btree_node_ptr) :: x
+  end function val_${btree_node_iter}
+#+end_src
+***** mut_val
+#+name: mut_val_btree_node_iter
+#+begin_src fortran :exports code
+  subroutine mut_val_${btree_node_iter}(this, val)
+    class(${btree_node_iter}), intent(in) :: this
+    ${val}, intent(in) :: val
+    type(${btree_node_ptr}) :: x
     x%p_ => this%nptr_%p_
     x%p_%val_(this%idx_) = val
-  end subroutine mut_btree_node_iter
-  subroutine prev_btree_node_iter(this)
-    class(btree_node_iter), intent(inout) :: this
+  end subroutine mut_val_${btree_node_iter}
+#+end_src
+***** next
+#+name: next_btree_node_iter
+#+begin_src fortran :exports code
+  subroutine next_${btree_node_iter}(this)
+    class(${btree_node_iter}), intent(inout) :: this
+    if (this%is_end()) then
+       write(error_unit, '(a)') "Error in `next`: exceed end of iterator."
+       error stop 4
+    end if
+    if (this%nptr_%is_leaf()) then
+       this%idx_ = this%idx_ + 1
+       if (this%idx_ <= this%nptr_%size()) return
+       !> this%idx_ == this%nptr_%size() + 1.
+       do !> visit parent of current node if `this%idx_` exceeds the range of `this%nptr_%p_%key_(1:s)`, where s == this%nptr_%size().
+          if (this%depth_ == 1) return !> end of iterator if `this%idx_ == this%nptr_%size() + 1` and `this%p_` is root of B-tree.
+          this%depth_ = this%depth_ - 1
+          this%nptr_%p_ => this%parents_(this%depth_)%p_
+          nullify(this%parents_(this%depth_)%p_)
+          this%idx_ = this%indices_(this%depth_) + 1
+          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+       end do
+    else !> visit right node and then visit the most left value.
+       this%parents_(this%depth_)%p_ => this%nptr_%p_
+       this%indices_(this%depth_) = this%idx_
+       this%depth_ = this%depth_ + 1
+       this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
+       this%idx_ = 1
+       do while (.not. this%nptr_%is_leaf())
+          this%parents_(this%depth_)%p_ => this%nptr_%p_
+          this%indices_(this%depth_) = 1
+          this%depth_ = this%depth_ + 1
+          this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
+          this%idx_ = 1
+       end do
+    end if
+  end subroutine next_${btree_node_iter}
+#+end_src
+***** prev
+#+name: prev_btree_node_iter
+#+begin_src fortran :exports code
+  subroutine prev_${btree_node_iter}(this)
+    class(${btree_node_iter}), intent(inout) :: this
     if (this%is_begin()) then !> `this%idx_ == 0` and `this%p_` is root of B-tree.
        !> beginning of iterator.
        write(error_unit, '(a)') "Error in `prev`: beginning of iterator."
@@ -5547,60 +5802,69 @@ contains
           this%idx_ = this%nptr_%size()
        end do
     end if
-  end subroutine prev_btree_node_iter
-  subroutine next_btree_node_iter(this)
-    class(btree_node_iter), intent(inout) :: this
-    if (this%is_end()) then
-       write(error_unit, '(a)') "Error in `next`: exceed end of iterator."
-       error stop 4
-    end if
-    if (this%nptr_%is_leaf()) then
-       this%idx_ = this%idx_ + 1
-       if (this%idx_ <= this%nptr_%size()) return
-       !> this%idx_ == this%nptr_%size() + 1.
-       do !> visit parent of current node if `this%idx_` exceeds the range of `this%nptr_%p_%key_(1:s)`, where s == this%nptr_%size().
-          if (this%depth_ == 1) return !> end of iterator if `this%idx_ == this%nptr_%size() + 1` and `this%p_` is root of B-tree.
-          this%depth_ = this%depth_ - 1
-          this%nptr_%p_ => this%parents_(this%depth_)%p_
-          nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
-       end do
-    else !> visit right node and then visit the most left value.
-       this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
-       this%depth_ = this%depth_ + 1
-       this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
-       do while (.not. this%nptr_%is_leaf())
-          this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = 1
-          this%depth_ = this%depth_ + 1
-          this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
-       end do
-    end if
-  end subroutine next_btree_node_iter
-  !> is_begin_btree_node_iter: return iter is begining of B-tree.
-  logical function is_begin_btree_node_iter(this) result(res)
-    class(btree_node_iter), intent(in) :: this
+  end subroutine prev_${btree_node_iter}
+#+end_src
+***** is_begin
+#+name: is_begin_btree_node_iter
+#+begin_src fortran :exports code
+  !> is_begin_${btree_node_iter}: return iter is begining of B-tree.
+  logical function is_begin_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
     res = this%depth_ == 1 .and. this%idx_ == 0
-  end function is_begin_btree_node_iter
-  !> is_end_btree_node_iter: return iter is end of B-tree.
-  logical function is_end_btree_node_iter(this) result(res)
-    class(btree_node_iter), intent(in) :: this
+  end function is_begin_${btree_node_iter}
+#+end_src
+***** is_not_begin
+#+name: is_not_begin_btree_node_iter
+#+begin_src fortran :exports code
+  !> is_not_begin_${btree_node_iter}: return iter is not begining of B-tree.
+  logical function is_not_begin_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
+    res = .not. this%is_begin()
+  end function is_not_begin_${btree_node_iter}
+#+end_src
+***** is_end
+#+name: is_end_btree_node_iter
+#+begin_src fortran :exports code
+  !> is_end_${btree_node_iter}: return iter is end of B-tree.
+  logical function is_end_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
     res = this%depth_ == 1 .and. this%idx_ == this%nptr_%size() + 1
-  end function is_end_btree_node_iter
-  logical function exist_btree_node_iter(this) result(res)
-    class(btree_node_iter), intent(in) :: this
+  end function is_end_${btree_node_iter}
+#+end_src
+***** is_not_end
+#+name: is_not_end_btree_node_iter
+#+begin_src fortran :exports code
+  !> is_not_end_${btree_node_iter}: return iter is not end of B-tree.
+  logical function is_not_end_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
+    res = .not. this%is_end()
+  end function is_not_end_${btree_node_iter}
+#+end_src
+***** exist
+#+name: exist_btree_node_iter
+#+begin_src fortran :exports code
+  logical function exist_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
     res = this%idx_ /= -1
-  end function exist_btree_node_iter
-
+  end function exist_${btree_node_iter}
+#+end_src
+***** not_exist
+#+name: not_exist_btree_node_iter
+#+begin_src fortran :exports code
+  logical function not_exist_${btree_node_iter}(this) result(res)
+    class(${btree_node_iter}), intent(in) :: this
+    res = .not. this%exist()
+  end function not_exist_${btree_node_iter}
+#+end_src
+*** 補助関数
+**** lower_bound
+#+name: btree_sub_lower_bound
+#+begin_src fortran :exports code
   !> lower_bound: search `i+1`, which satisfied arr(i) < key <= arr(i+1), arr(0) == -infinity.
   pure integer(int32) function lower_bound(lb, ub, arr, key) result(res)
     integer(int32), intent(in) :: lb, ub
-    integer(int32), intent(in) :: arr(lb:ub)
-    integer(int32), intent(in) :: key
+    ${key}, intent(in) :: arr(lb:ub)
+    ${key}, intent(in) :: key
     integer(int32) :: p, q, r
     p = lb
     r = ub
@@ -5622,24 +5886,99 @@ contains
        res = r
     end if
   end function lower_bound
-end module btree_m
+#+end_src
 
-program test_btree_m
-  use, intrinsic :: iso_fortran_env
-  use btree_m
-  implicit none
-  type(btree) :: m
-  integer(int32), parameter :: n = 3*10**7, print_period = n/10
-  call m%init()
-  write(output_unit, '(a, *(i0, 1x))') "(random insertion): s, h: ", m%size(), m%height()
-  call check_insertion_random(n)
-  write(output_unit, '(a, *(i0, 1x))') "(ascending insertion): s, h: ", m%size(), m%height()
-  call check_insertion_ascending(n)
-  write(output_unit, '(a, *(i0, 1x))') "(descending insertion): s, h: ", m%size(), m%height()
-  call check_insertion_descending(n)
-  write(output_unit, '(a, *(i0, 1x))') "(all done): s, h: ", m%size(), m%height()
-  write(output_unit, '(a)') "Success!"
-contains
+*** B木の展開
+**** 変数の宣言
+#+name: btree-var
+#+begin_src bash :exports code :cache no :shebang #!/bin/bash
+  case "${key_base}" in
+      "character")
+          key="${key_base}(${key_kind})"
+          suffix="${key_base}${key_kind}"
+          ;;
+      "type")
+          key="type(${key_kind})"
+          suffix="${key_kind}"
+          ;;
+      ,*)
+          key="${key_base}(${key_kind})"
+          suffix="${key_kind}"
+          ;;
+  esac
+  case "${val_base}" in
+      "character")
+          val="${val_base}(${val_kind})"
+          suffix="${suffix}_to_${val_base}${val_kind}"
+          ;;
+      "type")
+          val="type(${val_kind})"
+          suffix="${suffix}_to_${val_kind}"
+          ;;
+      ,*)
+          val="${val_base}(${val_kind})"
+          suffix="${suffix}_to_${val_kind}"
+          ;;
+  esac
+  btree="btree_${suffix}"
+  btree_node="btree_node_${suffix}"
+  btree_node_ptr="btree_node_ptr_${suffix}"
+  btree_node_iter="btree_node_iter_${suffix}"
+#+end_src
+**** 宣言の展開
+#+name: declaration-btree-var
+#+begin_src bash :exports code :var key_base="integer" key_kind="int32" val_base="integer" val_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<btree-var>>
+  cat <<EOF
+  <<declaration-btree>>
+  EOF
+#+end_src
+#+name: procedures-btree-var
+#+begin_src bash :exports code :var key_base="integer" key_kind="int32" val_base="integer" val_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  <<btree-var>>
+  cat <<EOF
+  <<procedures-btree>>
+  EOF
+#+end_src
+*** B木のテスト
+**** test本体.
+#+name: test-btree
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<btree-module>>
+<<btree-test>>
+#+end_src
+
+#+RESULTS[bf6e1d9e87de88459b07551976ea2781f94154b5]: test-btree
+
+**** testプログラム
+#+name: btree-test
+#+begin_src fortran :exports code :tangle "test/test_btree.F90" :noweb no-export
+  program test_btree_m
+    use, intrinsic :: iso_fortran_env
+    use btree_m
+    implicit none
+    type(btree_int32_to_int32) :: m
+    integer(int32), parameter :: n = 3*10**4, print_period = n/10
+    call m%init()
+    ! write(error_unit, '(a, *(i0, 1x))') "random insertion: s, h: ", m%size(), m%height()
+    call check_insertion_random(n)
+    ! write(error_unit, '(a, *(i0, 1x))') "ascending insertion: s, h: ", m%size(), m%height()
+    call check_insertion_ascending(n)
+    ! write(error_unit, '(a, *(i0, 1x))') "descending insertion: s, h: ", m%size(), m%height()
+    call check_insertion_descending(n)
+    ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
+    call check_insertion_character100()
+    ! write(error_unit, '(a)') "Success!"
+  contains
+    <<btree-test-check_insertion_random>>
+    <<btree-test-check_insertion_ascending>>
+    <<btree-test-check_insertion_descending>>
+    <<btree-test-check_insertion_character100>>
+  end program test_btree_m
+#+end_src
+**** ランダムな大きさの要素を挿入.
+#+name: btree-test-check_insertion_random
+#+begin_src fortran :exports code :noweb no-export
   subroutine check_insertion_random(n)
     integer(int32), intent(in) :: n
     integer(int32) :: seedsize
@@ -5656,10 +5995,11 @@ contains
     ! write(output_unit, '(*(i0, 1x))') seed(:)
     ! stop
     ! seed(:) = [1491111790, -1572383, 827114786, -2082456701, 1635664076, -1541841097, -1561155676, -20848911]
-    seed(:) = [-200678384, 1172132809, 124451245, 104878683, 643972878, 359873178, 1075753119, -200657478, 554946086, 24937149&
-         , -268657053, -197381607, 216039971, 1432749834, 990875914, -2110703970, 2126530906, 1473942311, 1489084070, -932897027&
-         , -620123104, 1538555552, 715169866, -426413934, 1522025556, -432716, -882668547, -346073549, -1849722518, 111186990&
-         , -50097180, 1633091563, 0]
+    ! seed(:) = [-200678384, 1172132809, 124451245, 104878683, 643972878, 359873178, 1075753119, -200657478, 554946086, 24937149&
+    !      , -268657053, -197381607, 216039971, 1432749834, 990875914, -2110703970, 2126530906, 1473942311, 1489084070, -932897027&
+    !      , -620123104, 1538555552, 715169866, -426413934, 1522025556, -432716, -882668547, -346073549, -1849722518, 111186990&
+    !      , -50097180, 1633091563, 0]
+    seed(:) = [(i, i = 1, seedsize)]
     call random_seed(put=seed)
     do i = 1, n
        do
@@ -5670,122 +6010,101 @@ contains
              exit
           end if
        end do
-       ! arr(i) = i
        call m%insert(arr(i), i)
-       ! call m%check_invariant()
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0, a)') "insert: ", i
-          ! call m%print(error_unit)
-       end if
     end do
-    ! write(error_unit, '(*(i0, 1x))') arr(:)
-    ! block
-    !   type(btree_node_iter) :: bt_iter
-    !   bt_iter = m%minimum()
-    !   do while (.not. bt_iter%is_end())
-    !      write(error_unit, '(i0, 1x)', advance = "no") bt_iter%key()
-    !      call bt_iter%next()
-    !   end do
-    !   write(error_unit, *)
-    !   call m%print(error_unit)
-    ! end block
     call m%check_invariant()
-    write(error_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
+    ! write(error_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
     do i = 1, n
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "get: ", i
-          call m%check_invariant()
-       end if
-       if (.not. m%get(arr(i)) == i) then
-          write(error_unit, '(a)') "insertion is error"
-          error stop 4
-       end if
+       <<assert-eq(eq1="m%get(arr(i))", eq2="i", code=4, message="Btree method `insert` or `get` are something wrong.")>>
     end do
     do i = 1, n
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(i0, a, a, 2(i0, 1x), a, i0)') i, ": ", "s, h: ", m%size(), m%height(), " remove: ", arr(i)
-          call m%check_invariant()
-       end if
-       ! v = m%get(arr(i))
-       ! write(error_unit, '(a, i0)') "exists: ", v
        call m%remove(arr(i))
-       ! if (mod(i, print_period) == 0) then
-       ! call m%print(error_unit)
-       ! end if
     end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=5, message="Btree method `remove` are something wrong.")>>
   end subroutine check_insertion_random
+#+end_src
+**** 昇順に挿入.
+#+name: btree-test-check_insertion_ascending
+#+begin_src fortran :exports code :noweb no-export
   subroutine check_insertion_ascending(n)
     integer(int32), intent(in) :: n
     integer(int32) :: i
     do i = 1, n
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "insert: ", i
-          call m%check_invariant()
-       end if
        call m%insert(i, i)
     end do
-    write(output_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
+    <<assert-eq(eq1="m%size()", eq2="n", code=11, message="Btree method `insert` are something wrong.")>>
+    call m%check_invariant()
     do i = 1, n
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "remove: ", i
-          call m%check_invariant()
-       end if
        call m%remove(i)
     end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=12, message="Btree method `remove` are something wrong.")>>
     do i = 1, n
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "insert: ", i
-          call m%check_invariant()
-       end if
        call m%insert(i, i)
     end do
-    write(output_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=13, message="Btree method `insert` are something wrong.")>>
     do i = n, 1, -1
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "remove: ", i
-          call m%check_invariant()
-       end if
        call m%remove(i)
     end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=14, message="Btree method `remove` are something wrong.")>>
   end subroutine check_insertion_ascending
+#+end_src
+**** 降順に要素を挿入
+#+name: btree-test-check_insertion_descending
+#+begin_src fortran :exports code :noweb no-export
   subroutine check_insertion_descending(n)
     integer(int32), intent(in) :: n
     integer(int32) :: i
     do i = n, 1, -1
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "insert: ", i
-          call m%check_invariant()
-       end if
        call m%insert(i, i)
     end do
-    write(output_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=21, message="Btree method `insert` are something wrong.")>>
     do i = 1, n
        call m%remove(i)
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "remove: ", i
-          call m%check_invariant()
-       end if
     end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="0", code=22, message="Btree method `remove` are something wrong.")>>
     do i = n, 1, -1
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "insert: ", i
-          call m%check_invariant()
-       end if
        call m%insert(i, i)
-       ! call m%print(error_unit)
     end do
-    write(output_unit, '(a, *(i0, 1x))') "s, h: ", m%size(), m%height()
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=23, message="Btree method `insert` are something wrong.")>>
     do i = n, 1, -1
-       if (mod(i, print_period) == 0) then
-          write(output_unit, '(a, i0)') "remove: ", i
-          call m%check_invariant()
-       end if
-       ! call m%print(error_unit)
        call m%remove(i)
     end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="0", code=24, message="Btree method `remove` are something wrong.")>>
   end subroutine check_insertion_descending
-end program test_btree_m
 #+end_src
+**** character(len=100)を挿入
+#+name: btree-test-check_insertion_character100
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_insertion_character100()
+    type(btree_character100_to_int32) :: m_c100
+    character(len=10), parameter :: cs(*) = ["apple     ", "banana    ", "chocolate ", "donuts    ", "egg       ", "chocobanan"]
+    character(len=100) :: c
+    integer(int32) :: i
+    call m_c100%init()
+    do i = 1, size(cs)
+       c = cs(i)
+       call m_c100%insert(c, i)
+    end do
+    do i = 1, size(cs)
+       c = cs(i)
+       <<assert-eq(eq1="m_c100%get(c)", eq2="i", code="40", "Btree method `insert` or `get` are something wrong.")>>
+    end do
+  end subroutine check_insertion_character100
+#+end_src
+
+*** 解けたAtCoderの問題
+- ABC296C
+  [[https://atcoder.jp/contests/ABC296/submissions/43783893]]
+- 鉄則本A54
+  [[https://atcoder.jp/contests/tessoku-book/submissions/43783501]]
+- 鉄則本B54
+  [[https://atcoder.jp/contests/tessoku-book/submissions/43783609]]
+
 ** COMMENT skip list(未実装)
 *** スキップリストのモジュールの全容
 スキップリストでmapを実現する.
