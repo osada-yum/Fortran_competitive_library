@@ -12,6 +12,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_int32
      procedure, pass :: front => front_priority_queue_min_int32
      procedure, pass :: size => size_priority_queue_min_int32
+     procedure, pass :: empty     => empty_priority_queue_min_int32
+     procedure, pass :: not_empty => not_empty_priority_queue_min_int32
      ! procedure, pass :: dump => dump_priority_queue_min_int32
   end type priority_queue_min_int32
   public :: priority_queue_max_int32
@@ -24,6 +26,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_int32
      procedure, pass :: front => front_priority_queue_max_int32
      procedure, pass :: size => size_priority_queue_max_int32
+     procedure, pass :: empty     => empty_priority_queue_max_int32
+     procedure, pass :: not_empty => not_empty_priority_queue_max_int32
      ! procedure, pass :: dump => dump_priority_queue_max_int32
   end type priority_queue_max_int32
   
@@ -37,6 +41,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_int64
      procedure, pass :: front => front_priority_queue_min_int64
      procedure, pass :: size => size_priority_queue_min_int64
+     procedure, pass :: empty     => empty_priority_queue_min_int64
+     procedure, pass :: not_empty => not_empty_priority_queue_min_int64
      ! procedure, pass :: dump => dump_priority_queue_min_int64
   end type priority_queue_min_int64
   public :: priority_queue_max_int64
@@ -49,6 +55,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_int64
      procedure, pass :: front => front_priority_queue_max_int64
      procedure, pass :: size => size_priority_queue_max_int64
+     procedure, pass :: empty     => empty_priority_queue_max_int64
+     procedure, pass :: not_empty => not_empty_priority_queue_max_int64
      ! procedure, pass :: dump => dump_priority_queue_max_int64
   end type priority_queue_max_int64
   
@@ -62,6 +70,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_real32
      procedure, pass :: front => front_priority_queue_min_real32
      procedure, pass :: size => size_priority_queue_min_real32
+     procedure, pass :: empty     => empty_priority_queue_min_real32
+     procedure, pass :: not_empty => not_empty_priority_queue_min_real32
      ! procedure, pass :: dump => dump_priority_queue_min_real32
   end type priority_queue_min_real32
   public :: priority_queue_max_real32
@@ -74,6 +84,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_real32
      procedure, pass :: front => front_priority_queue_max_real32
      procedure, pass :: size => size_priority_queue_max_real32
+     procedure, pass :: empty     => empty_priority_queue_max_real32
+     procedure, pass :: not_empty => not_empty_priority_queue_max_real32
      ! procedure, pass :: dump => dump_priority_queue_max_real32
   end type priority_queue_max_real32
   
@@ -87,6 +99,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_real64
      procedure, pass :: front => front_priority_queue_min_real64
      procedure, pass :: size => size_priority_queue_min_real64
+     procedure, pass :: empty     => empty_priority_queue_min_real64
+     procedure, pass :: not_empty => not_empty_priority_queue_min_real64
      ! procedure, pass :: dump => dump_priority_queue_min_real64
   end type priority_queue_min_real64
   public :: priority_queue_max_real64
@@ -99,6 +113,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_real64
      procedure, pass :: front => front_priority_queue_max_real64
      procedure, pass :: size => size_priority_queue_max_real64
+     procedure, pass :: empty     => empty_priority_queue_max_real64
+     procedure, pass :: not_empty => not_empty_priority_queue_max_real64
      ! procedure, pass :: dump => dump_priority_queue_max_real64
   end type priority_queue_max_real64
   
@@ -112,6 +128,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_character
      procedure, pass :: front => front_priority_queue_min_character
      procedure, pass :: size => size_priority_queue_min_character
+     procedure, pass :: empty     => empty_priority_queue_min_character
+     procedure, pass :: not_empty => not_empty_priority_queue_min_character
      ! procedure, pass :: dump => dump_priority_queue_min_character
   end type priority_queue_min_character
   public :: priority_queue_max_character
@@ -124,6 +142,8 @@ module priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_character
      procedure, pass :: front => front_priority_queue_max_character
      procedure, pass :: size => size_priority_queue_max_character
+     procedure, pass :: empty     => empty_priority_queue_max_character
+     procedure, pass :: not_empty => not_empty_priority_queue_max_character
      ! procedure, pass :: dump => dump_priority_queue_max_character
   end type priority_queue_max_character
   
@@ -209,6 +229,16 @@ contains
     class(priority_queue_min_int32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_int32
+  !> empty_priority_queue_min_int32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_int32(this) result(res)
+    class(priority_queue_min_int32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_int32
+  !> not_empty_priority_queue_min_int32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_int32(this) result(res)
+    class(priority_queue_min_int32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_int32
   ! !> dump_priority_queue_min_int32: output the heap.
   ! subroutine dump_priority_queue_min_int32(this)
   !   class(priority_queue_min_int32), intent(in) :: this
@@ -295,6 +325,16 @@ contains
     class(priority_queue_max_int32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_int32
+  !> empty_priority_queue_max_int32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_int32(this) result(res)
+    class(priority_queue_max_int32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_int32
+  !> not_empty_priority_queue_max_int32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_int32(this) result(res)
+    class(priority_queue_max_int32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_int32
   ! !> dump_priority_queue_max_int32: output the heap.
   ! subroutine dump_priority_queue_max_int32(this)
   !   class(priority_queue_max_int32), intent(in) :: this
@@ -382,6 +422,16 @@ contains
     class(priority_queue_min_int64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_int64
+  !> empty_priority_queue_min_int64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_int64(this) result(res)
+    class(priority_queue_min_int64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_int64
+  !> not_empty_priority_queue_min_int64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_int64(this) result(res)
+    class(priority_queue_min_int64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_int64
   ! !> dump_priority_queue_min_int64: output the heap.
   ! subroutine dump_priority_queue_min_int64(this)
   !   class(priority_queue_min_int64), intent(in) :: this
@@ -468,6 +518,16 @@ contains
     class(priority_queue_max_int64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_int64
+  !> empty_priority_queue_max_int64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_int64(this) result(res)
+    class(priority_queue_max_int64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_int64
+  !> not_empty_priority_queue_max_int64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_int64(this) result(res)
+    class(priority_queue_max_int64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_int64
   ! !> dump_priority_queue_max_int64: output the heap.
   ! subroutine dump_priority_queue_max_int64(this)
   !   class(priority_queue_max_int64), intent(in) :: this
@@ -555,6 +615,16 @@ contains
     class(priority_queue_min_real32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_real32
+  !> empty_priority_queue_min_real32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_real32(this) result(res)
+    class(priority_queue_min_real32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_real32
+  !> not_empty_priority_queue_min_real32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_real32(this) result(res)
+    class(priority_queue_min_real32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_real32
   ! !> dump_priority_queue_min_real32: output the heap.
   ! subroutine dump_priority_queue_min_real32(this)
   !   class(priority_queue_min_real32), intent(in) :: this
@@ -641,6 +711,16 @@ contains
     class(priority_queue_max_real32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_real32
+  !> empty_priority_queue_max_real32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_real32(this) result(res)
+    class(priority_queue_max_real32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_real32
+  !> not_empty_priority_queue_max_real32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_real32(this) result(res)
+    class(priority_queue_max_real32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_real32
   ! !> dump_priority_queue_max_real32: output the heap.
   ! subroutine dump_priority_queue_max_real32(this)
   !   class(priority_queue_max_real32), intent(in) :: this
@@ -728,6 +808,16 @@ contains
     class(priority_queue_min_real64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_real64
+  !> empty_priority_queue_min_real64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_real64(this) result(res)
+    class(priority_queue_min_real64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_real64
+  !> not_empty_priority_queue_min_real64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_real64(this) result(res)
+    class(priority_queue_min_real64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_real64
   ! !> dump_priority_queue_min_real64: output the heap.
   ! subroutine dump_priority_queue_min_real64(this)
   !   class(priority_queue_min_real64), intent(in) :: this
@@ -814,6 +904,16 @@ contains
     class(priority_queue_max_real64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_real64
+  !> empty_priority_queue_max_real64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_real64(this) result(res)
+    class(priority_queue_max_real64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_real64
+  !> not_empty_priority_queue_max_real64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_real64(this) result(res)
+    class(priority_queue_max_real64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_real64
   ! !> dump_priority_queue_max_real64: output the heap.
   ! subroutine dump_priority_queue_max_real64(this)
   !   class(priority_queue_max_real64), intent(in) :: this
@@ -901,6 +1001,16 @@ contains
     class(priority_queue_min_character), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_character
+  !> empty_priority_queue_min_character: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_character(this) result(res)
+    class(priority_queue_min_character), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_character
+  !> not_empty_priority_queue_min_character: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_character(this) result(res)
+    class(priority_queue_min_character), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_character
   ! !> dump_priority_queue_min_character: output the heap.
   ! subroutine dump_priority_queue_min_character(this)
   !   class(priority_queue_min_character), intent(in) :: this
@@ -987,6 +1097,16 @@ contains
     class(priority_queue_max_character), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_character
+  !> empty_priority_queue_max_character: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_character(this) result(res)
+    class(priority_queue_max_character), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_character
+  !> not_empty_priority_queue_max_character: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_character(this) result(res)
+    class(priority_queue_max_character), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_character
   ! !> dump_priority_queue_max_character: output the heap.
   ! subroutine dump_priority_queue_max_character(this)
   !   class(priority_queue_max_character), intent(in) :: this

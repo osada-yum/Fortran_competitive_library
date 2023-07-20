@@ -12,6 +12,8 @@ module tuple3_priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_tuple3_int32_int32_int32
      procedure, pass :: front => front_priority_queue_min_tuple3_int32_int32_int32
      procedure, pass :: size => size_priority_queue_min_tuple3_int32_int32_int32
+     procedure, pass :: empty     => empty_priority_queue_min_tuple3_int32_int32_int32
+     procedure, pass :: not_empty => not_empty_priority_queue_min_tuple3_int32_int32_int32
      ! procedure, pass :: dump => dump_priority_queue_min_tuple3_int32_int32_int32
   end type priority_queue_min_tuple3_int32_int32_int32
   public :: priority_queue_max_tuple3_int32_int32_int32
@@ -24,6 +26,8 @@ module tuple3_priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_tuple3_int32_int32_int32
      procedure, pass :: front => front_priority_queue_max_tuple3_int32_int32_int32
      procedure, pass :: size => size_priority_queue_max_tuple3_int32_int32_int32
+     procedure, pass :: empty     => empty_priority_queue_max_tuple3_int32_int32_int32
+     procedure, pass :: not_empty => not_empty_priority_queue_max_tuple3_int32_int32_int32
      ! procedure, pass :: dump => dump_priority_queue_max_tuple3_int32_int32_int32
   end type priority_queue_max_tuple3_int32_int32_int32
   
@@ -37,6 +41,8 @@ module tuple3_priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_min_tuple3_int64_int64_int64
      procedure, pass :: front => front_priority_queue_min_tuple3_int64_int64_int64
      procedure, pass :: size => size_priority_queue_min_tuple3_int64_int64_int64
+     procedure, pass :: empty     => empty_priority_queue_min_tuple3_int64_int64_int64
+     procedure, pass :: not_empty => not_empty_priority_queue_min_tuple3_int64_int64_int64
      ! procedure, pass :: dump => dump_priority_queue_min_tuple3_int64_int64_int64
   end type priority_queue_min_tuple3_int64_int64_int64
   public :: priority_queue_max_tuple3_int64_int64_int64
@@ -49,6 +55,8 @@ module tuple3_priority_queue_m
      procedure, pass :: pop   => pop_priority_queue_max_tuple3_int64_int64_int64
      procedure, pass :: front => front_priority_queue_max_tuple3_int64_int64_int64
      procedure, pass :: size => size_priority_queue_max_tuple3_int64_int64_int64
+     procedure, pass :: empty     => empty_priority_queue_max_tuple3_int64_int64_int64
+     procedure, pass :: not_empty => not_empty_priority_queue_max_tuple3_int64_int64_int64
      ! procedure, pass :: dump => dump_priority_queue_max_tuple3_int64_int64_int64
   end type priority_queue_max_tuple3_int64_int64_int64
   
@@ -134,6 +142,16 @@ contains
     class(priority_queue_min_tuple3_int32_int32_int32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_tuple3_int32_int32_int32
+  !> empty_priority_queue_min_tuple3_int32_int32_int32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_tuple3_int32_int32_int32(this) result(res)
+    class(priority_queue_min_tuple3_int32_int32_int32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_tuple3_int32_int32_int32
+  !> not_empty_priority_queue_min_tuple3_int32_int32_int32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_tuple3_int32_int32_int32(this) result(res)
+    class(priority_queue_min_tuple3_int32_int32_int32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_tuple3_int32_int32_int32
   ! !> dump_priority_queue_min_tuple3_int32_int32_int32: output the heap.
   ! subroutine dump_priority_queue_min_tuple3_int32_int32_int32(this)
   !   class(priority_queue_min_tuple3_int32_int32_int32), intent(in) :: this
@@ -220,6 +238,16 @@ contains
     class(priority_queue_max_tuple3_int32_int32_int32), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_tuple3_int32_int32_int32
+  !> empty_priority_queue_max_tuple3_int32_int32_int32: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_tuple3_int32_int32_int32(this) result(res)
+    class(priority_queue_max_tuple3_int32_int32_int32), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_tuple3_int32_int32_int32
+  !> not_empty_priority_queue_max_tuple3_int32_int32_int32: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_tuple3_int32_int32_int32(this) result(res)
+    class(priority_queue_max_tuple3_int32_int32_int32), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_tuple3_int32_int32_int32
   ! !> dump_priority_queue_max_tuple3_int32_int32_int32: output the heap.
   ! subroutine dump_priority_queue_max_tuple3_int32_int32_int32(this)
   !   class(priority_queue_max_tuple3_int32_int32_int32), intent(in) :: this
@@ -307,6 +335,16 @@ contains
     class(priority_queue_min_tuple3_int64_int64_int64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_min_tuple3_int64_int64_int64
+  !> empty_priority_queue_min_tuple3_int64_int64_int64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_min_tuple3_int64_int64_int64(this) result(res)
+    class(priority_queue_min_tuple3_int64_int64_int64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_min_tuple3_int64_int64_int64
+  !> not_empty_priority_queue_min_tuple3_int64_int64_int64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_min_tuple3_int64_int64_int64(this) result(res)
+    class(priority_queue_min_tuple3_int64_int64_int64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_min_tuple3_int64_int64_int64
   ! !> dump_priority_queue_min_tuple3_int64_int64_int64: output the heap.
   ! subroutine dump_priority_queue_min_tuple3_int64_int64_int64(this)
   !   class(priority_queue_min_tuple3_int64_int64_int64), intent(in) :: this
@@ -393,6 +431,16 @@ contains
     class(priority_queue_max_tuple3_int64_int64_int64), intent(in) :: this
     res = this%size_
   end function size_priority_queue_max_tuple3_int64_int64_int64
+  !> empty_priority_queue_max_tuple3_int64_int64_int64: returns if heap is empty or not.
+  pure logical function empty_priority_queue_max_tuple3_int64_int64_int64(this) result(res)
+    class(priority_queue_max_tuple3_int64_int64_int64), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_priority_queue_max_tuple3_int64_int64_int64
+  !> not_empty_priority_queue_max_tuple3_int64_int64_int64: returns if heap is not empty or empty.
+  pure logical function not_empty_priority_queue_max_tuple3_int64_int64_int64(this) result(res)
+    class(priority_queue_max_tuple3_int64_int64_int64), intent(in) :: this
+    res = .not. this%empty()
+  end function not_empty_priority_queue_max_tuple3_int64_int64_int64
   ! !> dump_priority_queue_max_tuple3_int64_int64_int64: output the heap.
   ! subroutine dump_priority_queue_max_tuple3_int64_int64_int64(this)
   !   class(priority_queue_max_tuple3_int64_int64_int64), intent(in) :: this

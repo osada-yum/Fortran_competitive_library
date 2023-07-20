@@ -6,10 +6,58 @@ program test_priority_queue
   integer(int32) :: i
   type(priority_queue_min_int32) :: pq_min
   type(priority_queue_max_int32) :: pq_max
+  if (.not. (pq_min%empty())) then
+     write(error_unit, '(a, i0, a)', advance = "no")&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') " Assertion 'pq_min%empty()' must be false."
+     if (len_trim("pq_min must be empty.") /= 0) then
+        write(error_unit, '(a)') "Extra message: 'pq_min must be empty.'"
+     end if
+     error stop 1
+  end if
+  
+  if (.not. (pq_max%empty())) then
+     write(error_unit, '(a, i0, a)', advance = "no")&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') " Assertion 'pq_max%empty()' must be false."
+     if (len_trim("pq_max must be empty.") /= 0) then
+        write(error_unit, '(a)') "Extra message: 'pq_max must be empty.'"
+     end if
+     error stop 2
+  end if
+  
   do i = 1, n
      call pq_min%push(arr(i))
      call pq_max%push(arr(i))
   end do
+  if (.not. (pq_min%not_empty())) then
+     write(error_unit, '(a, i0, a)', advance = "no")&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') " Assertion 'pq_min%not_empty()' must be false."
+     if (len_trim("pq_min must be not empty.") /= 0) then
+        write(error_unit, '(a)') "Extra message: 'pq_min must be not empty.'"
+     end if
+     error stop 3
+  end if
+  
+  if (.not. (pq_max%not_empty())) then
+     write(error_unit, '(a, i0, a)', advance = "no")&
+          "Error in "//&
+          __FILE__&
+          //":", __LINE__, ":"
+     write(error_unit, '(a)') " Assertion 'pq_max%not_empty()' must be false."
+     if (len_trim("pq_max must be not empty.") /= 0) then
+        write(error_unit, '(a)') "Extra message: 'pq_max must be not empty.'"
+     end if
+     error stop 4
+  end if
+  
   if (.not. (n == pq_min%size())) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&

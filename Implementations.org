@@ -3523,6 +3523,8 @@ priority queue モジュール全体は以下のとおり.
      procedure, pass :: pop   => pop_${pq}
      procedure, pass :: front => front_${pq}
      procedure, pass :: size => size_${pq}
+     procedure, pass :: empty     => empty_${pq}
+     procedure, pass :: not_empty => not_empty_${pq}
      ! procedure, pass :: dump => dump_${pq}
   end type ${pq}
 #+end_src
@@ -3629,6 +3631,26 @@ priority queue モジュール全体は以下のとおり.
   pure integer(int32) function size_${pq}(this) result(res)
     class(${pq}), intent(in) :: this
     res = this%size_
+  end function size_${pq}
+#+end_src
+**** empty
+~empty~ はヒープが空の場合は.true.を返す.
+#+name: empty_priority_queue
+#+begin_src fortran :exports code
+  !> empty_${pq}: returns if heap is empty or not.
+  pure logical function empty_${pq}(this) result(res)
+    class(${pq}), intent(in) :: this
+    res = this%size_ == 0
+  end function size_${pq}
+#+end_src
+**** not_empty
+~not_empty~ はヒープが空の場合は.true.を返す.
+#+name: not_empty_priority_queue
+#+begin_src fortran :exports code
+  !> not_empty_${pq}: returns if heap is not empty or empty.
+  pure logical function not_empty_${pq}(this) result(res)
+    class(${pq}), intent(in) :: this
+    res = .not. this%empty()
   end function size_${pq}
 #+end_src
 **** dump
