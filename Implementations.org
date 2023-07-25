@@ -3755,120 +3755,120 @@ priority queue モジュール全体は以下のとおり.
 
 ** double ended queue
 #+begin_src fortran :exports code
-module vec_deque_m
-  use, intrinsic :: iso_fortran_env
-  implicit none
-  integer(int32), parameter :: init_size = 4
-  type :: vec_dequeue
-     private
-     integer(int32) :: size_ = 0, capa_ = 0
-     integer(int32) :: head_, tail_
-     integer(int32), allocatable :: arr_(:)
-   contains
-     procedure, pass :: init => init_vec_dequeue
-     procedure, pass :: resize => resize_vec_dequeue
-     procedure, pass :: push_front => push_front_vec_dequeue
-     procedure, pass :: push_back  => push_back_vec_dequeue
-     procedure, pass :: pop_front  => pop_front_vec_dequeue
-     procedure, pass :: pop_back   => pop_back_vec_dequeue
-     procedure, pass :: to_array => to_array_vec_dequeue
-     procedure, pass :: debug_print => debug_print_vec_dequeue
-  end type vec_dequeue
-contains
-  subroutine init_vec_dequeue(this)
-    class(vec_dequeue), intent(inout) :: this
-    if (allocated(this%arr_)) return
-    allocate(this%arr_(init_size))
-    this%size_ = 0
-    this%capa_ = init_size
-    this%head_ = this%capa_
-    this%tail_ = 1
-  end subroutine init_vec_dequeue
-  subroutine resize_vec_dequeue(this, capa)
-    class(vec_dequeue), intent(inout) :: this
-    integer(int32), intent(in) :: capa
-    integer(int32) :: s
-    integer(int32), allocatable :: tmp(:)
-    if (capa <= this%size_) return
-    allocate(tmp(capa))
-    if (this%head_ < this%tail_) then
-       !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
-       tmp(this%head_+1:this%tail_-1) = this%arr_(this%head_+1:this%tail_-1)
-       call move_alloc(from = tmp, to = this%arr_)
-    else !> this%head_ >= this%tail_
-       !> (1...t????h...c).
-       tmp(1:this%tail_-1) = this%arr_(1:this%tail_-1)
-       s = this%capa_ - (this%head_ + 1)
-       tmp(capa-s:capa) = this%arr_(this%capa_-s:this%capa_)
-       this%head_ = capa - s - 1
-       call move_alloc(from = tmp, to = this%arr_)
-    end if
-    this%capa_ = capa
-  end subroutine resize_vec_dequeue
-  subroutine push_front_vec_dequeue(this, v)
-    class(vec_dequeue), intent(inout) :: this
-    integer(int32), intent(in) :: v
-    if (this%head_ == this%tail_) then
-       call this%resize(this%capa_*2)
-    end if
-    this%arr_(this%head_) = v
-    this%head_ = this%head_ - 1
-    if (this%head_ < 1) this%head_ = this%capa_
-    this%size_ = this%size_ + 1
-  end subroutine push_front_vec_dequeue
-  subroutine push_back_vec_dequeue(this, v)
-    class(vec_dequeue), intent(inout) :: this
-    integer(int32), intent(in) :: v
-    if (this%head_ == this%tail_) then
-       call this%resize(this%capa_*2)
-    end if
-    this%arr_(this%tail_) = v
-    this%tail_ = this%tail_ + 1
-    if (this%tail_ > this%capa_) this%tail_ = 1
-    this%size_ = this%size_ + 1
-  end subroutine push_back_vec_dequeue
-  integer(int32) function pop_front_vec_dequeue(this) result(res)
-    class(vec_dequeue), intent(inout) :: this
-    if (this%size_ == 0) then
-       write(error_unit, '(a)') "Error in pop_front: vec_dequeue is empty."
-       error stop 1
-    end if
-    this%size_ = this%size_ - 1
-    this%head_ = this%head_ + 1
-    if (this%head_ > this%capa_) this%head_ = 1
-    res = this%arr_(this%head_)
-  end function pop_front_vec_dequeue
-  integer(int32) function pop_back_vec_dequeue(this) result(res)
-    class(vec_dequeue), intent(inout) :: this
-    if (this%size_ == 0) then
-       write(error_unit, '(a)') "Error in pop_back: vec_dequeue is empty."
-       error stop 1
-    end if
-    this%size_ = this%size_ - 1
-    this%tail_ = this%tail_ - 1
-    if (this%tail_ < 1) this%tail_ = this%capa_
-    res = this%arr_(this%tail_)
-  end function pop_back_vec_dequeue
-  pure function to_array_vec_dequeue(this) result(res)
-    class(vec_dequeue), intent(in) :: this
-    integer(int32), allocatable :: res(:)
-    allocate(res(this%size_))
-    if (this%head_ < this%tail_) then
-       !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
-       res(:) = this%arr_(this%head_+1:this%tail_-1)
-    else !> this%head_ <= this%tail_
-       !> (1...t????h...c).
-       res(1:this%capa_-this%head_) = this%arr_(this%head_+1:this%capa_)
-       res(this%capa_-this%head_+1:this%size_) = this%arr_(1:this%tail_-1)
-    end if
-  end function to_array_vec_dequeue
-  subroutine debug_print_vec_dequeue(this, unit)
-    class(vec_dequeue), intent(in) :: this
-    integer(int32), intent(in) :: unit
-    write(error_unit, '(2(i0, 1x), a, *(i0, 1x))') this%head_, this%tail_, ": ", this%arr_(:)
-    write(unit, '(*(i0, 1x))') this%to_array()
-  end subroutine debug_print_vec_dequeue
-end module vec_deque_m
+  module vec_deque_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    integer(int32), parameter :: init_size = 4
+    type :: vec_deque
+       private
+       integer(int32) :: size_ = 0, capa_ = 0
+       integer(int32) :: head_, tail_
+       integer(int32), allocatable :: arr_(:)
+     contains
+       procedure, pass :: init => init_vec_deque
+       procedure, pass :: resize => resize_vec_deque
+       procedure, pass :: push_front => push_front_vec_deque
+       procedure, pass :: push_back  => push_back_vec_deque
+       procedure, pass :: pop_front  => pop_front_vec_deque
+       procedure, pass :: pop_back   => pop_back_vec_deque
+       procedure, pass :: to_array => to_array_vec_deque
+       procedure, pass :: debug_print => debug_print_vec_deque
+    end type vec_deque
+  contains
+    subroutine init_vec_deque(this)
+      class(vec_deque), intent(inout) :: this
+      if (allocated(this%arr_)) return
+      allocate(this%arr_(init_size))
+      this%size_ = 0
+      this%capa_ = init_size
+      this%head_ = this%capa_
+      this%tail_ = 1
+    end subroutine init_vec_deque
+    subroutine resize_vec_deque(this, capa)
+      class(vec_deque), intent(inout) :: this
+      integer(int32), intent(in) :: capa
+      integer(int32) :: s
+      integer(int32), allocatable :: tmp(:)
+      if (capa <= this%size_) return
+      allocate(tmp(capa))
+      if (this%head_ < this%tail_) then
+         !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
+         tmp(this%head_+1:this%tail_-1) = this%arr_(this%head_+1:this%tail_-1)
+         call move_alloc(from = tmp, to = this%arr_)
+      else !> this%head_ >= this%tail_
+         !> (1...t????h...c).
+         tmp(1:this%tail_-1) = this%arr_(1:this%tail_-1)
+         s = this%capa_ - (this%head_ + 1)
+         tmp(capa-s:capa) = this%arr_(this%capa_-s:this%capa_)
+         this%head_ = capa - s - 1
+         call move_alloc(from = tmp, to = this%arr_)
+      end if
+      this%capa_ = capa
+    end subroutine resize_vec_deque
+    subroutine push_front_vec_deque(this, v)
+      class(vec_deque), intent(inout) :: this
+      integer(int32), intent(in) :: v
+      if (this%head_ == this%tail_) then
+         call this%resize(this%capa_*2)
+      end if
+      this%arr_(this%head_) = v
+      this%head_ = this%head_ - 1
+      if (this%head_ < 1) this%head_ = this%capa_
+      this%size_ = this%size_ + 1
+    end subroutine push_front_vec_deque
+    subroutine push_back_vec_deque(this, v)
+      class(vec_deque), intent(inout) :: this
+      integer(int32), intent(in) :: v
+      if (this%head_ == this%tail_) then
+         call this%resize(this%capa_*2)
+      end if
+      this%arr_(this%tail_) = v
+      this%tail_ = this%tail_ + 1
+      if (this%tail_ > this%capa_) this%tail_ = 1
+      this%size_ = this%size_ + 1
+    end subroutine push_back_vec_deque
+    integer(int32) function pop_front_vec_deque(this) result(res)
+      class(vec_deque), intent(inout) :: this
+      if (this%size_ == 0) then
+         write(error_unit, '(a)') "Error in pop_front: vec_deque is empty."
+         error stop 1
+      end if
+      this%size_ = this%size_ - 1
+      this%head_ = this%head_ + 1
+      if (this%head_ > this%capa_) this%head_ = 1
+      res = this%arr_(this%head_)
+    end function pop_front_vec_deque
+    integer(int32) function pop_back_vec_deque(this) result(res)
+      class(vec_deque), intent(inout) :: this
+      if (this%size_ == 0) then
+         write(error_unit, '(a)') "Error in pop_back: vec_deque is empty."
+         error stop 1
+      end if
+      this%size_ = this%size_ - 1
+      this%tail_ = this%tail_ - 1
+      if (this%tail_ < 1) this%tail_ = this%capa_
+      res = this%arr_(this%tail_)
+    end function pop_back_vec_deque
+    pure function to_array_vec_deque(this) result(res)
+      class(vec_deque), intent(in) :: this
+      integer(int32), allocatable :: res(:)
+      allocate(res(this%size_))
+      if (this%head_ < this%tail_) then
+         !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
+         res(:) = this%arr_(this%head_+1:this%tail_-1)
+      else !> this%head_ <= this%tail_
+         !> (1...t????h...c).
+         res(1:this%capa_-this%head_) = this%arr_(this%head_+1:this%capa_)
+         res(this%capa_-this%head_+1:this%size_) = this%arr_(1:this%tail_-1)
+      end if
+    end function to_array_vec_deque
+    subroutine debug_print_vec_deque(this, unit)
+      class(vec_deque), intent(in) :: this
+      integer(int32), intent(in) :: unit
+      write(error_unit, '(2(i0, 1x), a, *(i0, 1x))') this%head_, this%tail_, ": ", this%arr_(:)
+      write(unit, '(*(i0, 1x))') this%to_array()
+    end subroutine debug_print_vec_deque
+  end module vec_deque_m
 #+end_src
 ** Hash table
 *** open addressing hash by double hash
