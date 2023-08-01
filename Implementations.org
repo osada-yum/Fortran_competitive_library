@@ -4974,10 +4974,10 @@ Rustに倣ってB木を実装する.
   public ${btree_node_iter}
   type :: ${btree_node_iter}
      private
-     integer(int32) :: idx_ = -1
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
      type(${btree_node_ptr}) :: nptr_
      integer(int32) :: depth_ = 1
-     integer(int32) :: indices_(iter_max_depth)
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
      type(${btree_node_ptr}) :: parents_(iter_max_depth)
    contains
      procedure, pass :: key => key_${btree_node_iter}
@@ -5126,10 +5126,7 @@ B木の高さを返す.
   ${val} function minimum_${btree}(this) result(res)
     class(${btree}), intent(in) :: this
     type(${btree_node_iter}) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = 0
-    call iter%next()
+    iter = this%minimum_iter()
     res = iter%val()
   end function minimum_${btree}
 #+end_src
@@ -5153,10 +5150,7 @@ B木の高さを返す.
   ${val} function maximum_${btree}(this) result(res)
     class(${btree}), intent(in) :: this
     type(${btree_node_iter}) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = iter%nptr_%size() + 1
-    call iter%prev()
+    iter = this%maximum_iter()
     res = iter%val()
   end function maximum_${btree}
 #+end_src
@@ -5217,10 +5211,12 @@ B木の不変条件:
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
-    do while (.not. bt_iter%is_end())
+    do while (bt_iter%is_not_end())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef >= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
           error stop 5
        end if
        k_bef = k
@@ -5229,11 +5225,13 @@ B木の不変条件:
     bt_iter = this%maximum_iter()
     k_bef = bt_iter%key()
     call bt_iter%prev()
-    do while (.not. bt_iter%is_begin())
+    do while (bt_iter%is_not_begin())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
-          error stop 5
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
        end if
        k_bef = k
        call bt_iter%prev()
@@ -5272,18 +5270,22 @@ B木のノードに含まれている要素数を返す.
        res%idx_ = -1
        return
     end if
+    res%depth_ = 1
     do !> search `i+1`, which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
        pos = lower_bound(1, res%nptr_%size(), res%nptr_%p_%key_(1:res%nptr_%size()), key)
        ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
        !> key <= key_(pos)
        if (pos <= res%nptr_%size()) then
-          if (res%nptr_%p_%key_(pos) == key) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
              res%idx_ = pos
              return
           end if
        end if
        if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
        res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
     end do
     !> not found.
     nullify(res%nptr_%p_)
@@ -5777,26 +5779,26 @@ B木から `key` を削除する.
        if (this%idx_ <= this%nptr_%size()) return
        !> this%idx_ == this%nptr_%size() + 1.
        do !> visit parent of current node if `this%idx_` exceeds the range of `this%nptr_%p_%key_(1:s)`, where s == this%nptr_%size().
-          if (this%depth_ == 1) return !> end of iterator if `this%idx_ == this%nptr_%size() + 1` and `this%p_` is root of B-tree.
+          if (this%depth_ == 1) return !> end of iterator if `this%idx_ == this%nptr_%size() + 1` and `this%nptr_%p_` is root of B-tree.
           this%depth_ = this%depth_ - 1
           this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
           nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
        end do
     else !> visit right node and then visit the most left value.
        this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
+       this%indices_(this%depth_) = this%idx_ + 1
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
           this%indices_(this%depth_) = 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
        end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
     end if
   end subroutine next_${btree_node_iter}
 #+end_src
@@ -5827,14 +5829,14 @@ B木から `key` を削除する.
        this%indices_(this%depth_) = this%idx_
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
-       this%idx_ = this%nptr_%size()
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = this%nptr_%size()
+          this%indices_(this%depth_) = this%nptr_%size() + 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
-          this%idx_ = this%nptr_%size()
        end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
     end if
   end subroutine prev_${btree_node_iter}
 #+end_src
@@ -5977,12 +5979,13 @@ B木から `key` を削除する.
 *** B木のテスト
 **** test本体.
 #+name: test-btree
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output file :file "btree.log" :noweb no-export :cache yes
 <<btree-module>>
 <<btree-test>>
 #+end_src
 
-#+RESULTS[bf6e1d9e87de88459b07551976ea2781f94154b5]: test-btree
+#+RESULTS[fdd7f289d2e41f659485177dc36e82871de468d2]: test-btree
+[[file:btree.log]]
 
 **** testプログラム
 #+name: btree-test
@@ -5992,7 +5995,7 @@ B木から `key` を削除する.
     use btree_m
     implicit none
     type(btree_int32_to_int32) :: m
-    integer(int32), parameter :: n = 3*10**4, print_period = n/10
+    integer(int32), parameter :: n = 3*10**4
     call m%init()
     ! write(error_unit, '(a, *(i0, 1x))') "random insertion: s, h: ", m%size(), m%height()
     call check_insertion_random(n)
@@ -6000,14 +6003,18 @@ B木から `key` を削除する.
     call check_insertion_ascending(n)
     ! write(error_unit, '(a, *(i0, 1x))') "descending insertion: s, h: ", m%size(), m%height()
     call check_insertion_descending(n)
-    ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
     call check_insertion_character100()
+    ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
+    call check_iterator_next(n)
+    call check_iterator_prev(n)
     ! write(error_unit, '(a)') "Success!"
   contains
     <<btree-test-check_insertion_random>>
     <<btree-test-check_insertion_ascending>>
     <<btree-test-check_insertion_descending>>
     <<btree-test-check_insertion_character100>>
+    <<btree-test-check_iterator_next>>
+    <<btree-test-check_iterator_prev>>
   end program test_btree_m
 #+end_src
 **** ランダムな大きさの要素を挿入.
@@ -6063,6 +6070,7 @@ B木から `key` を削除する.
   subroutine check_insertion_ascending(n)
     integer(int32), intent(in) :: n
     integer(int32) :: i
+    type(btree_node_iter_int32_to_int32) :: iter
     do i = 1, n
        call m%insert(i, i)
     end do
@@ -6075,6 +6083,7 @@ B木から `key` を削除する.
     do i = 1, n
        call m%insert(i, i)
     end do
+    ! call m%print(output_unit)
     call m%check_invariant()
     <<assert-eq(eq1="m%size()", eq2="n", code=13, message="Btree method `insert` are something wrong.")>>
     do i = n, 1, -1
@@ -6129,6 +6138,66 @@ B木から `key` を削除する.
        <<assert-eq(eq1="m_c100%get(c)", eq2="i", code="40", "Btree method `insert` or `get` are something wrong.")>>
     end do
   end subroutine check_insertion_character100
+#+end_src
+**** iteratorを前へ操作(next)
+#+name: btree-test-check_iterator_next
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_iterator_next(n)
+    integer(int32), intent(in) :: n
+    type(btree_int32_to_int32) :: m
+    type(btree_node_iter_int32_to_int32) :: iter
+    integer(int32) :: i
+    call m%init()
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    iter = m%minimum_iter()
+    i = 1
+    do while (iter%is_not_end())
+       <<assert-eq(eq1="iter%key()", eq2="i", code="50", "Btree iter method `minimum_iter`, `next` are something wrong.")>>
+       i = i + 1
+       call iter%next()
+    end do
+    <<assert-eq(eq1="i", eq2="n+1", code="51", "Btree iter method `minimum_iter`, `next` are something wrong.")>>
+    iter = m%get_iter(n/2)
+    i = n/2
+    do while (iter%is_not_end())
+       <<assert-eq(eq1="iter%key()", eq2="i", code="52", "Btree iter method `get_iter`, `next` are something wrong.")>>
+       i = i + 1
+       call iter%next()
+    end do
+    <<assert-eq(eq1="i", eq2="n+1", code="53", "Btree iter method `get_iter`, `next` are something wrong.")>>
+  end subroutine check_iterator_next
+#+end_src
+**** iteratorを後ろへ操作(prev)
+#+name: btree-test-check_iterator_prev
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_iterator_prev(n)
+    integer(int32), intent(in) :: n
+    type(btree_int32_to_int32) :: m
+    type(btree_node_iter_int32_to_int32) :: iter
+    integer(int32) :: i
+    call m%init()
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    iter = m%maximum_iter()
+    i = n
+    do while (iter%is_not_begin())
+       <<assert-eq(eq1="iter%key()", eq2="i", code="61", "Btree iter method `maximum_reti`,  `prev` are something wrong.")>>
+       i = i - 1
+       call iter%prev()
+    end do
+    <<assert-eq(eq1="i", eq2="0", code="62", "Btree iter method `maximum_iter`, `prev` are something wrong.")>>
+    iter = m%get_iter(n/2)
+    i = n/2
+    do while (iter%is_not_begin())
+       <<assert-eq(eq1="iter%key()", eq2="i", code="63", "Btree iter method `get_iter`, `prev` are something wrong.")>>
+       i = i - 1
+       call iter%prev()
+    end do
+    <<assert-eq(eq1="i", eq2="0", code="64", "Btree iter method `get_iter`, `prev` are something wrong.")>>
+  end subroutine check_iterator_prev
 #+end_src
 
 *** 解けたAtCoderの問題

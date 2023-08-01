@@ -63,10 +63,10 @@ module btree_m
   public btree_node_iter_int32_to_int32
   type :: btree_node_iter_int32_to_int32
      private
-     integer(int32) :: idx_ = -1
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
      type(btree_node_ptr_int32_to_int32) :: nptr_
      integer(int32) :: depth_ = 1
-     integer(int32) :: indices_(iter_max_depth)
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
      type(btree_node_ptr_int32_to_int32) :: parents_(iter_max_depth)
    contains
      procedure, pass :: key => key_btree_node_iter_int32_to_int32
@@ -138,10 +138,10 @@ module btree_m
   public btree_node_iter_int64_to_int64
   type :: btree_node_iter_int64_to_int64
      private
-     integer(int32) :: idx_ = -1
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
      type(btree_node_ptr_int64_to_int64) :: nptr_
      integer(int32) :: depth_ = 1
-     integer(int32) :: indices_(iter_max_depth)
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
      type(btree_node_ptr_int64_to_int64) :: parents_(iter_max_depth)
    contains
      procedure, pass :: key => key_btree_node_iter_int64_to_int64
@@ -213,10 +213,10 @@ module btree_m
   public btree_node_iter_character100_to_int32
   type :: btree_node_iter_character100_to_int32
      private
-     integer(int32) :: idx_ = -1
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
      type(btree_node_ptr_character100_to_int32) :: nptr_
      integer(int32) :: depth_ = 1
-     integer(int32) :: indices_(iter_max_depth)
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
      type(btree_node_ptr_character100_to_int32) :: parents_(iter_max_depth)
    contains
      procedure, pass :: key => key_btree_node_iter_character100_to_int32
@@ -288,10 +288,10 @@ module btree_m
   public btree_node_iter_character100_to_int64
   type :: btree_node_iter_character100_to_int64
      private
-     integer(int32) :: idx_ = -1
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
      type(btree_node_ptr_character100_to_int64) :: nptr_
      integer(int32) :: depth_ = 1
-     integer(int32) :: indices_(iter_max_depth)
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
      type(btree_node_ptr_character100_to_int64) :: parents_(iter_max_depth)
    contains
      procedure, pass :: key => key_btree_node_iter_character100_to_int64
@@ -391,10 +391,7 @@ contains
   integer(int32) function minimum_btree_int32_to_int32(this) result(res)
     class(btree_int32_to_int32), intent(in) :: this
     type(btree_node_iter_int32_to_int32) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = 0
-    call iter%next()
+    iter = this%minimum_iter()
     res = iter%val()
   end function minimum_btree_int32_to_int32
   !> minimum_iter_btree_int32_to_int32: Return the iterator to node that has minimum key.
@@ -409,10 +406,7 @@ contains
   integer(int32) function maximum_btree_int32_to_int32(this) result(res)
     class(btree_int32_to_int32), intent(in) :: this
     type(btree_node_iter_int32_to_int32) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = iter%nptr_%size() + 1
-    call iter%prev()
+    iter = this%maximum_iter()
     res = iter%val()
   end function maximum_btree_int32_to_int32
   !> maximum_iter_btree_int32_to_int32: Return the iterator to node that has maximum key.
@@ -447,10 +441,12 @@ contains
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
-    do while (.not. bt_iter%is_end())
+    do while (bt_iter%is_not_end())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef >= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
           error stop 5
        end if
        k_bef = k
@@ -459,11 +455,13 @@ contains
     bt_iter = this%maximum_iter()
     k_bef = bt_iter%key()
     call bt_iter%prev()
-    do while (.not. bt_iter%is_begin())
+    do while (bt_iter%is_not_begin())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
-          error stop 5
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
        end if
        k_bef = k
        call bt_iter%prev()
@@ -486,18 +484,22 @@ contains
        res%idx_ = -1
        return
     end if
+    res%depth_ = 1
     do !> search , which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
        pos = lower_bound(1, res%nptr_%size(), res%nptr_%p_%key_(1:res%nptr_%size()), key)
        ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
        !> key <= key_(pos)
        if (pos <= res%nptr_%size()) then
-          if (res%nptr_%p_%key_(pos) == key) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
              res%idx_ = pos
              return
           end if
        end if
        if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
        res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
     end do
     !> not found.
     nullify(res%nptr_%p_)
@@ -989,23 +991,23 @@ contains
           if (this%depth_ == 1) return !> end of iterator if  and  is root of B-tree.
           this%depth_ = this%depth_ - 1
           this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
           nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
        end do
     else !> visit right node and then visit the most left value.
        this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
+       this%indices_(this%depth_) = this%idx_ + 1
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
           this%indices_(this%depth_) = 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
        end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
     end if
   end subroutine next_btree_node_iter_int32_to_int32
   subroutine prev_btree_node_iter_int32_to_int32(this)
@@ -1032,14 +1034,14 @@ contains
        this%indices_(this%depth_) = this%idx_
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
-       this%idx_ = this%nptr_%size()
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = this%nptr_%size()
+          this%indices_(this%depth_) = this%nptr_%size() + 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
-          this%idx_ = this%nptr_%size()
        end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
     end if
   end subroutine prev_btree_node_iter_int32_to_int32
   !> is_begin_btree_node_iter_int32_to_int32: return iter is begining of B-tree.
@@ -1154,10 +1156,7 @@ contains
   integer(int64) function minimum_btree_int64_to_int64(this) result(res)
     class(btree_int64_to_int64), intent(in) :: this
     type(btree_node_iter_int64_to_int64) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = 0
-    call iter%next()
+    iter = this%minimum_iter()
     res = iter%val()
   end function minimum_btree_int64_to_int64
   !> minimum_iter_btree_int64_to_int64: Return the iterator to node that has minimum key.
@@ -1172,10 +1171,7 @@ contains
   integer(int64) function maximum_btree_int64_to_int64(this) result(res)
     class(btree_int64_to_int64), intent(in) :: this
     type(btree_node_iter_int64_to_int64) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = iter%nptr_%size() + 1
-    call iter%prev()
+    iter = this%maximum_iter()
     res = iter%val()
   end function maximum_btree_int64_to_int64
   !> maximum_iter_btree_int64_to_int64: Return the iterator to node that has maximum key.
@@ -1210,10 +1206,12 @@ contains
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
-    do while (.not. bt_iter%is_end())
+    do while (bt_iter%is_not_end())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef >= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
           error stop 5
        end if
        k_bef = k
@@ -1222,11 +1220,13 @@ contains
     bt_iter = this%maximum_iter()
     k_bef = bt_iter%key()
     call bt_iter%prev()
-    do while (.not. bt_iter%is_begin())
+    do while (bt_iter%is_not_begin())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
-          error stop 5
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
        end if
        k_bef = k
        call bt_iter%prev()
@@ -1249,18 +1249,22 @@ contains
        res%idx_ = -1
        return
     end if
+    res%depth_ = 1
     do !> search , which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
        pos = lower_bound(1, res%nptr_%size(), res%nptr_%p_%key_(1:res%nptr_%size()), key)
        ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
        !> key <= key_(pos)
        if (pos <= res%nptr_%size()) then
-          if (res%nptr_%p_%key_(pos) == key) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
              res%idx_ = pos
              return
           end if
        end if
        if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
        res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
     end do
     !> not found.
     nullify(res%nptr_%p_)
@@ -1752,23 +1756,23 @@ contains
           if (this%depth_ == 1) return !> end of iterator if  and  is root of B-tree.
           this%depth_ = this%depth_ - 1
           this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
           nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
        end do
     else !> visit right node and then visit the most left value.
        this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
+       this%indices_(this%depth_) = this%idx_ + 1
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
           this%indices_(this%depth_) = 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
        end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
     end if
   end subroutine next_btree_node_iter_int64_to_int64
   subroutine prev_btree_node_iter_int64_to_int64(this)
@@ -1795,14 +1799,14 @@ contains
        this%indices_(this%depth_) = this%idx_
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
-       this%idx_ = this%nptr_%size()
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = this%nptr_%size()
+          this%indices_(this%depth_) = this%nptr_%size() + 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
-          this%idx_ = this%nptr_%size()
        end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
     end if
   end subroutine prev_btree_node_iter_int64_to_int64
   !> is_begin_btree_node_iter_int64_to_int64: return iter is begining of B-tree.
@@ -1917,10 +1921,7 @@ contains
   integer(int32) function minimum_btree_character100_to_int32(this) result(res)
     class(btree_character100_to_int32), intent(in) :: this
     type(btree_node_iter_character100_to_int32) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = 0
-    call iter%next()
+    iter = this%minimum_iter()
     res = iter%val()
   end function minimum_btree_character100_to_int32
   !> minimum_iter_btree_character100_to_int32: Return the iterator to node that has minimum key.
@@ -1935,10 +1936,7 @@ contains
   integer(int32) function maximum_btree_character100_to_int32(this) result(res)
     class(btree_character100_to_int32), intent(in) :: this
     type(btree_node_iter_character100_to_int32) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = iter%nptr_%size() + 1
-    call iter%prev()
+    iter = this%maximum_iter()
     res = iter%val()
   end function maximum_btree_character100_to_int32
   !> maximum_iter_btree_character100_to_int32: Return the iterator to node that has maximum key.
@@ -1973,10 +1971,12 @@ contains
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
-    do while (.not. bt_iter%is_end())
+    do while (bt_iter%is_not_end())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef >= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
           error stop 5
        end if
        k_bef = k
@@ -1985,11 +1985,13 @@ contains
     bt_iter = this%maximum_iter()
     k_bef = bt_iter%key()
     call bt_iter%prev()
-    do while (.not. bt_iter%is_begin())
+    do while (bt_iter%is_not_begin())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
-          error stop 5
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
        end if
        k_bef = k
        call bt_iter%prev()
@@ -2012,18 +2014,22 @@ contains
        res%idx_ = -1
        return
     end if
+    res%depth_ = 1
     do !> search , which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
        pos = lower_bound(1, res%nptr_%size(), res%nptr_%p_%key_(1:res%nptr_%size()), key)
        ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
        !> key <= key_(pos)
        if (pos <= res%nptr_%size()) then
-          if (res%nptr_%p_%key_(pos) == key) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
              res%idx_ = pos
              return
           end if
        end if
        if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
        res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
     end do
     !> not found.
     nullify(res%nptr_%p_)
@@ -2515,23 +2521,23 @@ contains
           if (this%depth_ == 1) return !> end of iterator if  and  is root of B-tree.
           this%depth_ = this%depth_ - 1
           this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
           nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
        end do
     else !> visit right node and then visit the most left value.
        this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
+       this%indices_(this%depth_) = this%idx_ + 1
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
           this%indices_(this%depth_) = 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
        end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
     end if
   end subroutine next_btree_node_iter_character100_to_int32
   subroutine prev_btree_node_iter_character100_to_int32(this)
@@ -2558,14 +2564,14 @@ contains
        this%indices_(this%depth_) = this%idx_
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
-       this%idx_ = this%nptr_%size()
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = this%nptr_%size()
+          this%indices_(this%depth_) = this%nptr_%size() + 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
-          this%idx_ = this%nptr_%size()
        end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
     end if
   end subroutine prev_btree_node_iter_character100_to_int32
   !> is_begin_btree_node_iter_character100_to_int32: return iter is begining of B-tree.
@@ -2680,10 +2686,7 @@ contains
   integer(int64) function minimum_btree_character100_to_int64(this) result(res)
     class(btree_character100_to_int64), intent(in) :: this
     type(btree_node_iter_character100_to_int64) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = 0
-    call iter%next()
+    iter = this%minimum_iter()
     res = iter%val()
   end function minimum_btree_character100_to_int64
   !> minimum_iter_btree_character100_to_int64: Return the iterator to node that has minimum key.
@@ -2698,10 +2701,7 @@ contains
   integer(int64) function maximum_btree_character100_to_int64(this) result(res)
     class(btree_character100_to_int64), intent(in) :: this
     type(btree_node_iter_character100_to_int64) :: iter
-    iter%nptr_%p_ => this%root_%p_
-    iter%depth_ = 1
-    iter%idx_ = iter%nptr_%size() + 1
-    call iter%prev()
+    iter = this%maximum_iter()
     res = iter%val()
   end function maximum_btree_character100_to_int64
   !> maximum_iter_btree_character100_to_int64: Return the iterator to node that has maximum key.
@@ -2736,10 +2736,12 @@ contains
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
-    do while (.not. bt_iter%is_end())
+    do while (bt_iter%is_not_end())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef >= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
           error stop 5
        end if
        k_bef = k
@@ -2748,11 +2750,13 @@ contains
     bt_iter = this%maximum_iter()
     k_bef = bt_iter%key()
     call bt_iter%prev()
-    do while (.not. bt_iter%is_begin())
+    do while (bt_iter%is_not_begin())
        k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
        if (k_bef <= k) then
           write(error_unit, '(a)') "Error: B-tree is not ordered."
-          error stop 5
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
        end if
        k_bef = k
        call bt_iter%prev()
@@ -2775,18 +2779,22 @@ contains
        res%idx_ = -1
        return
     end if
+    res%depth_ = 1
     do !> search , which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
        pos = lower_bound(1, res%nptr_%size(), res%nptr_%p_%key_(1:res%nptr_%size()), key)
        ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
        !> key <= key_(pos)
        if (pos <= res%nptr_%size()) then
-          if (res%nptr_%p_%key_(pos) == key) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
              res%idx_ = pos
              return
           end if
        end if
        if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
        res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
     end do
     !> not found.
     nullify(res%nptr_%p_)
@@ -3278,23 +3286,23 @@ contains
           if (this%depth_ == 1) return !> end of iterator if  and  is root of B-tree.
           this%depth_ = this%depth_ - 1
           this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
           nullify(this%parents_(this%depth_)%p_)
-          this%idx_ = this%indices_(this%depth_) + 1
-          if (this%idx_ <= this%nptr_%size()) exit !> this%idx_: [1:s], where s == this%nptr_%size().
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
        end do
     else !> visit right node and then visit the most left value.
        this%parents_(this%depth_)%p_ => this%nptr_%p_
-       this%indices_(this%depth_) = this%idx_
+       this%indices_(this%depth_) = this%idx_ + 1
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
-       this%idx_ = 1
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
           this%indices_(this%depth_) = 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
-          this%idx_ = 1
        end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
     end if
   end subroutine next_btree_node_iter_character100_to_int64
   subroutine prev_btree_node_iter_character100_to_int64(this)
@@ -3321,14 +3329,14 @@ contains
        this%indices_(this%depth_) = this%idx_
        this%depth_ = this%depth_ + 1
        this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
-       this%idx_ = this%nptr_%size()
        do while (.not. this%nptr_%is_leaf())
           this%parents_(this%depth_)%p_ => this%nptr_%p_
-          this%indices_(this%depth_) = this%nptr_%size()
+          this%indices_(this%depth_) = this%nptr_%size() + 1
           this%depth_ = this%depth_ + 1
           this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
-          this%idx_ = this%nptr_%size()
        end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
     end if
   end subroutine prev_btree_node_iter_character100_to_int64
   !> is_begin_btree_node_iter_character100_to_int64: return iter is begining of B-tree.

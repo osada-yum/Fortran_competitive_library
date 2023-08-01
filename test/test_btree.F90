@@ -3,7 +3,7 @@ program test_btree_m
   use btree_m
   implicit none
   type(btree_int32_to_int32) :: m
-  integer(int32), parameter :: n = 3*10**4, print_period = n/10
+  integer(int32), parameter :: n = 3*10**4
   call m%init()
   ! write(error_unit, '(a, *(i0, 1x))') "random insertion: s, h: ", m%size(), m%height()
   call check_insertion_random(n)
@@ -11,8 +11,10 @@ program test_btree_m
   call check_insertion_ascending(n)
   ! write(error_unit, '(a, *(i0, 1x))') "descending insertion: s, h: ", m%size(), m%height()
   call check_insertion_descending(n)
-  ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
   call check_insertion_character100()
+  ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
+  call check_iterator_next(n)
+  call check_iterator_prev(n)
   ! write(error_unit, '(a)') "Success!"
 contains
   subroutine check_insertion_random(n)
@@ -91,6 +93,7 @@ contains
   subroutine check_insertion_ascending(n)
     integer(int32), intent(in) :: n
     integer(int32) :: i
+    type(btree_node_iter_int32_to_int32) :: iter
     do i = 1, n
        call m%insert(i, i)
     end do
@@ -133,6 +136,7 @@ contains
     do i = 1, n
        call m%insert(i, i)
     end do
+    ! call m%print(output_unit)
     call m%check_invariant()
     if (.not. (m%size() == n)) then
        write(error_unit, '(a, i0, a)', advance = "no")&
@@ -284,4 +288,176 @@ contains
        
     end do
   end subroutine check_insertion_character100
+  subroutine check_iterator_next(n)
+    integer(int32), intent(in) :: n
+    type(btree_int32_to_int32) :: m
+    type(btree_node_iter_int32_to_int32) :: iter
+    integer(int32) :: i
+    call m%init()
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    iter = m%minimum_iter()
+    i = 1
+    do while (iter%is_not_end())
+       if (.not. (iter%key() == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'iter%key() == i' must be false."
+          write(error_unit, '(a)', advance = "no") "iter%key(): "
+          write(error_unit, *) iter%key()
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree iter method `minimum_iter`, `next` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree iter method `minimum_iter`, `next` are something wrong.'"
+          end if
+          error stop 50
+       end if
+       
+       i = i + 1
+       call iter%next()
+    end do
+    if (.not. (i == n+1)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'i == n+1' must be false."
+       write(error_unit, '(a)', advance = "no") "i: "
+       write(error_unit, *) i
+       write(error_unit, '(a)', advance = "no") "n+1: "
+       write(error_unit, *) n+1
+       if (len_trim("Btree iter method `minimum_iter`, `next` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree iter method `minimum_iter`, `next` are something wrong.'"
+       end if
+       error stop 51
+    end if
+    
+    iter = m%get_iter(n/2)
+    i = n/2
+    do while (iter%is_not_end())
+       if (.not. (iter%key() == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'iter%key() == i' must be false."
+          write(error_unit, '(a)', advance = "no") "iter%key(): "
+          write(error_unit, *) iter%key()
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree iter method `get_iter`, `next` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree iter method `get_iter`, `next` are something wrong.'"
+          end if
+          error stop 52
+       end if
+       
+       i = i + 1
+       call iter%next()
+    end do
+    if (.not. (i == n+1)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'i == n+1' must be false."
+       write(error_unit, '(a)', advance = "no") "i: "
+       write(error_unit, *) i
+       write(error_unit, '(a)', advance = "no") "n+1: "
+       write(error_unit, *) n+1
+       if (len_trim("Btree iter method `get_iter`, `next` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree iter method `get_iter`, `next` are something wrong.'"
+       end if
+       error stop 53
+    end if
+    
+  end subroutine check_iterator_next
+  subroutine check_iterator_prev(n)
+    integer(int32), intent(in) :: n
+    type(btree_int32_to_int32) :: m
+    type(btree_node_iter_int32_to_int32) :: iter
+    integer(int32) :: i
+    call m%init()
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    iter = m%maximum_iter()
+    i = n
+    do while (iter%is_not_begin())
+       if (.not. (iter%key() == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'iter%key() == i' must be false."
+          write(error_unit, '(a)', advance = "no") "iter%key(): "
+          write(error_unit, *) iter%key()
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree iter method `maximum_reti`,  `prev` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree iter method `maximum_reti`,  `prev` are something wrong.'"
+          end if
+          error stop 61
+       end if
+       
+       i = i - 1
+       call iter%prev()
+    end do
+    if (.not. (i == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'i == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "i: "
+       write(error_unit, *) i
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree iter method `maximum_iter`, `prev` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree iter method `maximum_iter`, `prev` are something wrong.'"
+       end if
+       error stop 62
+    end if
+    
+    iter = m%get_iter(n/2)
+    i = n/2
+    do while (iter%is_not_begin())
+       if (.not. (iter%key() == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'iter%key() == i' must be false."
+          write(error_unit, '(a)', advance = "no") "iter%key(): "
+          write(error_unit, *) iter%key()
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree iter method `get_iter`, `prev` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree iter method `get_iter`, `prev` are something wrong.'"
+          end if
+          error stop 63
+       end if
+       
+       i = i - 1
+       call iter%prev()
+    end do
+    if (.not. (i == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'i == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "i: "
+       write(error_unit, *) i
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree iter method `get_iter`, `prev` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree iter method `get_iter`, `prev` are something wrong.'"
+       end if
+       error stop 64
+    end if
+    
+  end subroutine check_iterator_prev
 end program test_btree_m
