@@ -2019,6 +2019,7 @@ The definition of either ==== or =/== must be overridden.
 まず, 型 ~${tuple2}~ の宣言を行う.
 ~${tuple2}~ は2つの要素を持つ.
 2つの要素の型は異なる型でも構わない.
+単純でよく知られている型なのでカプセル化を行うメリットはない.
 
 変数 ~${variable}~ は =bash= で展開される.
 - ~${tuple2}~ は Tuple2型.
@@ -2029,11 +2030,8 @@ The definition of either ==== or =/== must be overridden.
   public :: ${tuple2}
   type :: ${tuple2}
      !> private
-     ${type1} :: fst_
-     ${type2} :: snd_
-   contains
-     procedure, pass :: fst  => fst_${tuple2}
-     procedure, pass :: snd  => snd_${tuple2}
+     ${type1} :: v1_
+     ${type2} :: v2_
   end type ${tuple2}
   private :: construct_${tuple2}
   interface ${tuple2}
@@ -2071,29 +2069,9 @@ The definition of either ==== or =/== must be overridden.
     type(${tuple2}) :: res
     ${type1}, intent(in) :: val1
     ${type2}, intent(in) :: val2
-    res%fst_ = val1
-    res%snd_ = val2
+    res%v1_ = val1
+    res%v2_ = val2
   end function construct_${tuple2}
-#+end_src
-***** fst
-=function fst= は Tuple2 の一番目の要素を返す.
-#+name: fst-tuple2
-#+begin_src fortran :exports code
-  !> fst_${tuple2}: Return the first element of ${tuple2}.
-  ${type1} function fst_${tuple2}(this) result(res)
-    class(${tuple2}), intent(in) :: this
-    res = this%fst_
-  end function fst_${tuple2}
-#+end_src
-***** snd
-=function snd= は Tuple2 の二番目の要素を返す.
-#+name: snd-tuple2
-#+begin_src fortran :exports code
-  !> snd_${tuple2}: Return the second element of ${tuple2}.
-  ${type1} function snd_${tuple2}(this) result(res)
-    class(${tuple2}), intent(in) :: this
-    res = this%snd_
-  end function snd_${tuple2}
 #+end_src
 ***** compare_operator
 比較演算子たち.
@@ -2103,39 +2081,39 @@ The definition of either ==== or =/== must be overridden.
   !> Compare the second elements if the first elements are same.
   pure logical function less_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
     end if
   end function less_${tuple2}
   pure logical function less_equal_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ <= rhs%snd_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ <= rhs%v2_
     end if
   end function less_equal_${tuple2}
   pure logical function greater_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
     end if
   end function greater_${tuple2}
   pure logical function greater_equal_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ >= rhs%snd_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ >= rhs%v2_
     end if
   end function greater_equal_${tuple2}
   pure logical function equal_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_
+    res = lhs%v1_ == rhs%v1_ .and. lhs%v2_ == rhs%v2_
   end function equal_${tuple2}
   pure logical function not_equal_${tuple2}(lhs, rhs) result(res)
     type(${tuple2}), intent(in) :: lhs, rhs
-    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_
+    res = lhs%v1_ /= rhs%v1_ .or. lhs%v2_ /= rhs%v2_
   end function not_equal_${tuple2}
 #+end_src
 **** Tuple2の展開
@@ -2147,6 +2125,10 @@ The definition of either ==== or =/== must be overridden.
           type1="character"
           suffix="${suffix}_character"
           ;;
+      "type")
+          type1="type(${type1_kind})"
+          suffix="${suffix}_${type1_kind}"
+          ;;
       ,*)
           type1="${type1}(${type1_kind})"
           suffix="${suffix}_${type1_kind}"
@@ -2156,6 +2138,10 @@ The definition of either ==== or =/== must be overridden.
       "character")
           type2="character"
           suffix="${suffix}_character"
+          ;;
+      "type")
+          type2="type(${type2_kind})"
+          suffix="${suffix}_${type2_kind}"
           ;;
       ,*)
           type2="${type2}(${type2_kind})"
@@ -2179,6 +2165,16 @@ The definition of either ==== or =/== must be overridden.
   EOF
 #+end_src
 **** test
+***** testコードブロック
+#+name: test-tuple2
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<tuple2-module>>
+<<tuple2-test>>
+#+end_src
+
+#+RESULTS[22d5d6b4b7ba0276b12c4c5762a4a15386809f5e]: test-tuple2
+
+***** test本体
 #+name: tuple2-test
 #+begin_src fortran :exports code :tangle "test/test_tuple2.F90" :noweb no-export
   program test_tuple2
@@ -2217,14 +2213,6 @@ The definition of either ==== or =/== must be overridden.
     <<assert-false(cond="t1 <= t2", code=45, message="`<=` for Tuple2 is illegal.")>>
   end program test_tuple2
 #+end_src
-#+name: test-tuple2
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
-<<tuple2-module>>
-<<tuple2-test>>
-#+end_src
-
-#+RESULTS[0e16067e7204adac457913b21b481cc320dd969d]: test-tuple2
-
 **** Tuple2のunwrapped_vector
 #+name: tuple2-unwrapped-module
 #+begin_src fortran :exports code :tangle "src/tuple2_unwrapped_vector_m.F90" :comment link :noweb no-export
