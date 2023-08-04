@@ -2227,6 +2227,100 @@ The definition of either ==== or =/== must be overridden.
     <<procedures-unwrapped_vector-var(type="type", type_kind="tuple2_int64_int64")>>
   end module tuple2_unwrapped_vector_m
 #+end_src
+**** Tuple2のB木
+#+name: tuple2-btree-module
+#+begin_src fortran :exports code :tangle "src/tuple2_btree_m.F90" :comment link :noweb no-export
+  module tuple2_btree_m
+    use, intrinsic :: iso_fortran_env
+    use tuple2_m, only: &
+         t2_i32_i32 => tuple2_int32_int32, &
+         t2_i64_i64 => tuple2_int64_int64, &
+         operator(==), operator(<), operator(<=), operator(>), operator(>=)
+    implicit none
+    private
+    !> `t-1` must be the least number of elements in `btree_node` without root (minimum degree).
+    integer(int32), parameter :: t = 6
+    !> the number of internal node in `btree_node`.
+    integer(int32), parameter :: inode = 2*t-1
+    integer(int32), parameter :: iter_max_depth = 30
+    <<declaration-btree-var(key_base="type", key_kind="t2_i32_i32", val_base="integer", val_kind="int32")>>
+    <<declaration-btree-var(key_base="type", key_kind="t2_i64_i64", val_base="integer", val_kind="int64")>>
+  contains
+    <<procedures-btree-var(key_base="type", key_kind="t2_i32_i32", val_base="integer", val_kind="int32")>>
+    <<procedures-btree-var(key_base="type", key_kind="t2_i64_i64", val_base="integer", val_kind="int64")>>
+  end module tuple2_btree_m
+#+end_src
+***** test
+#+name: test-tuple2-btree
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output file :file "t2_btree.log" :noweb no-export :cache yes
+    <<tuple2-module>>
+    <<tuple2-btree-module>>
+    <<tuple2-btree-test>>
+#+end_src
+
+#+RESULTS[64152e545a438a641ba6d7a09548f6bf1189cb33]: test-tuple2-btree
+[[file:t2_btree.log]]
+
+#+name: tuple2-btree-test
+#+begin_src fortran :exports code :tangle "test/test_tuple2_btree_m.F90" :comment link :noweb no-export
+  program test_tuple2_btree_m
+    use, intrinsic :: iso_fortran_env
+    use tuple2_m!, only: t2 => tuple2_int32_int32
+    use tuple2_btree_m, only: bt_t2_to_int32 => btree_t2_i32_i32_to_int32, &
+         bt_iter_t2_to_int32 => btree_node_iter_t2_i32_i32_to_int32
+    implicit none
+    integer(int32), parameter :: n = 1000
+    call tuple2_btree_test_insertion_ascending(n)
+  contains
+    <<tuple2_btree-test-check_insertion_ascending>>
+  end program test_tuple2_btree_m
+#+end_src
+****** 昇順に挿入.
+#+name: tuple2_btree-test-check_insertion_ascending
+#+begin_src fortran :exports code :noweb no-export
+  subroutine tuple2_btree_test_insertion_ascending(n)
+    integer(int32), intent(in) :: n
+    type(bt_t2_to_int32) :: m
+    type(bt_iter_t2_to_int32) :: iter
+    type(tuple2_int32_int32) :: t
+    integer(int32) :: i, j
+    call m%init()
+    do i = 1, n
+       do j = 1, n
+          call m%insert(tuple2_int32_int32(i, j), i+j)
+       end do
+    end do
+    <<assert-eq(eq1="m%size()", eq2="int(n, int64)*n", code=11, message="Btree method `insert` are something wrong.")>>
+    call m%check_invariant()
+    do i = 1, n
+       do j = 1, n
+          call m%remove(tuple2_int32_int32(i, j))
+       end do
+    end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=12, message="Btree method `remove` are something wrong.")>>
+    do i = 1, n
+       do j = 1, n
+          call m%insert(tuple2_int32_int32(i, j), i+j)
+       end do
+    end do
+    iter = m%minimum_iter()
+    do while (iter%is_not_end())
+       t = iter%key()
+       ! write(output_unit, '(*(i0, 1x))') t%fst(), t%snd()
+       <<assert-eq(eq1="t%fst()+t%snd()", eq2="iter%val()", code=12, message="Btree iter is something wrong.")>>
+       call iter%next()
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="int(n, int64)*n", code=13, message="Btree method `insert` are something wrong.")>>
+    do i = n, 1, -1
+       do j = n, 1, -1
+          call m%remove(tuple2_int32_int32(i, j))
+       end do
+    end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=14, message="Btree method `remove` are something wrong.")>>
+  end subroutine tuple2_btree_test_insertion_ascending
+#+end_src
+
 **** Tuple2のpriority_queue
 #+name: tuple2-priority_queue-module
 #+begin_src fortran :exports code :tangle "src/tuple2_priority_queue_m.F90" :comment link :noweb no-export
