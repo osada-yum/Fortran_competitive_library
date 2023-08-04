@@ -1,9 +1,10 @@
 program test_tuple2
   use, intrinsic :: iso_fortran_env
-  use tuple2_m
+  use tuple2_m, only: tup2 => tuple2_int32_int32, &
+       operator(==), operator(/=), operator(<), operator(<=), operator(>), operator(>=)
   implicit none
-  type(tuple2_int32_int32) :: t1, t2
-  t1 = tuple2_int32_int32(1, 1)
+  type(tup2) :: t1, t2
+  t1 = tup2(1, 1)
   if (.not. (t1 == t1)) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
@@ -76,7 +77,7 @@ program test_tuple2
      error stop 15
   end if
   
-  t2 = tuple2_int32_int32(1, 2)
+  t2 = tup2(1, 2)
   if (t1 == t2) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
@@ -149,7 +150,7 @@ program test_tuple2
      error stop 25
   end if
   
-  t2 = tuple2_int32_int32(100, 2)
+  t2 = tup2(100, 2)
   if (t1 == t2) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
@@ -222,7 +223,7 @@ program test_tuple2
      error stop 35
   end if
   
-  t2 = tuple2_int32_int32(1, -100)
+  t2 = tup2(1, -100)
   if (t1 == t2) then
      write(error_unit, '(a, i0, a)', advance = "no")&
           "Error in "//&
