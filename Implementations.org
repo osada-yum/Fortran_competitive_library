@@ -2029,7 +2029,6 @@ The definition of either ==== or =/== must be overridden.
 #+begin_src fortran :exports code
   public :: ${tuple2}
   type :: ${tuple2}
-     !> private
      ${type1} :: v1_
      ${type2} :: v2_
   end type ${tuple2}
@@ -2353,6 +2352,7 @@ The definition of either ==== or =/== must be overridden.
 まず, 型 ~${tuple3}~ の宣言を行う.
 ~${tuple3}~ は3つの要素を持つ.
 3つの要素の型は異なる型でも構わない.
+単純でよく知られている型なのでカプセル化を行うメリットはない.
 
 変数 ~${variable}~ は =bash= で展開される.
 - ~${tuple3}~ は Tuple3型.
@@ -2364,13 +2364,9 @@ The definition of either ==== or =/== must be overridden.
   public :: ${tuple3}
   type :: ${tuple3}
      private
-     ${type1} :: fst_
-     ${type2} :: snd_
-     ${type3} :: thr_
-   contains
-     procedure, pass :: fst  => fst_${tuple3}
-     procedure, pass :: snd  => snd_${tuple3}
-     procedure, pass :: thr  => thr_${tuple3}
+     ${type1} :: v1_
+     ${type2} :: v2_
+     ${type3} :: v3_
   end type ${tuple3}
   public :: construct_${tuple3}
   interface ${tuple3}
@@ -2409,40 +2405,10 @@ The definition of either ==== or =/== must be overridden.
     ${type1}, intent(in) :: val1
     ${type2}, intent(in) :: val2
     ${type3}, intent(in) :: val3
-    res%fst_ = val1
-    res%snd_ = val2
-    res%thr_ = val3
+    res%v1_ = val1
+    res%v2_ = val2
+    res%v3_ = val3
   end function construct_${tuple3}
-#+end_src
-***** fst
-=function fst= は Tuple3 の一番目の要素を返す.
-#+name: fst-tuple3
-#+begin_src fortran :exports code
-  !> fst_${tuple3}: Return the first element of ${tuple3}.
-  ${type1} function fst_${tuple3}(this) result(res)
-    class(${tuple3}), intent(in) :: this
-    res = this%fst_
-  end function fst_${tuple3}
-#+end_src
-***** snd
-=function snd= は Tuple3 の二番目の要素を返す.
-#+name: snd-tuple3
-#+begin_src fortran :exports code
-  !> snd_${tuple3}: Return the second element of ${tuple3}.
-  ${type1} function snd_${tuple3}(this) result(res)
-    class(${tuple3}), intent(in) :: this
-    res = this%snd_
-  end function snd_${tuple3}
-#+end_src
-***** thr
-=function thr= は Tuple3 の三番目の要素を返す.
-#+name: snd-tuple3
-#+begin_src fortran :exports code
-  !> thr_${tuple3}: Return the second element of ${tuple3}.
-  ${type1} function thr_${tuple3}(this) result(res)
-    class(${tuple3}), intent(in) :: this
-    res = this%thr_
-  end function thr_${tuple3}
 #+end_src
 ***** compare_operator
 比較演算子たち.
@@ -2452,51 +2418,51 @@ The definition of either ==== or =/== must be overridden.
   !> Compare the second elements if the first elements are same.
   logical function less_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ < rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ < rhs%v3_
        end if
     end if
   end function less_${tuple3}
   logical function less_equal_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ <= rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ <= rhs%v3_
        end if
     end if
   end function less_equal_${tuple3}
   logical function greater_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ > rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ > rhs%v3_
        end if
     end if
   end function greater_${tuple3}
   logical function greater_equal_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ >= rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ >= rhs%v3_
        end if
     end if
   end function greater_equal_${tuple3}
   logical function equal_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_ .and. lhs%thr_ == rhs%thr_
+    res = lhs%v1_ == rhs%v1_ .and. lhs%v2_ == rhs%v2_ .and. lhs%v3_ == rhs%v3_
   end function equal_${tuple3}
   logical function not_equal_${tuple3}(lhs, rhs) result(res)
     type(${tuple3}), intent(in) :: lhs, rhs
-    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_ .or. lhs%thr_ /= rhs%thr_
+    res = lhs%v1_ /= rhs%v1_ .or. lhs%v2_ /= rhs%v2_ .or. lhs%v3_ /= rhs%v3_
   end function not_equal_${tuple3}
 #+end_src
 **** Tuple3の展開
@@ -2508,6 +2474,10 @@ The definition of either ==== or =/== must be overridden.
           type1="character"
           suffix="${suffix}_character"
           ;;
+      "type")
+          type1="type(${type1_kind})"
+          suffix="${suffix}_${type1_kind}"
+          ;;
       ,*)
           type1="${type1}(${type1_kind})"
           suffix="${suffix}_${type1_kind}"
@@ -2518,6 +2488,10 @@ The definition of either ==== or =/== must be overridden.
           type2="character"
           suffix="${suffix}_character"
           ;;
+      "type")
+          type2="type(${type2_kind})"
+          suffix="${suffix}_${type2_kind}"
+          ;;
       ,*)
           type2="${type2}(${type2_kind})"
           suffix="${suffix}_${type2_kind}"
@@ -2527,6 +2501,10 @@ The definition of either ==== or =/== must be overridden.
       "character")
           type3="character"
           suffix="${suffix}_character"
+          ;;
+      "type")
+          type3="type(${type3_kind})"
+          suffix="${suffix}_${type3_kind}"
           ;;
       ,*)
           type3="${type3}(${type3_kind})"
@@ -2550,6 +2528,16 @@ The definition of either ==== or =/== must be overridden.
   EOF
 #+end_src
 **** test
+***** testコードブロック
+#+name: test-tuple3
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<tuple3-module>>
+<<tuple3-test>>
+#+end_src
+
+#+RESULTS[690f7a0f9736907e7cf523601876408b5f436663]: test-tuple3
+
+***** test本体
 #+name: tuple3-test
 #+begin_src fortran :exports code :tangle "test/test_tuple3.F90" :noweb no-export
   program test_tuple3
@@ -2601,13 +2589,6 @@ The definition of either ==== or =/== must be overridden.
     <<assert-false(cond="t1 <= t2",       code=55, message="`<=` for Tuple3 is illegal.")>>
   end program test_tuple3
 #+end_src
-#+name: test-tuple3
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
-<<tuple3-module>>
-<<tuple3-test>>
-#+end_src
-
-#+RESULTS[dd3d26909f4b23a4e97114ec4e76bc094ff5f3ea]: test-tuple3
 **** Tuple3のunwrapped_vector
 #+name: tuple3-unwrapped_vector-module
 #+begin_src fortran :exports code :tangle "src/tuple3_unwrapped_vector_m.F90" :comment link :noweb no-export

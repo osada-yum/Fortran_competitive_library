@@ -4,13 +4,9 @@ module tuple3_m
   public :: tuple3_int32_int32_int32
   type :: tuple3_int32_int32_int32
      private
-     integer(int32) :: fst_
-     integer(int32) :: snd_
-     integer(int32) :: thr_
-   contains
-     procedure, pass :: fst  => fst_tuple3_int32_int32_int32
-     procedure, pass :: snd  => snd_tuple3_int32_int32_int32
-     procedure, pass :: thr  => thr_tuple3_int32_int32_int32
+     integer(int32) :: v1_
+     integer(int32) :: v2_
+     integer(int32) :: v3_
   end type tuple3_int32_int32_int32
   public :: construct_tuple3_int32_int32_int32
   interface tuple3_int32_int32_int32
@@ -38,13 +34,9 @@ module tuple3_m
   public :: tuple3_int64_int64_int64
   type :: tuple3_int64_int64_int64
      private
-     integer(int64) :: fst_
-     integer(int64) :: snd_
-     integer(int64) :: thr_
-   contains
-     procedure, pass :: fst  => fst_tuple3_int64_int64_int64
-     procedure, pass :: snd  => snd_tuple3_int64_int64_int64
-     procedure, pass :: thr  => thr_tuple3_int64_int64_int64
+     integer(int64) :: v1_
+     integer(int64) :: v2_
+     integer(int64) :: v3_
   end type tuple3_int64_int64_int64
   public :: construct_tuple3_int64_int64_int64
   interface tuple3_int64_int64_int64
@@ -76,74 +68,59 @@ contains
     integer(int32), intent(in) :: val1
     integer(int32), intent(in) :: val2
     integer(int32), intent(in) :: val3
-    res%fst_ = val1
-    res%snd_ = val2
-    res%thr_ = val3
+    res%v1_ = val1
+    res%v2_ = val2
+    res%v3_ = val3
   end function construct_tuple3_int32_int32_int32
-  !> fst_tuple3_int32_int32_int32: Return the first element of tuple3_int32_int32_int32.
-  integer(int32) function fst_tuple3_int32_int32_int32(this) result(res)
-    class(tuple3_int32_int32_int32), intent(in) :: this
-    res = this%fst_
-  end function fst_tuple3_int32_int32_int32
-  !> snd_tuple3_int32_int32_int32: Return the second element of tuple3_int32_int32_int32.
-  integer(int32) function snd_tuple3_int32_int32_int32(this) result(res)
-    class(tuple3_int32_int32_int32), intent(in) :: this
-    res = this%snd_
-  end function snd_tuple3_int32_int32_int32
-  !> thr_tuple3_int32_int32_int32: Return the second element of tuple3_int32_int32_int32.
-  integer(int32) function thr_tuple3_int32_int32_int32(this) result(res)
-    class(tuple3_int32_int32_int32), intent(in) :: this
-    res = this%thr_
-  end function thr_tuple3_int32_int32_int32
   !> less_tuple3_int32_int32_int32: Compare the first elements.
   !> Compare the second elements if the first elements are same.
   logical function less_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ < rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ < rhs%v3_
        end if
     end if
   end function less_tuple3_int32_int32_int32
   logical function less_equal_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ <= rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ <= rhs%v3_
        end if
     end if
   end function less_equal_tuple3_int32_int32_int32
   logical function greater_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ > rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ > rhs%v3_
        end if
     end if
   end function greater_tuple3_int32_int32_int32
   logical function greater_equal_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ >= rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ >= rhs%v3_
        end if
     end if
   end function greater_equal_tuple3_int32_int32_int32
   logical function equal_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_ .and. lhs%thr_ == rhs%thr_
+    res = lhs%v1_ == rhs%v1_ .and. lhs%v2_ == rhs%v2_ .and. lhs%v3_ == rhs%v3_
   end function equal_tuple3_int32_int32_int32
   logical function not_equal_tuple3_int32_int32_int32(lhs, rhs) result(res)
     type(tuple3_int32_int32_int32), intent(in) :: lhs, rhs
-    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_ .or. lhs%thr_ /= rhs%thr_
+    res = lhs%v1_ /= rhs%v1_ .or. lhs%v2_ /= rhs%v2_ .or. lhs%v3_ /= rhs%v3_
   end function not_equal_tuple3_int32_int32_int32
   
   !> construct_tuple3_int64_int64_int64_by_size: Construct tuple3_int64_int64_int64.
@@ -152,74 +129,59 @@ contains
     integer(int64), intent(in) :: val1
     integer(int64), intent(in) :: val2
     integer(int64), intent(in) :: val3
-    res%fst_ = val1
-    res%snd_ = val2
-    res%thr_ = val3
+    res%v1_ = val1
+    res%v2_ = val2
+    res%v3_ = val3
   end function construct_tuple3_int64_int64_int64
-  !> fst_tuple3_int64_int64_int64: Return the first element of tuple3_int64_int64_int64.
-  integer(int64) function fst_tuple3_int64_int64_int64(this) result(res)
-    class(tuple3_int64_int64_int64), intent(in) :: this
-    res = this%fst_
-  end function fst_tuple3_int64_int64_int64
-  !> snd_tuple3_int64_int64_int64: Return the second element of tuple3_int64_int64_int64.
-  integer(int64) function snd_tuple3_int64_int64_int64(this) result(res)
-    class(tuple3_int64_int64_int64), intent(in) :: this
-    res = this%snd_
-  end function snd_tuple3_int64_int64_int64
-  !> thr_tuple3_int64_int64_int64: Return the second element of tuple3_int64_int64_int64.
-  integer(int64) function thr_tuple3_int64_int64_int64(this) result(res)
-    class(tuple3_int64_int64_int64), intent(in) :: this
-    res = this%thr_
-  end function thr_tuple3_int64_int64_int64
   !> less_tuple3_int64_int64_int64: Compare the first elements.
   !> Compare the second elements if the first elements are same.
   logical function less_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ < rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ < rhs%v3_
        end if
     end if
   end function less_tuple3_int64_int64_int64
   logical function less_equal_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ < rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ < rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ <= rhs%thr_
+    res = lhs%v1_ < rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ < rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ <= rhs%v3_
        end if
     end if
   end function less_equal_tuple3_int64_int64_int64
   logical function greater_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ > rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ > rhs%v3_
        end if
     end if
   end function greater_tuple3_int64_int64_int64
   logical function greater_equal_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ > rhs%fst_
-    if (lhs%fst_ == rhs%fst_) then
-       res = lhs%snd_ > rhs%snd_
-       if (lhs%snd_ == rhs%snd_) then
-          res = lhs%thr_ >= rhs%thr_
+    res = lhs%v1_ > rhs%v1_
+    if (lhs%v1_ == rhs%v1_) then
+       res = lhs%v2_ > rhs%v2_
+       if (lhs%v2_ == rhs%v2_) then
+          res = lhs%v3_ >= rhs%v3_
        end if
     end if
   end function greater_equal_tuple3_int64_int64_int64
   logical function equal_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ == rhs%fst_ .and. lhs%snd_ == rhs%snd_ .and. lhs%thr_ == rhs%thr_
+    res = lhs%v1_ == rhs%v1_ .and. lhs%v2_ == rhs%v2_ .and. lhs%v3_ == rhs%v3_
   end function equal_tuple3_int64_int64_int64
   logical function not_equal_tuple3_int64_int64_int64(lhs, rhs) result(res)
     type(tuple3_int64_int64_int64), intent(in) :: lhs, rhs
-    res = lhs%fst_ /= rhs%fst_ .or. lhs%snd_ /= rhs%snd_ .or. lhs%thr_ /= rhs%thr_
+    res = lhs%v1_ /= rhs%v1_ .or. lhs%v2_ /= rhs%v2_ .or. lhs%v3_ /= rhs%v3_
   end function not_equal_tuple3_int64_int64_int64
   
 end module tuple3_m

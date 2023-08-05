@@ -3,7 +3,6 @@ module tuple2_m
   implicit none
   public :: tuple2_int32_int32
   type :: tuple2_int32_int32
-     !> private
      integer(int32) :: v1_
      integer(int32) :: v2_
   end type tuple2_int32_int32
@@ -32,7 +31,6 @@ module tuple2_m
   
   public :: tuple2_int64_int64
   type :: tuple2_int64_int64
-     !> private
      integer(int64) :: v1_
      integer(int64) :: v2_
   end type tuple2_int64_int64
