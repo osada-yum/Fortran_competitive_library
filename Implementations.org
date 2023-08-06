@@ -939,40 +939,41 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 **** merge
 #+name: merge
 #+begin_src fortran :exports code
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_${suffix}(arr, p, q, r)
     ${type}, intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    ${type}                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    ${type}, allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) ${op} Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) ${op} right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -1017,49 +1018,50 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
 **** merge_with_key
 #+name: merge_with_key
 #+begin_src fortran :exports code
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_${suffix}(key, indices, p, q, r)
     ${type}, intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    ${type} :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    ${type}, allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) ${op} Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) ${op} right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -1098,6 +1100,10 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
           type="character"
           suffix="character"
           ;;
+      "type")
+          type="type(${type_kind})"
+          suffix="${type_kind}"
+          ;;
       ,*)
           type="${type_base}(${type_kind})"
           suffix="${type_kind}"
@@ -1134,6 +1140,15 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
   done
 #+end_src
 *** test
+**** testコードブロック
+#+begin_src fortran :exports code :results output :cache yes :noweb yes
+  <<merge-sort-module>>
+  <<merge-sort-test>>
+#+end_src
+
+#+RESULTS[3cd73798f56d83385987f46ec62baab859162522]:
+
+**** test本体
 #+name: merge-sort-test
 #+begin_src fortran :exports code :tangle "test/test_merge_sort.f90" :noweb yes
   program test_merge
@@ -1157,13 +1172,6 @@ This module exports =insertion_sort= and =insertion_sort_descending=.
     <<assert(cond="all(indices(:) == [(i, i = 1, 9)])", code=32, message="merge_sort with key is not stable sort.")>>
   end program test_merge
 #+end_src
-
-#+begin_src fortran :exports code :results output :cache yes :noweb yes
-  <<merge-sort-module>>
-  <<merge-sort-test>>
-#+end_src
-
-#+RESULTS[90512ca95c869ead0fff5d7179475e6f0a8018e9]:
 
 ** heap-sort(未完成)
 *** base code

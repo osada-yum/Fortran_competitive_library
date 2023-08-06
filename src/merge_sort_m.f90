@@ -47,40 +47,41 @@ contains
     integer(int32), intent(inout) :: arr(:)
     call merge_sort_sub_int32(arr, 1, size(arr))
   end subroutine merge_sort_int32
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_int32(arr, p, q, r)
     integer(int32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    integer(int32), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) <= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) <= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -113,49 +114,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_int32(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_int32
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_int32(key, indices, p, q, r)
     integer(int32), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    integer(int32), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) <= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) <= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -188,40 +190,41 @@ contains
     integer(int32), intent(inout) :: arr(:)
     call merge_sort_sub_int32_descending(arr, 1, size(arr))
   end subroutine merge_sort_int32_descending
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_int32_descending(arr, p, q, r)
     integer(int32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    integer(int32), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) >= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) >= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -254,49 +257,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_int32_descending(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_int32_descending
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_int32_descending(key, indices, p, q, r)
     integer(int32), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    integer(int32), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) >= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) >= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -330,40 +334,41 @@ contains
     integer(int64), intent(inout) :: arr(:)
     call merge_sort_sub_int64(arr, 1, size(arr))
   end subroutine merge_sort_int64
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_int64(arr, p, q, r)
     integer(int64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int64)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    integer(int64), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) <= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) <= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -396,49 +401,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_int64(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_int64
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_int64(key, indices, p, q, r)
     integer(int64), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    integer(int64) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    integer(int64), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) <= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) <= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -471,40 +477,41 @@ contains
     integer(int64), intent(inout) :: arr(:)
     call merge_sort_sub_int64_descending(arr, 1, size(arr))
   end subroutine merge_sort_int64_descending
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_int64_descending(arr, p, q, r)
     integer(int64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int64)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    integer(int64), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) >= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) >= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -537,49 +544,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_int64_descending(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_int64_descending
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_int64_descending(key, indices, p, q, r)
     integer(int64), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    integer(int64) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    integer(int64), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) >= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) >= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -613,40 +621,41 @@ contains
     real(real32), intent(inout) :: arr(:)
     call merge_sort_sub_real32(arr, 1, size(arr))
   end subroutine merge_sort_real32
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_real32(arr, p, q, r)
     real(real32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    real(real32)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    real(real32), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) <= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) <= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -679,49 +688,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_real32(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_real32
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_real32(key, indices, p, q, r)
     real(real32), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    real(real32) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    real(real32), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) <= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) <= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -754,40 +764,41 @@ contains
     real(real32), intent(inout) :: arr(:)
     call merge_sort_sub_real32_descending(arr, 1, size(arr))
   end subroutine merge_sort_real32_descending
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_real32_descending(arr, p, q, r)
     real(real32), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    real(real32)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    real(real32), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) >= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) >= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -820,49 +831,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_real32_descending(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_real32_descending
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_real32_descending(key, indices, p, q, r)
     real(real32), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    real(real32) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    real(real32), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) >= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) >= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -896,40 +908,41 @@ contains
     real(real64), intent(inout) :: arr(:)
     call merge_sort_sub_real64(arr, 1, size(arr))
   end subroutine merge_sort_real64
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_real64(arr, p, q, r)
     real(real64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    real(real64)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    real(real64), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) <= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) <= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -962,49 +975,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_real64(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_real64
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_real64(key, indices, p, q, r)
     real(real64), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    real(real64) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    real(real64), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) <= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) <= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
@@ -1037,40 +1051,41 @@ contains
     real(real64), intent(inout) :: arr(:)
     call merge_sort_sub_real64_descending(arr, 1, size(arr))
   end subroutine merge_sort_real64_descending
-  !> merge: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> arr: array of some type, (out) arr(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(arr), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_real64_descending(arr, p, q, r)
     real(real64), intent(inout) :: arr(:)
     integer(int32), intent(in) :: p, q, r
-    real(real64)                :: Left(1:q-p+1), Right(1:r-q)
-    integer(int32)             :: l_max, r_max
+    real(real64), allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = arr(p:q)
-      Right(1:r_max) = arr(q+1:r)
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left(i) >= Right(j)) then
-            arr(k) = Left(i)
+         if (left(i) >= right(j)) then
+            arr(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               arr(k+1:r) = Right(j:)
+               arr(k+1:r) = right(j:)
                return
             end if
          else
-            arr(k) = Right(j)
+            arr(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               arr(k+1:r) = Left(i:)
+               arr(k+1:r) = left(i:)
                return
             end if
          end if
@@ -1103,49 +1118,50 @@ contains
     integer(int32), intent(inout) :: indices(:)
     call merge_sort_sub_with_key_real64_descending(key, indices, 1, size(key))
   end subroutine merge_sort_with_key_real64_descending
-  !> merge_with_key: Algorithm for merge_sort, check if Left or Right is end in each loop.
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
   !> arguments:
   !> indices: array of indices.
   !> key: array of some type, (out) key(p:r) is sorted.
   !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
   !> variables:
-  !> Left, Right: array of typeof(indices), sorted
-  !> l_max, r_max: integer, max index of Left or Right.
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
   subroutine merge_with_key_real64_descending(key, indices, p, q, r)
     real(real64), intent(inout) :: key(:)
     integer(int32), intent(inout) :: indices(:)
     integer(int32), intent(in) :: p, q, r
-    integer(int32) :: Left(1:q-p+1), Right(1:r-q)
-    real(real64) :: Left_key(1:q-p+1), Right_key(1:r-q)
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    real(real64), allocatable :: left_key(:), right_key(:)
     integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
     l_max = q-p+1
     r_max = r-q
     block
       !> i, j, k: integer, loop counters.
       integer(int32) :: i, j, k
-      Left(1:l_max)  = indices(p:q)
-      Right(1:r_max) = indices(q+1:r)
-      Left_key(1:l_max)  = key(p:q)
-      Right_key(1:r_max) = key(q+1:r)
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
       i = 1
       j = 1
       do k = p, r
-         if (Left_key(i) >= Right_key(j)) then
-            key(k) = Left_key(i)
-            indices(k) = Left(i)
+         if (left_key(i) >= right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
             i = i + 1
             if (i > l_max) then
-               key(k+1:r) = Right_key(j:)
-               indices(k+1:r) = Right(j:)
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
                return
             end if
          else
-            key(k) = Right_key(j)
-            indices(k) = Right(j)
+            key(k) = right_key(j)
+            indices(k) = right(j)
             j = j + 1
             if (j > r_max) then
-               key(k+1:r) = Left_key(i:)
-               indices(k+1:r) = Left(i:)
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
                return
             end if
          end if
