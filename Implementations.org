@@ -1905,109 +1905,612 @@ The definition of either ==== or =/== must be overridden.
 
 #+RESULTS[4e7776f0a64b041373bc095de23aa0f5f3557984]:
 
-** String
-#+begin_src fortran :exports code
-  module string_m
+** 参照カウントString(ref_string)
+*** ref_string
+**** ref_string
+#+name: ref_string-module
+#+begin_src fortran :exports code :tangle "src/ref_string_m.F90" :comment link :noweb no-export
+  module ref_string_m
     use, intrinsic :: iso_fortran_env
     implicit none
     private string_row
     type :: string_row
        integer(int32) :: ref_cnt_ = 0_int32
-       character, allocatable :: str_(:)
-     contains
-       final :: destroy_string_row
-    end type string_row
-    type :: string
-       private
        integer(int32) :: size_ = 0_int32
+       character(len=:), allocatable :: str_
+     contains
+       ! `ref_string` has the responsibility for deallocating `string_row`.
+       ! final :: destroy_string_row
+    end type string_row
+    private to_string_row
+    type :: ref_string
+       private
        type(string_row), pointer :: ptr_ => null()
      contains
-       procedure, pass :: assign_string, assign_chars
-       generic :: assignment(=) => assign_string
-       final :: destroy_string
-    end type string
+       procedure, pass :: to_chars => ref_string_to_chars
+       procedure, pass :: assign_ref_string, assign_string_row, assign_chars
+       generic :: assignment(=) => assign_string_row, assign_chars
+       procedure, pass :: rc => rc_ref_string
+       procedure, pass :: write_ref_string
+       generic :: write(formatted) => write_ref_string
+       procedure, pass :: read_ref_string
+       generic :: read(formatted) => read_ref_string
+       final :: destroy_ref_string
+    end type ref_string
+    private init_ref_string_empty
+    interface ref_string
+       module procedure :: init_ref_string_empty
+    end interface ref_string
     interface assignment(=)
-       module procedure :: assign_string_to_chars
+       module procedure :: assign_ref_string_to_ref_string, assign_ref_string_to_chars, &
+            assign_ref_string_to_ref_string_array, assign_chars_to_ref_string_array, &
+            assign_ref_string_to_array_ref_string_array, assign_chars_array_to_ref_string_array
     end interface assignment(=)
-    private equal_string, not_equal_string
-    private less_string, less_equal_string, greater_string, greater_equal_string
+    private equal_ref_string, not_equal_ref_string
+    private less_ref_string, less_equal_ref_string, greater_ref_string, greater_equal_ref_string
+    interface len
+       module procedure :: len_ref_string
+    end interface len
     interface operator(==)
-       module procedure :: equal_string
+       module procedure :: equal_ref_string
     end interface operator(==)
     interface operator(/=)
-       module procedure :: not_equal_string
+       module procedure :: not_equal_ref_string
     end interface operator(/=)
     interface operator(<)
-       module procedure :: less_string
+       module procedure :: less_ref_string
     end interface operator(<)
     interface operator(<=)
-       module procedure :: less_equal_string
+       module procedure :: less_equal_ref_string
     end interface operator(<=)
     interface operator(>)
-       module procedure :: greater_string
+       module procedure :: greater_ref_string
     end interface operator(>)
     interface operator(>=)
-       module procedure :: greater_equal_string
+       module procedure :: greater_equal_ref_string
     end interface operator(>=)
   contains
-    type(string) function to_string(chars) result(res)
+    !> to_string_row: convert `character(len=*)` to `string_row` and increment `ref_cnts_`.
+    function to_string_row(chars) result(res)
       character(len=*), intent(in) :: chars
-      type(string_row), target :: str_row
+      type(string_row), pointer :: res
+      allocate(res)
+      allocate(res%str_, source = chars)
       res%size_ = len(chars)
-      allocate(str_row%str_, source = chars)
-      str_row%ref_cnt_ = 1_int32
-    end function to_string
-    subroutine destroy_string(str_row)
-      class(string_row), intent(inout) :: str_row
-    end subroutine destroy_string
+      res%ref_cnt_ = 1_int32
+    end function to_string_row
+    !> ref_string_to_chars: convert `ref_string` to `character(len=*)`.
+    function ref_string_to_chars(ref_str) result(res)
+      class(ref_string), intent(in) :: ref_str
+      character(len=:), allocatable :: res
+      allocate(res, source = ref_str%ptr_%str_)
+    end function ref_string_to_chars
+    function init_ref_string_empty() result(res)
+      type(ref_string) :: res
+      nullify(res%ptr_)
+    end function init_ref_string_empty
 
-    subroutine assign_string(this, str)
-      class(string), intent(inout) :: this
-      type(string), intent(in) :: str
-      this%size_ = str%size_
-      this%str_ = str%str_
-    end subroutine assign_string
-    subroutine assign_chars(this, chars)
-      class(string), intent(inout) :: this
-      character(len=*), intent(in) :: chars
-      this%size_ = len(chars)
-      this%str_ = chars
-    end subroutine assign_chars
-    subroutine assign_string_to_chars(chars, str)
-      character(len=*), intent(inout) :: chars
-      type(string), intent(in) :: str
-      if (len(chars) < str%size_) then
-         chars(1:len(chars)) = str%str_(1:len(chars))
-      else
-         chars(1:str%size_) = str%str_
+    elemental subroutine destroy_string_row(str_row)
+      type(string_row), intent(inout) :: str_row
+      ! write(error_unit, *) "ですとろーい `string_row`: ", str_row%ref_cnt_, str_row%str_
+      str_row%ref_cnt_ = str_row%ref_cnt_ - 1
+      if (str_row%ref_cnt_ == 0) then
+         ! write(error_unit, *) "ですとろーいど `string_row: `", str_row%str_, loc(str_row%str_)
+         deallocate(str_row%str_)
       end if
-    end subroutine assign_string_to_chars
-    pure logical function equal_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
-      res = lhs%size_ == rhs%size_ .and. lhs%str_ == rhs%str_
-    end function equal_string
-    pure logical function not_equal_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
+    end subroutine destroy_string_row
+    elemental subroutine destroy_ref_string(ref_str)
+      type(ref_string), intent(inout) :: ref_str
+      if (.not. associated(ref_str%ptr_)) return
+      ! write(error_unit, *) "ですとろーい `ref_string`: ", ref_str%rc(), ref_str
+      call destroy_string_row(ref_str%ptr_)
+      if (ref_str%rc() == 0) then
+         ! write(error_unit, *) "ですとろーいど `ref_string`: ", loc(ref_str%ptr_), associated(ref_str%ptr_)
+         deallocate(ref_str%ptr_)
+      end if
+      nullify(ref_str%ptr_)
+    end subroutine destroy_ref_string
+
+    integer(int32) function len_ref_string(ref_str) result(res)
+      type(ref_string), intent(in) :: ref_str
+      if (associated(ref_str%ptr_)) then
+         res = 0_int32
+      else
+         res = ref_str%ptr_%size_
+      end if
+    end function len_ref_string
+    subroutine assign_ref_string_to_ref_string(ref_str1, ref_str2)
+      type(ref_string), intent(inout) :: ref_str1
+      type(ref_string), intent(in) :: ref_str2
+      call ref_str1%assign_ref_string(ref_str2)
+    end subroutine assign_ref_string_to_ref_string
+    subroutine assign_ref_string_to_ref_string_array(ref_str_arr, ref_str)
+      type(ref_string), intent(inout) :: ref_str_arr(:)
+      type(ref_string), intent(in) :: ref_str
+      integer(int32) :: i
+      do i = 1, size(ref_str_arr)
+         call ref_str_arr(i)%assign_ref_string(ref_str)
+      end do
+    end subroutine assign_ref_string_to_ref_string_array
+    subroutine assign_ref_string_to_array_ref_string_array(ref_str_arr1, ref_str_arr2)
+      type(ref_string), intent(inout) :: ref_str_arr1(:)
+      type(ref_string), intent(in) :: ref_str_arr2(:)
+      integer(int32) :: i
+      do i = 1, size(ref_str_arr1)
+         call ref_str_arr1(i)%assign_ref_string(ref_str_arr2(i))
+      end do
+    end subroutine assign_ref_string_to_array_ref_string_array
+    subroutine assign_chars_to_ref_string_array(ref_str, chars)
+      type(ref_string), intent(inout) :: ref_str(:)
+      character(len=*), intent(in) :: chars
+      type(ref_string) :: s
+      s = chars
+      ref_str(:) = s
+    end subroutine assign_chars_to_ref_string_array
+    subroutine assign_chars_array_to_ref_string_array(ref_str_arr, chars_arr)
+      type(ref_string), intent(inout) :: ref_str_arr(:)
+      character(len=*), intent(in) :: chars_arr(:)
+      integer(int32) :: i
+      do i = 1, size(ref_str_arr)
+         ref_str_arr(i) = chars_arr(i)
+      end do
+    end subroutine assign_chars_array_to_ref_string_array
+    subroutine assign_ref_string(this, ref_str)
+      class(ref_string), intent(inout) :: this
+      type(ref_string), intent(in) :: ref_str
+      type(string_row), pointer :: tmp
+      tmp => this%ptr_
+      if (associated(ref_str%ptr_)) then
+         this%ptr_ => ref_str%ptr_
+         this%ptr_%ref_cnt_ = this%ptr_%ref_cnt_ + 1
+      else
+         nullify(this%ptr_)
+      end if
+      if (associated(tmp)) &
+           call destroy_string_row(tmp)
+    end subroutine assign_ref_string
+    subroutine assign_string_row(this, str_row)
+      class(ref_string), intent(inout) :: this
+      type(string_row), pointer, intent(in) :: str_row
+      type(string_row), pointer :: tmp
+      tmp => this%ptr_
+      this%ptr_ => str_row
+      if (associated(tmp)) &
+           call destroy_string_row(tmp)
+    end subroutine assign_string_row
+    subroutine assign_chars(this, chars)
+      class(ref_string), intent(inout) :: this
+      character(len=*), intent(in) :: chars
+      this = to_string_row(chars)
+    end subroutine assign_chars
+    subroutine assign_ref_string_to_chars(chars, ref_str)
+      character(len=*), intent(inout) :: chars
+      type(ref_string), intent(in) :: ref_str
+      if (.not. associated(ref_str%ptr_)) &
+           return
+      if (len(chars) < len(ref_str)) then
+         chars(1:len(chars)) = ref_str%ptr_%str_(1:len(chars))
+      else
+         chars(1:len(ref_str)) = ref_str%ptr_%str_
+      end if
+    end subroutine assign_ref_string_to_chars
+    pure integer(int32) function rc_ref_string(this) result(res)
+      class(ref_string), intent(in) :: this
+      if (associated(this%ptr_)) then
+         res = this%ptr_%ref_cnt_
+      else
+         res = -1_int32
+      end if
+    end function rc_ref_string
+
+    pure elemental logical function equal_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
+      res = lhs%ptr_%str_ == rhs%ptr_%str_
+    end function equal_ref_string
+    pure elemental logical function not_equal_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
       res = .not. (lhs == rhs)
-    end function not_equal_string
-    pure logical function less_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
-      res = lhs%size_ < rhs%size_ .or. (lhs%size_ == rhs%size_ .and. lhs%str_ < rhs%str_)
-    end function less_string
-    pure logical function less_equal_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
-      res = lhs < rhs .or. lhs == rhs
-    end function less_equal_string
-    pure logical function greater_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
+    end function not_equal_ref_string
+    pure elemental logical function less_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
+      res = lhs%ptr_%str_ < rhs%ptr_%str_
+    end function less_ref_string
+    pure elemental logical function less_equal_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
+      res = lhs%ptr_%str_ <= rhs%ptr_%str_
+    end function less_equal_ref_string
+    pure elemental logical function greater_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
       res = .not. (lhs <= rhs)
-    end function greater_string
-    pure logical function greater_equal_string(lhs, rhs) result(res)
-      type(string), intent(in) :: lhs, rhs
+    end function greater_ref_string
+    pure elemental logical function greater_equal_ref_string(lhs, rhs) result(res)
+      type(ref_string), intent(in) :: lhs, rhs
       res = .not. (lhs < rhs)
-    end function greater_equal_string
-  end module string_m
+    end function greater_equal_ref_string
+
+    subroutine write_ref_string(this, unit, iotype, vlist, iostat, iomsg)
+      class(ref_string), intent(in) :: this
+      integer(int32), intent(in) :: unit
+      character(len=*), intent(in) :: iotype
+      integer(int32), intent(in) :: vlist(:)
+      integer(int32), intent(out) :: iostat
+      character(len=*), intent(inout) :: iomsg
+      if (associated(this%ptr_)) then
+         if (iotype == "LISTDIRECTED" .or. size(vlist) == 0) then
+            write(unit, *, iostat = iostat, iomsg = iomsg) this%ptr_%str_
+         else if (iotype(3:) == "ref_string" .or. iotype(3:) == "a") then
+            block
+              character(len=10) :: width
+              character(len=:), allocatable :: fmt
+              if (size(vlist) == 0) then
+                 allocate(fmt, source = '(a)')
+              else
+                 write(width, '(i0)') vlist(1)
+                 allocate(fmt, source = '(a'//trim(width)//')')
+              end if
+              write(unit, fmt, iostat = iostat, iomsg = iomsg) this%ptr_%str_
+            end block
+         else
+            ! iostat = -1
+            ! iomsg = "The type `"//iotype//"` is not supported in ref_string."
+            write(error_unit, '(a)') "The type `"//iotype//"` is not supported in ref_string."
+            error stop 2
+         end if
+      else
+         write(unit, *, iostat = iostat, iomsg = iomsg)
+      end if
+    end subroutine write_ref_string
+
+    subroutine read_ref_string(this, unit, iotype, vlist, iostat, iomsg)
+      class(ref_string), intent(inout) :: this
+      integer(int32), intent(in) :: unit
+      character(len=*), intent(in) :: iotype
+      integer(int32), intent(in) :: vlist(:)
+      integer(int32), intent(out) :: iostat
+      character(len=*), intent(inout) :: iomsg
+      type(string_row), pointer :: tmp
+      tmp => this%ptr_
+      if (associated(this%ptr_)) then
+         if (iotype == "LISTDIRECTED" .or. size(vlist) == 0) then
+            write(unit, *, iostat = iostat, iomsg = iomsg) this%ptr_%str_
+         else if (iotype(3:) == "ref_string" .or. iotype(3:) == "a") then
+            block
+              character(len=10) :: width
+              character(len=:), allocatable :: fmt
+              if (size(vlist) == 0) then
+                 allocate(fmt, source = '(a)')
+              else
+                 write(width, '(i0)') vlist(1)
+                 allocate(fmt, source = '(a'//trim(width)//')')
+              end if
+              write(unit, fmt, iostat = iostat, iomsg = iomsg) this%ptr_%str_
+            end block
+         else
+            ! iostat = -1
+            ! iomsg = "The type `"//iotype//"` is not supported in ref_string."
+            write(error_unit, '(a)') "The type `"//iotype//"` is not supported in ref_string."
+            error stop 2
+         end if
+      else
+         write(unit, *, iostat = iostat, iomsg = iomsg)
+      end if
+      if (associated(tmp)) &
+           call destroy_string_row(tmp)
+    end subroutine read_ref_string
+  end module ref_string_m
 #+end_src
+**** test
+***** testコードブロック
+#+name: test-ref_string
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<ref_string-module>>
+<<ref_string-test>>
+#+end_src
+
+#+RESULTS[cd098fb629022bc4dcf70659d6e4af3d4368abb9]: test-ref_string
+
+***** test本体
+#+name: ref_string-test
+#+begin_src fortran :exports code :tangle "test/test_ref_string.F90" :noweb no-export
+  program test_ref_string
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    implicit none
+    integer(int32), parameter :: n = 100
+    call compare_same_length()
+    call compare_different_length()
+    call test_array(n)
+    call test_array_assignment(n)
+    call test_array_elemental_compare(n)
+  contains
+    <<test-ref_string-compare-same-length>>
+    <<test-ref_string-compare-different-length>>
+    <<test-ref_string-array>>
+    <<test-ref_string-array-assignment>>
+    <<test-ref_string-array-elemental-compare>>
+  end program test_ref_string
+#+end_src
+****** 同じ文字数での比較
+#+name:test-ref_string-compare-same-length
+#+begin_src fortran :exports code :noweb no-export
+  subroutine compare_same_length()
+    type(ref_string) :: s1, s2
+    s1 = "hi"
+    <<assert(cond="s1 == s1",       code=10, message="`==` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 /= s1", code=11, message="`/=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 < s1",  code=12, message="`<` for ref_string is illegal.")>>
+    <<assert(cond="s1 >= s1",       code=13, message="`>=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 > s1",  code=14, message="`>` for ref_string is illegal.")>>
+    <<assert(cond="s1 <= s1",       code=15, message="`<=` for ref_string is illegal.")>>
+    s2 = "hz"
+    <<assert-false(cond="s1 == s2", code=20, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=21, message="`/=` for ref_string is illegal.")>>
+    <<assert(cond="s1 < s2",        code=22, message="`<` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 >= s2", code=23, message="`>=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 > s2",  code=24, message="`>` for ref_string is illegal.")>>
+    <<assert(cond="s1 <= s2",       code=25, message="`<=` for ref_string is illegal.")>>
+    s2 = "zi"
+    <<assert-false(cond="s1 == s2", code=30, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=31, message="`/=` for ref_string is illegal.")>>
+    <<assert(cond="s1 < s2",        code=32, message="`<` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 >= s2", code=33, message="`>=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 > s2",  code=34, message="`>` for ref_string is illegal.")>>
+    <<assert(cond="s1 <= s2",       code=35, message="`<=` for ref_string is illegal.")>>
+    s2 = "ha"
+    <<assert-false(cond="s1 == s2", code=40, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=41, message="`/=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 < s2",  code=42, message="`<` for ref_string is illegal.")>>
+    <<assert(cond="s1 >= s2",       code=43, message="`>=` for ref_string is illegal.")>>
+    <<assert(cond="s1 > s2",        code=44, message="`>` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 <= s2", code=45, message="`<=` for ref_string is illegal.")>>
+  end subroutine compare_same_length
+#+end_src
+****** 異なる文字数での比較
+#+name:test-ref_string-compare-different-length
+#+begin_src fortran :exports code :noweb no-export
+  subroutine compare_different_length()
+    type(ref_string) :: s1, s2
+    s1 = "special"
+    s2 = "specialize"
+    <<assert-false(cond="s1 == s2", code=20, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=21, message="`/=` for ref_string is illegal.")>>
+    <<assert(cond="s1 < s2",        code=22, message="`<` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 >= s2", code=23, message="`>=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 > s2",  code=24, message="`>` for ref_string is illegal.")>>
+    <<assert(cond="s1 <= s2",       code=25, message="`<=` for ref_string is illegal.")>>
+    s2 = "z"
+    <<assert-false(cond="s1 == s2", code=30, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=31, message="`/=` for ref_string is illegal.")>>
+    <<assert(cond="s1 < s2",        code=32, message="`<` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 >= s2", code=33, message="`>=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 > s2",  code=34, message="`>` for ref_string is illegal.")>>
+    <<assert(cond="s1 <= s2",       code=35, message="`<=` for ref_string is illegal.")>>
+    s2 = "spec"
+    <<assert-false(cond="s1 == s2", code=40, message="`==` for ref_string is illegal.")>>
+    <<assert(cond="s1 /= s2",       code=41, message="`/=` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 < s2",  code=42, message="`<` for ref_string is illegal.")>>
+    <<assert(cond="s1 >= s2",       code=43, message="`>=` for ref_string is illegal.")>>
+    <<assert(cond="s1 > s2",        code=44, message="`>` for ref_string is illegal.")>>
+    <<assert-false(cond="s1 <= s2", code=45, message="`<=` for ref_string is illegal.")>>
+  end subroutine compare_different_length
+#+end_src
+****** ref_stringの配列
+#+name:test-ref_string-array
+#+begin_src fortran :exports code :noweb no-export
+  !> gfortran-12.2.0ではコンパイラのバグ?でエラー, gfortran-13.2.0ではコンパイルできる.
+  subroutine test_array(n)
+    integer(int32), intent(in) :: n
+    type(ref_string) :: ref_str_array(n)
+    ! ref_str_array(:) = "Hi"
+  end subroutine test_array
+#+end_src
+****** ref_stringの配列への代入
+#+name:test-ref_string-array-assignment
+#+begin_src fortran :exports code :noweb no-export
+  subroutine test_array_assignment(n)
+    integer(int32), intent(in) :: n
+    type(ref_string), allocatable :: s1(:)
+    integer(int32) :: i
+    block
+      type(ref_string) :: s
+      s = "hi"
+      allocate(s1(n))
+      do i = 1, n
+         s1(i) = s
+      end do
+      <<assert-eq(eq1="s1(1)%rc()", eq2="n+1", code=70, message="Assignment of array of ref_string has something wrong.")>>
+    end block
+    <<assert-eq(eq1="s1(1)%rc()", eq2="n", code=71, message="Destructor of ref_string has something wrong.")>>
+    block
+      type(ref_string) :: s
+      s = "hoi"
+      s1(:) = s
+      <<assert-eq(eq1="s1(1)%rc()", eq2="n+1", code=72, message="Assignment of array of ref_string has something wrong.")>>
+    end block
+    <<assert-eq(eq1="s1(1)%rc()", eq2="n", code=73, message="Destructor of ref_string has something wrong.")>>
+    block
+      character(len=100) :: s
+      s = "Hello, World!"
+      s1(:) = trim(s)
+      <<assert-eq(eq1="s1(1)%rc()", eq2="n", code=74, message="Assignment of array of ref_string has something wrong.")>>
+    end block
+    <<assert-eq(eq1="s1(1)%rc()", eq2="n", code=75, message="Destructor of ref_string has something wrong.")>>
+    block
+      integer(int32), parameter :: max_len = 5
+      character(len=5), parameter :: chars_arr(max_len) = ["a    ", "aa   ", "a    ", "bcdef", " hi  "]
+      type(ref_string) :: ref_str_arr(max_len)
+      integer(int32) :: i
+      ref_str_arr(:) = chars_arr(:)
+      do i = 1, size(ref_str_arr)
+         <<assert-eq(eq1="ref_str_arr(i)%rc()", eq2="1", code=76, message="Assignment of character array to ref_string array has something wrong.")>>
+      end do
+    end block
+  end subroutine test_array_assignment
+#+end_src
+****** ref_stringの配列同士の比較
+#+name:test-ref_string-array-elemental-compare
+#+begin_src fortran :exports code :noweb no-export
+  subroutine test_array_elemental_compare(n)
+    integer(int32), intent(in) :: n
+    type(ref_string), allocatable :: s1(:)
+    integer(int32) :: i
+    block
+      type(ref_string) :: s
+      s = "hi"
+      allocate(s1(n))
+      do i = 1, n
+         s1(i) = s
+      end do
+      <<assert(cond="all(s1(:) == s1(:))", code=80, message="Comparison of array of ref_string has something wrong.")>>
+    end block
+    block
+      type(ref_string), allocatable :: s2(:)
+      allocate(s2(n))
+      s1(n/2) = "spec"
+      s2(:) = s1(:)
+    end block
+    block
+      type(ref_string), allocatable :: s2(:)
+      allocate(s2(n))
+      s2(:) = s1(:)
+      s2(n/2) = "special"
+      <<assert-false(cond="all(s1(:) == s2(:))", code=81, message="Comparison of array of ref_string has something wrong.")>>
+      <<assert-eq(eq1="s1(1)%rc()", eq2="2*n-2", code=82, message="Assignment of array of ref_string has something wrong.")>>
+      <<assert-eq(eq1="s1(n/2)%rc()", eq2="1", code=83, message="Assignment of array of ref_string has something wrong.")>>
+    end block
+    <<assert-eq(eq1="s1(1)%rc()", eq2="n-1", code=84, message="Destructor of array of ref_string has something wrong.")>>
+  end subroutine test_array_elemental_compare
+#+end_src
+*** ref_stringのmerge_sort
+#+name: ref_string-merge-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/ref_string_merge_sort_m.f90"
+  module ref_string_merge_sort_m
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    implicit none
+    private
+    public :: merge_sort, merge_sort_descending
+    <<declaration-merge_sort-var(type_base="type", type_kind="ref_string")>>
+  contains
+    <<procedures-merge_sort-var(type_base="type", type_kind="ref_string")>>
+  end module ref_string_merge_sort_m
+#+end_src
+**** test
+***** testコードブロック
+#+name: test-ref_string-merge-sort
+#+begin_src fortran :exports code :results output :cache yes :noweb yes
+  <<ref_string-module>>
+  <<ref_string-merge-sort-module>>
+  <<ref_string-merge-sort-test>>
+#+end_src
+
+#+RESULTS[65a4576aa867029b4fb0f9f9c3562fa9e4bc8543]: test-ref_string-merge-sort
+: a      ab     abc    ba     bb     z      zabcd
+: zabcd  z      bb     ba     abc    ab     a
+
+***** test本体
+#+name: ref_string-merge-sort-test
+#+begin_src fortran :exports code :tangle "test/test_ref_string_merge_sort.f90" :noweb yes
+  program test_ref_string_merge_sort
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    use ref_string_merge_sort_m
+    implicit none
+    integer(int32), parameter :: n = 7
+    type(ref_string), allocatable :: arr(:), sorted(:)
+    character(len=5), parameter :: chars_sorted(n) = &
+         ["a    ", "ab   ", "abc  ", "ba   ", "bb   ", "z    ", "zabcd"]
+    integer(int32), allocatable :: indices(:)
+    integer(int32) :: i
+    allocate(arr(n))
+    arr(:) = chars_sorted([3, 1, 5, 7, 2, 4, 6])
+    allocate(sorted(n))
+    sorted(:) = chars_sorted(:)
+    indices = [(i, i = 1, n)]
+    call merge_sort(arr, indices)
+    <<assert(cond="all(arr(:) == sorted(:))", code=11, message="merge_sort with key is illegal.")>>
+    <<assert(cond="all(indices(:) == [2, 5, 1, 6, 3, 7, 4])", code=12, message="merge_sort with key is illegal.")>>
+    do i = 1, n
+       <<assert(eq1="arr(i)%rc()", eq2="2", code=13, message="merge_sort with key of ref_string has something wrong.")>>
+    end do
+    call merge_sort_descending(arr)
+    <<assert(cond="all(arr(:) == sorted(n:1:-1))", code=21, message="merge_sort_descending is illegal.")>>
+    write(output_unit, *) arr(n:1:-1)
+    write(output_unit, *) arr(:)
+  end program test_ref_string_merge_sort
+#+end_src
+*** ref_stringのunwrapped_vector
+#+name: ref_string-unwrapped-module
+#+begin_src fortran :exports code :tangle "src/ref_string_unwrapped_vector_m.F90" :comment link :noweb no-export
+  module ref_string_unwrapped_vector_m
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    implicit none
+    <<declaration-unwrapped_vector-var(type="type", type_kind="ref_string")>>
+  contains
+    <<procedures-unwrapped_vector-var(type="type", type_kind="ref_string")>>
+  end module ref_string_unwrapped_vector_m
+#+end_src
+*** ref_stringのB木
+#+name: ref_string-btree-module
+#+begin_src fortran :exports code :tangle "src/ref_string_btree_m.F90" :comment link :noweb no-export
+  module ref_string_btree_m
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    implicit none
+    private
+    !> `t-1` must be the least number of elements in `btree_node` without root (minimum degree).
+    integer(int32), parameter :: t = 6
+    !> the number of internal node in `btree_node`.
+    integer(int32), parameter :: inode = 2*t-1
+    integer(int32), parameter :: iter_max_depth = 30
+    <<declaration-btree-var(key_base="type", key_kind="ref_string", val_base="integer", val_kind="int32")>>
+    <<declaration-btree-var(key_base="type", key_kind="ref_string", val_base="integer", val_kind="int64")>>
+    <<declaration-btree-var(key_base="type", key_kind="ref_string", val_base="type", val_kind="ref_string")>>
+  contains
+    <<procedures-btree-var(key_base="type", key_kind="ref_string", val_base="integer", val_kind="int32")>>
+    <<procedures-btree-var(key_base="type", key_kind="ref_string", val_base="integer", val_kind="int64")>>
+    <<procedures-btree-var(key_base="type", key_kind="ref_string", val_base="type", val_kind="ref_string")>>
+  end module ref_string_btree_m
+#+end_src
+**** test
+***** testコードブロック
+#+name: test-ref_string-btree
+#+begin_src fortran :exports code :results output :cache yes :noweb yes
+  <<ref_string-module>>
+  <<ref_string-btree-module>>
+  <<ref_string-btree-test>>
+#+end_src
+
+#+RESULTS[88b254bd9688ac19ffba7d29a89fbee2480b4237]: test-ref_string-btree
+: 7
+
+***** test本体
+#+name: ref_string-btree-test
+#+begin_src fortran :exports code :tangle "test/test_ref_string_btree_m.F90" :comment link :noweb no-export
+  program test_ref_string_btree
+    use, intrinsic :: iso_fortran_env
+    use ref_string_m
+    use ref_string_btree_m
+    implicit none
+    integer(int32), parameter :: n = 7
+    type(ref_string) :: rs
+    type(ref_string), allocatable :: arr(:), sorted(:)
+    type(btree_ref_string_to_int32) :: bt
+    character(len=5), parameter :: chars_sorted(n) = &
+         ["a    ", "ab   ", "abc  ", "ba   ", "bb   ", "z    ", "zabcd"]
+    integer(int32), allocatable :: indices(:)
+    integer(int32) :: i
+    call bt%init()
+    do i = 1, n
+       rs = trim(chars_sorted(i))
+       call bt%insert(rs, i)
+    end do
+    write(output_unit, *) bt%get(rs)
+    <<assert-eq(eq1="bt%size()", eq2="n", code=21, message="merge_sort_descending is illegal.")>>
+  end program test_ref_string_btree
+#+end_src
+
 ** Tuple
 *** Tuple2
 **** Tuple2モジュール全体
