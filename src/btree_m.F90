@@ -392,7 +392,7 @@ contains
     class(btree_int32_to_int32), intent(in) :: this
     type(btree_node_iter_int32_to_int32) :: iter
     iter = this%minimum_iter()
-    res = iter%val()
+    res = iter%key()
   end function minimum_btree_int32_to_int32
   !> minimum_iter_btree_int32_to_int32: Return the iterator to node that has minimum key.
   type(btree_node_iter_int32_to_int32) function minimum_iter_btree_int32_to_int32(this) result(res)
@@ -407,7 +407,7 @@ contains
     class(btree_int32_to_int32), intent(in) :: this
     type(btree_node_iter_int32_to_int32) :: iter
     iter = this%maximum_iter()
-    res = iter%val()
+    res = iter%key()
   end function maximum_btree_int32_to_int32
   !> maximum_iter_btree_int32_to_int32: Return the iterator to node that has maximum key.
   type(btree_node_iter_int32_to_int32) function maximum_iter_btree_int32_to_int32(this) result(res)
@@ -434,10 +434,7 @@ contains
     type(btree_node_iter_int32_to_int32) :: bt_iter
     integer(int32) :: k, k_bef
     integer(int32) :: i
-    if (this%root_%is_leaf()) return
-    do i = 1, this%root_%size() + 1
-       call this%root_%p_%children_(i)%check_invariant()
-    end do
+    if (this%size() == 0) return
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
@@ -465,6 +462,10 @@ contains
        end if
        k_bef = k
        call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_int32_to_int32
   pure integer(int32) function size_btree_node_ptr_int32_to_int32(this) result(res)
@@ -962,11 +963,11 @@ contains
        call this%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_node_ptr_int32_to_int32
-  pure integer(int32) function key_btree_node_iter_int32_to_int32(this) result(res)
+  impure integer(int32) function key_btree_node_iter_int32_to_int32(this) result(res)
     class(btree_node_iter_int32_to_int32), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
   end function key_btree_node_iter_int32_to_int32
-  pure integer(int32) function val_btree_node_iter_int32_to_int32(this) result(res)
+  impure integer(int32) function val_btree_node_iter_int32_to_int32(this) result(res)
     class(btree_node_iter_int32_to_int32), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
   end function val_btree_node_iter_int32_to_int32
@@ -1157,7 +1158,7 @@ contains
     class(btree_int64_to_int64), intent(in) :: this
     type(btree_node_iter_int64_to_int64) :: iter
     iter = this%minimum_iter()
-    res = iter%val()
+    res = iter%key()
   end function minimum_btree_int64_to_int64
   !> minimum_iter_btree_int64_to_int64: Return the iterator to node that has minimum key.
   type(btree_node_iter_int64_to_int64) function minimum_iter_btree_int64_to_int64(this) result(res)
@@ -1172,7 +1173,7 @@ contains
     class(btree_int64_to_int64), intent(in) :: this
     type(btree_node_iter_int64_to_int64) :: iter
     iter = this%maximum_iter()
-    res = iter%val()
+    res = iter%key()
   end function maximum_btree_int64_to_int64
   !> maximum_iter_btree_int64_to_int64: Return the iterator to node that has maximum key.
   type(btree_node_iter_int64_to_int64) function maximum_iter_btree_int64_to_int64(this) result(res)
@@ -1199,10 +1200,7 @@ contains
     type(btree_node_iter_int64_to_int64) :: bt_iter
     integer(int64) :: k, k_bef
     integer(int32) :: i
-    if (this%root_%is_leaf()) return
-    do i = 1, this%root_%size() + 1
-       call this%root_%p_%children_(i)%check_invariant()
-    end do
+    if (this%size() == 0) return
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
@@ -1230,6 +1228,10 @@ contains
        end if
        k_bef = k
        call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_int64_to_int64
   pure integer(int32) function size_btree_node_ptr_int64_to_int64(this) result(res)
@@ -1727,11 +1729,11 @@ contains
        call this%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_node_ptr_int64_to_int64
-  pure integer(int64) function key_btree_node_iter_int64_to_int64(this) result(res)
+  impure integer(int64) function key_btree_node_iter_int64_to_int64(this) result(res)
     class(btree_node_iter_int64_to_int64), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
   end function key_btree_node_iter_int64_to_int64
-  pure integer(int64) function val_btree_node_iter_int64_to_int64(this) result(res)
+  impure integer(int64) function val_btree_node_iter_int64_to_int64(this) result(res)
     class(btree_node_iter_int64_to_int64), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
   end function val_btree_node_iter_int64_to_int64
@@ -1918,11 +1920,11 @@ contains
     this%size_ = this%size_ - 1
   end subroutine remove_btree_character100_to_int32
   !> minimum_btree_character100_to_int32: Return the minimum value.
-  integer(int32) function minimum_btree_character100_to_int32(this) result(res)
+  character(100) function minimum_btree_character100_to_int32(this) result(res)
     class(btree_character100_to_int32), intent(in) :: this
     type(btree_node_iter_character100_to_int32) :: iter
     iter = this%minimum_iter()
-    res = iter%val()
+    res = iter%key()
   end function minimum_btree_character100_to_int32
   !> minimum_iter_btree_character100_to_int32: Return the iterator to node that has minimum key.
   type(btree_node_iter_character100_to_int32) function minimum_iter_btree_character100_to_int32(this) result(res)
@@ -1933,11 +1935,11 @@ contains
     call res%next()
   end function minimum_iter_btree_character100_to_int32
   !> maximum_btree_character100_to_int32: Return the maximum value.
-  integer(int32) function maximum_btree_character100_to_int32(this) result(res)
+  character(100) function maximum_btree_character100_to_int32(this) result(res)
     class(btree_character100_to_int32), intent(in) :: this
     type(btree_node_iter_character100_to_int32) :: iter
     iter = this%maximum_iter()
-    res = iter%val()
+    res = iter%key()
   end function maximum_btree_character100_to_int32
   !> maximum_iter_btree_character100_to_int32: Return the iterator to node that has maximum key.
   type(btree_node_iter_character100_to_int32) function maximum_iter_btree_character100_to_int32(this) result(res)
@@ -1964,10 +1966,7 @@ contains
     type(btree_node_iter_character100_to_int32) :: bt_iter
     character(100) :: k, k_bef
     integer(int32) :: i
-    if (this%root_%is_leaf()) return
-    do i = 1, this%root_%size() + 1
-       call this%root_%p_%children_(i)%check_invariant()
-    end do
+    if (this%size() == 0) return
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
@@ -1995,6 +1994,10 @@ contains
        end if
        k_bef = k
        call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_character100_to_int32
   pure integer(int32) function size_btree_node_ptr_character100_to_int32(this) result(res)
@@ -2492,11 +2495,11 @@ contains
        call this%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_node_ptr_character100_to_int32
-  pure character(100) function key_btree_node_iter_character100_to_int32(this) result(res)
+  impure character(100) function key_btree_node_iter_character100_to_int32(this) result(res)
     class(btree_node_iter_character100_to_int32), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
   end function key_btree_node_iter_character100_to_int32
-  pure integer(int32) function val_btree_node_iter_character100_to_int32(this) result(res)
+  impure integer(int32) function val_btree_node_iter_character100_to_int32(this) result(res)
     class(btree_node_iter_character100_to_int32), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
   end function val_btree_node_iter_character100_to_int32
@@ -2683,11 +2686,11 @@ contains
     this%size_ = this%size_ - 1
   end subroutine remove_btree_character100_to_int64
   !> minimum_btree_character100_to_int64: Return the minimum value.
-  integer(int64) function minimum_btree_character100_to_int64(this) result(res)
+  character(100) function minimum_btree_character100_to_int64(this) result(res)
     class(btree_character100_to_int64), intent(in) :: this
     type(btree_node_iter_character100_to_int64) :: iter
     iter = this%minimum_iter()
-    res = iter%val()
+    res = iter%key()
   end function minimum_btree_character100_to_int64
   !> minimum_iter_btree_character100_to_int64: Return the iterator to node that has minimum key.
   type(btree_node_iter_character100_to_int64) function minimum_iter_btree_character100_to_int64(this) result(res)
@@ -2698,11 +2701,11 @@ contains
     call res%next()
   end function minimum_iter_btree_character100_to_int64
   !> maximum_btree_character100_to_int64: Return the maximum value.
-  integer(int64) function maximum_btree_character100_to_int64(this) result(res)
+  character(100) function maximum_btree_character100_to_int64(this) result(res)
     class(btree_character100_to_int64), intent(in) :: this
     type(btree_node_iter_character100_to_int64) :: iter
     iter = this%maximum_iter()
-    res = iter%val()
+    res = iter%key()
   end function maximum_btree_character100_to_int64
   !> maximum_iter_btree_character100_to_int64: Return the iterator to node that has maximum key.
   type(btree_node_iter_character100_to_int64) function maximum_iter_btree_character100_to_int64(this) result(res)
@@ -2729,10 +2732,7 @@ contains
     type(btree_node_iter_character100_to_int64) :: bt_iter
     character(100) :: k, k_bef
     integer(int32) :: i
-    if (this%root_%is_leaf()) return
-    do i = 1, this%root_%size() + 1
-       call this%root_%p_%children_(i)%check_invariant()
-    end do
+    if (this%size() == 0) return
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
@@ -2760,6 +2760,10 @@ contains
        end if
        k_bef = k
        call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_character100_to_int64
   pure integer(int32) function size_btree_node_ptr_character100_to_int64(this) result(res)
@@ -3257,11 +3261,11 @@ contains
        call this%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_btree_node_ptr_character100_to_int64
-  pure character(100) function key_btree_node_iter_character100_to_int64(this) result(res)
+  impure character(100) function key_btree_node_iter_character100_to_int64(this) result(res)
     class(btree_node_iter_character100_to_int64), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
   end function key_btree_node_iter_character100_to_int64
-  pure integer(int64) function val_btree_node_iter_character100_to_int64(this) result(res)
+  impure integer(int64) function val_btree_node_iter_character100_to_int64(this) result(res)
     class(btree_node_iter_character100_to_int64), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
   end function val_btree_node_iter_character100_to_int64

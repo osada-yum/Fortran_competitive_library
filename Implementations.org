@@ -5195,11 +5195,11 @@ B木の高さを返す.
 #+name: minimum_btree
 #+begin_src fortran :exports code
   !> minimum_${btree}: Return the minimum value.
-  ${val} function minimum_${btree}(this) result(res)
+  ${key} function minimum_${btree}(this) result(res)
     class(${btree}), intent(in) :: this
     type(${btree_node_iter}) :: iter
     iter = this%minimum_iter()
-    res = iter%val()
+    res = iter%key()
   end function minimum_${btree}
 #+end_src
 ***** minimum_iter
@@ -5219,11 +5219,11 @@ B木の高さを返す.
 #+name: maximum_btree
 #+begin_src fortran :exports code
   !> maximum_${btree}: Return the maximum value.
-  ${val} function maximum_${btree}(this) result(res)
+  ${key} function maximum_${btree}(this) result(res)
     class(${btree}), intent(in) :: this
     type(${btree_node_iter}) :: iter
     iter = this%maximum_iter()
-    res = iter%val()
+    res = iter%key()
   end function maximum_${btree}
 #+end_src
 ***** maximum_iter
@@ -5276,10 +5276,7 @@ B木の不変条件:
     type(${btree_node_iter}) :: bt_iter
     ${key} :: k, k_bef
     integer(int32) :: i
-    if (this%root_%is_leaf()) return
-    do i = 1, this%root_%size() + 1
-       call this%root_%p_%children_(i)%check_invariant()
-    end do
+    if (this%size() == 0) return
     bt_iter = this%minimum_iter()
     k_bef = bt_iter%key()
     call bt_iter%next()
@@ -5307,6 +5304,10 @@ B木の不変条件:
        end if
        k_bef = k
        call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
     end do
   end subroutine check_invariant_${btree}
 #+end_src
@@ -5813,7 +5814,7 @@ B木から `key` を削除する.
 ***** key
 #+name: key_btree_node_ptr
 #+begin_src fortran :exports code
-  pure ${key} function key_${btree_node_iter}(this) result(res)
+  impure ${key} function key_${btree_node_iter}(this) result(res)
     class(${btree_node_iter}), intent(in) :: this
     res = this%nptr_%p_%key_(this%idx_)
   end function key_${btree_node_iter}
@@ -5821,7 +5822,7 @@ B木から `key` を削除する.
 ***** val
 #+name: val_btree_node_iter
 #+begin_src fortran :exports code
-  pure ${val} function val_${btree_node_iter}(this) result(res)
+  impure ${val} function val_${btree_node_iter}(this) result(res)
     class(${btree_node_iter}), intent(in) :: this
     res = this%nptr_%p_%val_(this%idx_)
   end function val_${btree_node_iter}
@@ -6056,7 +6057,7 @@ B木から `key` を削除する.
 <<btree-test>>
 #+end_src
 
-#+RESULTS[fdd7f289d2e41f659485177dc36e82871de468d2]: test-btree
+#+RESULTS[a7886dd625a79f94ce2a5543fe9fbf627bf7da3d]: test-btree
 [[file:btree.log]]
 
 **** testプログラム
@@ -6075,6 +6076,12 @@ B木から `key` を削除する.
     call check_insertion_ascending(n)
     ! write(error_unit, '(a, *(i0, 1x))') "descending insertion: s, h: ", m%size(), m%height()
     call check_insertion_descending(n)
+    call check_deletion_latter_to_former(n)
+    call check_deletion_latter_to_former(n-1)
+    call check_deletion_front_back_in_turn(n)
+    call check_deletion_front_back_in_turn(n-1)
+    call check_deletion_minimum(n)
+    call check_deletion_minimum(n-1)
     call check_insertion_character100()
     ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
     call check_iterator_next(n)
@@ -6084,6 +6091,9 @@ B木から `key` を削除する.
     <<btree-test-check_insertion_random>>
     <<btree-test-check_insertion_ascending>>
     <<btree-test-check_insertion_descending>>
+    <<btree-test-check_deletion_latter_to_former>>
+    <<btree-test-check_deletion_front_back_in_turn>>
+    <<btree-test-check_deletion_minimum>>
     <<btree-test-check_insertion_character100>>
     <<btree-test-check_iterator_next>>
     <<btree-test-check_iterator_prev>>
@@ -6191,6 +6201,116 @@ B木から `key` を削除する.
     call m%check_invariant()
     <<assert-eq(eq1="m%size()", eq2="0", code=24, message="Btree method `remove` are something wrong.")>>
   end subroutine check_insertion_descending
+#+end_src
+**** 要素を後ろ半分を削除して前半分を削除
+#+name: btree-test-check_deletion_latter_to_former
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_deletion_latter_to_former(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=21, message="Btree method `insert` are something wrong.")>>
+    do i = n/2, n
+       call m%remove(i)
+    end do
+    <<assert-eq(eq1="m%size()", eq2="n-(n-n/2+1)", code=22, message="Btree method `remove` are something wrong.")>>
+    do i = 1, n/2-1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="0", code=23, message="Btree method `remove` are something wrong.")>>
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=24, message="Btree method `insert` are something wrong.")>>
+    do i = n, n/2, -1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n-(n-n/2+1)", code=25, message="Btree method `remove` are something wrong.")>>
+    do i = n/2-1, 1, -1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="0", code=26, message="Btree method `remove` are something wrong.")>>
+  end subroutine check_deletion_latter_to_former
+#+end_src
+**** 要素を前と後ろで交互に
+#+name: btree-test-check_deletion_front_back_in_turn
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_deletion_front_back_in_turn(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=21, message="Btree method `insert` are something wrong.")>>
+    do i = 1, (n+1)/2
+       call m%remove(i)
+       if (i == n-i+1) exit
+       call m%remove(n-i+1)
+    end do
+    <<assert-eq(eq1="m%size()", eq2="0", code=22, message="Btree method `remove` are something wrong.")>>
+    call m%check_invariant()
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=24, message="Btree method `insert` are something wrong.")>>
+    do i = 1, (n+1)/2
+       call m%remove(i)
+       if (i == n-i+1) exit
+       call m%remove(n-i+1)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="0", code=26, message="Btree method `remove` are something wrong.")>>
+  end subroutine check_deletion_front_back_in_turn
+#+end_src
+**** minimumの要素を削除
+#+name: btree-test-check_deletion_minimum
+#+begin_src fortran :exports code :noweb no-export
+  subroutine check_deletion_minimum(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: mini
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=21, message="Btree method `insert` are something wrong.")>>
+    do i = 1, n
+       if (m%size() == 0) exit
+       mini = m%minimum()
+       if (i + n/2 >= 29952) then
+          write(error_unit, '(*(i0, 1x))') m%size(), i, mini
+          call m%print(error_unit)
+       end if
+       <<assert(cond="m%contains(mini)", code=19, message="Btree method `remove` or `minimum` are something wrong.")>>
+       call m%remove(mini)
+       <<assert-eq(eq1="mini", eq2="i", code=20, message="Btree method `remove` are something wrong.")>>
+       call m%remove(i+n/2)
+    end do
+    call m%check_invariant()
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    <<assert-eq(eq1="m%size()", eq2="n", code=24, message="Btree method `insert` are something wrong.")>>
+    do i = 1, n
+       if (m%size() == 0) exit
+       mini = m%minimum()
+       <<assert(cond="m%contains(mini)", code=26, message="Btree method `remove` or `minimum` are something wrong.")>>
+       call m%remove(mini)
+       <<assert-eq(eq1="mini", eq2="i", code=25, message="Btree method `remove` are something wrong.")>>
+       call m%remove(i+n/2)
+    end do
+    call m%check_invariant()
+  end subroutine check_deletion_minimum
 #+end_src
 **** character(len=100)を挿入
 #+name: btree-test-check_insertion_character100

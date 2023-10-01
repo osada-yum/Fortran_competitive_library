@@ -11,6 +11,12 @@ program test_btree_m
   call check_insertion_ascending(n)
   ! write(error_unit, '(a, *(i0, 1x))') "descending insertion: s, h: ", m%size(), m%height()
   call check_insertion_descending(n)
+  call check_deletion_latter_to_former(n)
+  call check_deletion_latter_to_former(n-1)
+  call check_deletion_front_back_in_turn(n)
+  call check_deletion_front_back_in_turn(n-1)
+  call check_deletion_minimum(n)
+  call check_deletion_minimum(n-1)
   call check_insertion_character100()
   ! write(error_unit, '(a, *(i0, 1x))') "all done: s, h: ", m%size(), m%height()
   call check_iterator_next(n)
@@ -258,6 +264,336 @@ contains
     end if
     
   end subroutine check_insertion_descending
+  subroutine check_deletion_latter_to_former(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 21
+    end if
+    
+    do i = n/2, n
+       call m%remove(i)
+    end do
+    if (.not. (m%size() == n-(n-n/2+1))) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n-(n-n/2+1)' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n-(n-n/2+1): "
+       write(error_unit, *) n-(n-n/2+1)
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 22
+    end if
+    
+    do i = 1, n/2-1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 23
+    end if
+    
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 24
+    end if
+    
+    do i = n, n/2, -1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n-(n-n/2+1))) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n-(n-n/2+1)' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n-(n-n/2+1): "
+       write(error_unit, *) n-(n-n/2+1)
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 25
+    end if
+    
+    do i = n/2-1, 1, -1
+       call m%remove(i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 26
+    end if
+    
+  end subroutine check_deletion_latter_to_former
+  subroutine check_deletion_front_back_in_turn(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 21
+    end if
+    
+    do i = 1, (n+1)/2
+       call m%remove(i)
+       if (i == n-i+1) exit
+       call m%remove(n-i+1)
+    end do
+    if (.not. (m%size() == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 22
+    end if
+    
+    call m%check_invariant()
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 24
+    end if
+    
+    do i = 1, (n+1)/2
+       call m%remove(i)
+       if (i == n-i+1) exit
+       call m%remove(n-i+1)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == 0)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == 0' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "0: "
+       write(error_unit, *) 0
+       if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+       end if
+       error stop 26
+    end if
+    
+  end subroutine check_deletion_front_back_in_turn
+  subroutine check_deletion_minimum(n)
+    integer(int32), intent(in) :: n
+    integer(int32) :: mini
+    integer(int32) :: i
+    do i = 1, n
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 21
+    end if
+    
+    do i = 1, n
+       if (m%size() == 0) exit
+       mini = m%minimum()
+       if (i + n/2 >= 29952) then
+          write(error_unit, '(*(i0, 1x))') m%size(), i, mini
+          call m%print(error_unit)
+       end if
+       if (.not. (m%contains(mini))) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'm%contains(mini)' must be false."
+          if (len_trim("Btree method `remove` or `minimum` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree method `remove` or `minimum` are something wrong.'"
+          end if
+          error stop 19
+       end if
+       
+       call m%remove(mini)
+       if (.not. (mini == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'mini == i' must be false."
+          write(error_unit, '(a)', advance = "no") "mini: "
+          write(error_unit, *) mini
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+          end if
+          error stop 20
+       end if
+       
+       call m%remove(i+n/2)
+    end do
+    call m%check_invariant()
+    do i = n, 1, -1
+       call m%insert(i, i)
+    end do
+    call m%check_invariant()
+    if (.not. (m%size() == n)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'm%size() == n' must be false."
+       write(error_unit, '(a)', advance = "no") "m%size(): "
+       write(error_unit, *) m%size()
+       write(error_unit, '(a)', advance = "no") "n: "
+       write(error_unit, *) n
+       if (len_trim("Btree method `insert` are something wrong.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'Btree method `insert` are something wrong.'"
+       end if
+       error stop 24
+    end if
+    
+    do i = 1, n
+       if (m%size() == 0) exit
+       mini = m%minimum()
+       if (.not. (m%contains(mini))) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'm%contains(mini)' must be false."
+          if (len_trim("Btree method `remove` or `minimum` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree method `remove` or `minimum` are something wrong.'"
+          end if
+          error stop 26
+       end if
+       
+       call m%remove(mini)
+       if (.not. (mini == i)) then
+          write(error_unit, '(a, i0, a)', advance = "no")&
+               "Error in "//&
+               __FILE__&
+               //":", __LINE__, ":"
+          write(error_unit, '(a)') " Assertion 'mini == i' must be false."
+          write(error_unit, '(a)', advance = "no") "mini: "
+          write(error_unit, *) mini
+          write(error_unit, '(a)', advance = "no") "i: "
+          write(error_unit, *) i
+          if (len_trim("Btree method `remove` are something wrong.") /= 0) then
+             write(error_unit, '(a)') "Extra message: 'Btree method `remove` are something wrong.'"
+          end if
+          error stop 25
+       end if
+       
+       call m%remove(i+n/2)
+    end do
+    call m%check_invariant()
+  end subroutine check_deletion_minimum
   subroutine check_insertion_character100()
     type(btree_character100_to_int32) :: m_c100
     character(len=10), parameter :: cs(*) = ["apple     ", "banana    ", "chocolate ", "donuts    ", "egg       ", "chocobanan"]
