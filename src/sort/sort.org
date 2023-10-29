@@ -1,0 +1,786 @@
+* sorting
+** insertion-sort
+*** base code
+The Fortran code for insertion sort, which is impure subroutine.
+The subroutine =insertion_sort_${suffix}= is generated once or more in the below org source block.
+- =${bash variable}= will be expanded by bash.
+  + =${type}= is the type of =arr(:)=.
+  + =${type_key}= is the type of =key= and is usually the same as =${type}=.
+  + =${suffix}= is the suffix of the name of the subroutine for avoiding name collision.
+  + =${op}= is either src_fortran[:exports code]{<} (ascending order) or src_fortran[:exports code]{>} (descending order) .
+The subroutine =insertion_sort= takes an argument =arr(:)= in {{{src_line(insertion-sort-arr)}}}, sorts it and =arr(:)= was sorted in the end.
+The type of the =key= is usually the same as type of an element in =arr(:)=, but if the type of =arr(:)= is src_fortran[:exports code]{character(len=*)}, =key= must be src_fortran[:exports code]{character(len=:), allocatable}.
+The type of =arr_size, i, j= is src_fortran[:exports code]{integer(int32)}.
+=arr_size= is size of =arr(:)=.
+=i, j= is loop counter.
+If \(size(arr) > 2^{31}-1\), this subroutine goes fail, but in this case, we should use more effective sorting algorithms.
+#+name: insertion-sort-subroutine
+#+begin_src fortran :exports code
+  !> ,insertion_sort_${suffix}: Sort arr in the ${op} order by insertion-sort.
+  !> arguments:
+  !> arr: Array of ${type}.
+  !> In end of subroutine, arr is sorted.
+  !> variables:
+  !> key: ${type_key}, insert key into arr(1:i-1).
+  !> arr_size: integer, size of arr.
+  !> i, j: integer, loop counter.
+  subroutine insertion_sort_${suffix}(arr)
+    $type, intent(inout) :: arr(:) (ref:insertion-sort-arr)
+    $type_key :: key
+    integer(int32) :: arr_size, i, j
+    arr_size = size(arr)
+    do i = 2, arr_size
+       key = arr(i)
+       do j = i-1, 1, -1
+          if (arr(j) $op key) exit
+          arr(j+1) = arr(j)
+       end do
+       arr(j+1) = key
+    end do
+  end subroutine insertion_sort_${suffix}
+#+end_src
+*** process base code by bash
+We want to expand the variables in the above base code by the various types.
+Pass the variables =type=, =type_kind= and =op= by org-babel :var.
+#+name: insertion-sort-subroutine-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  order=""
+  if [ "${op}" = ">" ]; then
+      order="descending_"
+  fi
+  case "${type}" in
+      "character")
+          type_key="character(len=:), allocatable"
+          type="character(len=*)"
+          suffix="${order}character"
+          ;;
+      ,*)
+          type_key="${type}(${type_kind})"
+          type="${type}(${type_kind})"
+          suffix="${order}${type_kind}"
+          ;;
+  esac
+  cat <<EOF
+  <<insertion-sort-subroutine>>
+  EOF
+#+end_src
+*** module
+We want to expand the variables in the above base code by the various types.
+We can pass the arguments to the above org source block.
+So, our insertion sort is the generic subroutine for the array of src_fortran[:exports code]{integer(int32)}, src_fortran[:exports code]{integer(int64)}, src_fortran[:exports code]{real(real32)}, src_fortran[:exports code]{real(real64)}, and src_fortran[:exports code]{character(len=*)}
+This module exports =insertion_sort= and =insertion_sort_descending=.
+#+name: insertion-sort-module
+#+begin_src fortran :exports code :noweb no-export :tangle "src/insertion_sort_m.f90"
+  module insertion_sort_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+
+    public :: insertion_sort, insertion_sort_descending
+    !> ,insertion_sort: Sort arr in ascending order.
+    !> This is generic subroutine for (int32, int64, real32, real64, character).
+    interface insertion_sort
+       module procedure :: insertion_sort_int32, insertion_sort_int64
+       module procedure :: insertion_sort_real32, insertion_sort_real64
+       module procedure :: insertion_sort_character
+    end interface insertion_sort
+    !> ,insertion_sort_descending: Sort arr in descending order.
+    !> This is generic subroutine for (int32, int64, real32, real64, character).
+    interface insertion_sort_descending
+       module procedure :: insertion_sort_descending_int32, insertion_sort_descending_int64
+       module procedure :: insertion_sort_descending_real32, insertion_sort_descending_real64
+       module procedure :: insertion_sort_descending_character
+    end interface insertion_sort_descending
+
+  contains
+
+  !!! Sort an array in the ascending order.
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op="<")>>
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op="<")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real32", op="<")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real64", op="<")>>
+    <<insertion-sort-subroutine-var(type="character", op="<")>>
+  !!! Sort an array in the descending order.
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int32", op=">")>>
+    <<insertion-sort-subroutine-var(type="integer", type_kind="int64", op=">")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real32", op=">")>>
+    <<insertion-sort-subroutine-var(type="real", type_kind="real64", op=">")>>
+    <<insertion-sort-subroutine-var(type="character", op=">")>>
+
+  end module insertion_sort_m
+#+end_src
+*** test
+#+name: insertion-sort-test
+#+begin_src fortran :exports code :tangle "test/test_insertion_sort.f90"
+  program test_insertion_sort
+    use, intrinsic :: iso_fortran_env
+    use is_sorted_m
+    use insertion_sort_m
+    implicit none
+    integer      :: i
+    integer      :: a(6) = [31, 41, 59, 26, 41, 58]
+    real(real64) :: b(100)
+    character(len=42) :: c(5) = ["a    ", "zzz  ", "123  ", "0    ", "     "]
+
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call insertion_sort(a)
+    if (.not. is_sorted(a)) error stop 1
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call random_number(b)
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    call insertion_sort(b)
+    if (.not. is_sorted(b)) error stop 2
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    call insertion_sort(c)
+    if (.not. is_sorted(c)) error stop 3
+  end program test_insertion_sort
+#+end_src
+#+name: test-insertion-sort
+#+begin_src fortran :exports code :results output :noweb no-export :cache yes
+  <<is-sorted-module>>
+  <<insertion-sort-module>>
+  <<insertion-sort-test>>
+#+end_src
+
+#+RESULTS[ab9d1aed9e2a01179cddef3596988bcfb45c23c7]: test-insertion-sort
+
+** selection-sort
+*** base
+#+name: selection-sort
+#+begin_src fortran :exports code
+    integer :: arr_size, mini_index, i, j
+    !> ,selection_sort: Sort arr of some type by selection-sort.
+    !> arguments:
+    !> arr: array of some type.
+    !> variables:
+    !> arr_size: integer, size of arr(:).
+    !> mini_index: integer, index of minimum value in arr(j:arr_size).
+    !> i, j: integer, loop counters.
+    arr_size = size(arr)
+    do j = 1, arr_size
+       mini_index = j
+       do i = j+1, arr_size
+          if (arr(i) < arr(mini_index)) then
+             mini_index = i
+          end if
+       end do
+       call swap(arr(j), arr(mini_index))
+    end do
+#+end_src
+*** module
+#+name: selection-sort-module
+#+begin_src fortran :exports code :noweb no-export :tangle "src/selection_sort_m.f90"
+  module selection_sort_m
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    private
+    public :: selection_sort
+    interface selection_sort
+       module procedure :: selection_sort_int32, selection_sort_int64
+       module procedure :: selection_sort_real32, selection_sort_real64
+    end interface selection_sort
+
+  contains
+
+    subroutine selection_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_int32
+    subroutine selection_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_int64
+    subroutine selection_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_real32
+    subroutine selection_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      <<selection-sort>>
+    end subroutine selection_sort_real64
+
+  end module selection_sort_m
+#+end_src
+*** test
+#+name: selection-sort-test
+#+begin_src fortran :exports code :noweb no-export
+  <<swap-module>>
+  <<selection-sort-module>>
+
+  program test_selection_sort
+    use, intrinsic :: iso_fortran_env
+    use selection_sort_m
+    implicit none
+    ! integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer :: arr(-2:6) = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+    integer :: i
+
+    !    do i = -2, 6
+    !       arr(i) = i
+    !    end do
+
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+    call selection_sort(arr)
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+
+  end program test_selection_sort
+#+end_src
+
+#+RESULTS:
+| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+** bubble-sort
+*** base
+#+name: bubble-sort
+#+begin_src fortran :exports code
+    integer(int32) :: size_arr, i, j
+    !> ,bubble_sort: Sort arr of some type by bubble-sort.
+    !> arguments:
+    !> arr: array of some type.
+    !> variables:
+    !> arr_size: integer, size of arr(:).
+    !> i, j: integer, loop counters.
+    size_arr = size(arr)
+    do i = 1, size_arr
+       do j = size_arr, i+1, -1
+          if (arr(j) < arr(j-1)) then
+             call swap(arr(j), arr(j-1))
+          end if
+       end do
+    end do
+#+end_src
+*** module
+#+name: bubble-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/bubble_sort_m.f90"
+  module bubble_sort_m
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    private
+    public :: bubble_sort
+    interface bubble_sort
+       module procedure :: bubble_sort_int32, bubble_sort_int64
+       module procedure :: bubble_sort_real32, bubble_sort_real64
+    end interface bubble_sort
+
+  contains
+
+    subroutine bubble_sort_int32(arr)
+      integer(int32), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_int32
+    subroutine bubble_sort_int64(arr)
+      integer(int64), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_int64
+    subroutine bubble_sort_real32(arr)
+      real(real32), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_real32
+    subroutine bubble_sort_real64(arr)
+      real(real64), intent(inout) :: arr(:)
+      <<bubble-sort>>
+    end subroutine bubble_sort_real64
+
+  end module bubble_sort_m
+#+end_src
+*** test
+#+name: bubble-sort-test
+#+begin_src fortran :exports code :noweb yes
+  <<swap-module>>
+  <<bubble-sort-module>>
+
+  program test_bubble_sort
+    use, intrinsic :: iso_fortran_env
+    use bubble_sort_m
+    implicit none
+    ! integer :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer :: arr(-2:6) = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+    integer :: i
+
+    !    do i = -2, 6
+    !       arr(i) = i
+    !    end do
+
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+    call bubble_sort(arr)
+    print'(*(i0, " "))', (arr(i), i = lbound(arr, dim = 1), ubound(arr, dim = 1))
+
+  end program test_bubble_sort
+#+end_src
+
+#+RESULTS: bubble-sort-test
+| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+** merge-sort
+*** module
+#+name: merge-sort-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/merge_sort_m.f90"
+  module merge_sort_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: merge_sort, merge_sort_descending
+    <<declaration-merge_sort-var(type_base="integer", type_kind="int32")>>
+    <<declaration-merge_sort-var(type_base="integer", type_kind="int64")>>
+    <<declaration-merge_sort-var(type_base="real", type_kind="real32")>>
+    <<declaration-merge_sort-var(type_base="real", type_kind="real64")>>
+  contains
+    <<procedures-merge_sort-var(type_base="integer", type_kind="int32")>>
+    <<procedures-merge_sort-var(type_base="integer", type_kind="int64")>>
+    <<procedures-merge_sort-var(type_base="real", type_kind="real32")>>
+    <<procedures-merge_sort-var(type_base="real", type_kind="real64")>>
+  end module merge_sort_m
+#+end_src
+*** merge_sort モジュールの宣言
+#+name: declaration-merge_sort
+#+begin_src fortran :exports code
+  interface merge_sort${order}
+     module procedure :: merge_sort_${suffix}
+     module procedure :: merge_sort_with_key_${suffix}
+  end interface merge_sort${order}
+#+end_src
+*** merge_sort 関連の関数
+:PROPERTIES:
+:header-args: :noweb-ref procedures-merge_sort
+:END:
+**** merge_sort
+#+name: merge_sort
+#+begin_src fortran :exports code
+  !> merge_sort_${suffix}: Sort arr(:) by sub function merge_sort_sub_${suffix}.
+  !> arguments:
+  !> arr: array of some type.
+  subroutine merge_sort_${suffix}(arr)
+    ${type}, intent(inout) :: arr(:)
+    call merge_sort_sub_${suffix}(arr, 1, size(arr))
+  end subroutine merge_sort_${suffix}
+#+end_src
+**** COMMENT merge_sort_sentinel
+#+name: merge_sentinel
+#+begin_src fortran :exports code
+  !> merge_sentinel_${suffix}: Algorithm for merge_sort, set sentinel in end of Left and, Right.
+  !> arguments:
+  !> arr: array of some type, (out) arr(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> Left, Right: array of typeof(arr), sorted
+  !> i, j, k: integer, loop counter.
+  subroutine merge_sentinel_${suffix}(arr, p, q, r)
+    ${type}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: p, q, r
+    ${type} :: Left(1:q-p+2), Right(1:r-q+1)
+    integer(int32) :: i, j, k
+    Left(1:q-p+1) = arr(p:q)
+    Right(1:r-q)  = arr(q+1:r)
+    Left(q-p+2)   = huge(arr(p))
+    Right(r-q+1)  = huge(arr(p))
+    i = 1
+    j = 1
+    do k = p, r
+       if (Left(i) ${op} Right(j)) then
+          arr(k) = Left(i)
+          i = i + 1
+       else
+          arr(k) = Right(j)
+          j = j + 1
+       end if
+    end do
+  end subroutine merge_sentinel_${suffix}
+#+end_src
+**** merge
+#+name: merge
+#+begin_src fortran :exports code
+  !> merge: Algorithm for merge_sort, check if left or right is end in each loop.
+  !> arguments:
+  !> arr: array of some type, (out) arr(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> left, right: array of typeof(arr), sorted
+  !> l_max, r_max: integer, max index of left or right.
+  subroutine merge_${suffix}(arr, p, q, r)
+    ${type}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: p, q, r
+    ${type}, allocatable :: left(:), right(:)
+    integer(int32) :: l_max, r_max
+    allocate(left(1:q-p+1), right(1:r-q))
+    l_max = q-p+1
+    r_max = r-q
+    block
+      !> i, j, k: integer, loop counters.
+      integer(int32) :: i, j, k
+      left(1:l_max)  = arr(p:q)
+      right(1:r_max) = arr(q+1:r)
+      i = 1
+      j = 1
+      do k = p, r
+         if (left(i) ${op} right(j)) then
+            arr(k) = left(i)
+            i = i + 1
+            if (i > l_max) then
+               arr(k+1:r) = right(j:)
+               return
+            end if
+         else
+            arr(k) = right(j)
+            j = j + 1
+            if (j > r_max) then
+               arr(k+1:r) = left(i:)
+               return
+            end if
+         end if
+      end do
+    end block
+  end subroutine merge_${suffix}
+#+end_src
+**** merge_sort_sub
+#+name: merge_sort_sub
+#+begin_src fortran :exports code
+  !> merge_sort_sub: Recursive function used by merge_sort.
+  !> arguments:
+  !> arr: array of some type.
+  !> p, r: integer, p is start of arr, r is end of arr.
+  !> variables:
+  !> q: integer, q = floor( (p+q)/2 )
+  recursive subroutine merge_sort_sub_${suffix}(arr, p, r)
+    ${type}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: p, r
+    integer(int32)             :: q
+    if (p < r) then
+       q = (p+r)/2
+       call merge_sort_sub_${suffix}(arr, p, q)
+       call merge_sort_sub_${suffix}(arr, q+1, r)
+       call merge_${suffix}(arr, p, q, r)
+    end if
+  end subroutine merge_sort_sub_${suffix}
+#+end_src
+**** merge_sort_with_key
+#+name: merge_sort_with_key
+#+begin_src fortran :exports code
+  !> merge_sort_with_key_${suffix}: Sort key(:) sub function merge_sort_sub_with_key_${suffix}.
+  !> arguments:
+  !> key: array of some type.
+  !> indices: array of some type.
+  subroutine merge_sort_with_key_${suffix}(key, indices)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    call merge_sort_sub_with_key_${suffix}(key, indices, 1, size(key))
+  end subroutine merge_sort_with_key_${suffix}
+#+end_src
+**** merge_with_key
+#+name: merge_with_key
+#+begin_src fortran :exports code
+  !> merge_with_key: Algorithm for merge_sort, check if left or right is end in each loop.
+  !> arguments:
+  !> indices: array of indices.
+  !> key: array of some type, (out) key(p:r) is sorted.
+  !> p, q, r: integer, indices p is start, r is end, q = floor( (p+q)/2 ).
+  !> variables:
+  !> left, right: array of typeof(indices), sorted
+  !> l_max, r_max: integer, max index of left or right.
+  subroutine merge_with_key_${suffix}(key, indices, p, q, r)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    integer(int32), intent(in) :: p, q, r
+    integer(int32) :: left(1:q-p+1), right(1:r-q)
+    ${type}, allocatable :: left_key(:), right_key(:)
+    integer(int32) :: l_max, r_max
+    allocate(left_key(1:q-p+1), right_key(1:r-q))
+    l_max = q-p+1
+    r_max = r-q
+    block
+      !> i, j, k: integer, loop counters.
+      integer(int32) :: i, j, k
+      left(1:l_max)  = indices(p:q)
+      right(1:r_max) = indices(q+1:r)
+      left_key(1:l_max)  = key(p:q)
+      right_key(1:r_max) = key(q+1:r)
+      i = 1
+      j = 1
+      do k = p, r
+         if (left_key(i) ${op} right_key(j)) then
+            key(k) = left_key(i)
+            indices(k) = left(i)
+            i = i + 1
+            if (i > l_max) then
+               key(k+1:r) = right_key(j:)
+               indices(k+1:r) = right(j:)
+               return
+            end if
+         else
+            key(k) = right_key(j)
+            indices(k) = right(j)
+            j = j + 1
+            if (j > r_max) then
+               key(k+1:r) = left_key(i:)
+               indices(k+1:r) = left(i:)
+               return
+            end if
+         end if
+      end do
+    end block
+  end subroutine merge_with_key_${suffix}
+#+end_src
+**** merge_sort_sub_with_key
+#+name: merge_sort_sub_with_key
+#+begin_src fortran :exports code
+  !> merge_sort_sub_with_key: Recursive function used by merge_sort_with_key.
+  !> arguments:
+  !> indices: array of indices.
+  !> key: array of some type.
+  !> p, r: integer, p is start of arr, r is end of arr.
+  !> variables:
+  !> q: integer, q = floor( (p+q)/2 )
+  recursive subroutine merge_sort_sub_with_key_${suffix}(key, indices, p, r)
+    ${type}, intent(inout) :: key(:)
+    integer(int32), intent(inout) :: indices(:)
+    integer(int32), intent(in) :: p, r
+    integer(int32)             :: q
+    if (p < r) then
+       q = (p+r)/2
+       call merge_sort_sub_with_key_${suffix}(key, indices, p, q)
+       call merge_sort_sub_with_key_${suffix}(key, indices, q+1, r)
+       call merge_with_key_${suffix}(key, indices, p, q, r)
+    end if
+  end subroutine merge_sort_sub_with_key_${suffix}
+#+end_src
+*** merge_sort 関連の変数の展開
+#+name: merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  case "${type_base}" in
+      "character")
+          type="character"
+          suffix="character"
+          ;;
+      "type")
+          type="type(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+      ,*)
+          type="${type_base}(${type_kind})"
+          suffix="${type_kind}"
+          ;;
+  esac
+  case "${op}" in
+      "<=")
+          order=""
+          ;;
+      ">=")
+          order="_descending"
+          ;;
+  esac
+  suffix="${suffix}${order}"
+#+end_src
+#+name: declaration-merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  for op in "<=" ">="
+  do
+  <<merge_sort-var>>
+  cat <<EOF
+  <<declaration-merge_sort>>
+  EOF
+  done
+#+end_src
+#+name: procedures-merge_sort-var
+#+begin_src bash :exports code :var type_base="integer" type_kind="int32" :results output :noweb no-export :cache no :shebang #!/bin/bash
+  for op in "<=" ">="
+  do
+  <<merge_sort-var>>
+  cat <<EOF
+  <<procedures-merge_sort>>
+  EOF
+  done
+#+end_src
+*** test
+**** testコードブロック
+#+begin_src fortran :exports code :results output :cache yes :noweb yes
+  <<merge-sort-module>>
+  <<merge-sort-test>>
+#+end_src
+
+#+RESULTS[3cd73798f56d83385987f46ec62baab859162522]:
+
+**** test本体
+#+name: merge-sort-test
+#+begin_src fortran :exports code :tangle "test/test_merge_sort.f90" :noweb yes
+  program test_merge
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    implicit none
+    integer(int32) :: arr(9) = [8, 3, 1, 9, 5, 4, 2, 7, 6]
+    integer(int32), allocatable :: indices(:)
+    integer(int32) :: i
+
+    indices = [(i, i = 1, 9)]
+    call merge_sort(arr, indices)
+    <<assert(cond="all(arr(:) == [1,2,3,4,5,6,7,8,9])", code=11, message="merge_sort with key is illegal.")>>
+    <<assert(cond="all(indices(:) == [3,7,2,6,5,9,8,1,4])", code=12, message="merge_sort with key is illegal.")>>
+    call merge_sort_descending(arr)
+    <<assert(cond="all(arr(:) == [9,8,7,6,5,4,3,2,1])", code=21, message="merge_sort_descending is illegal.")>>
+    arr(1:9) = [1, 1, 1, 1, 1, 2, 2, 2, 2]
+    indices(:) = [(i, i = 1, 9)]
+    call merge_sort(arr, indices)
+    <<assert(cond="all(arr(:) == [1,1,1,1,1,2,2,2,2])", code=31, message="merge_sort with key is illegal.")>>
+    <<assert(cond="all(indices(:) == [(i, i = 1, 9)])", code=32, message="merge_sort with key is not stable sort.")>>
+  end program test_merge
+#+end_src
+
+** heap-sort(未完成)
+*** base code
+#+name: heap_sort
+#+begin_src fortran :exports code
+  subroutine heap_sort${suffix}(arr)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32) :: size, i
+    size = size(arr)
+    do i = 1, size
+       call shift_up(arr, i)
+    end do
+    do i = size-1, 1, -1
+       call swap(1, arr(i))
+       call shift_down(arr, i)
+    end do
+  end subroutine heap_sort${suffix}
+#+end_src
+#+name: shift_up
+#+begin_src fortran :exports code
+  subroutine shift_up${suffix}(arr, n)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: n
+    integer(int32) :: pos
+    pos = n
+    do
+       if (pos == 1) exit
+       if (arr(pos) > arr(pos/2)) exit
+       call swap(arr(pos), arr(pos/2))
+       pos = pos/2
+    end do
+  end subroutine shift_up${suffix}
+#+end_src
+#+name: shift_down
+#+begin_src fortran :exports code
+  subroutine shift_down${suffix}(arr, n)
+    ${type_arg}, intent(inout) :: arr(:)
+    integer(int32), intent(in) :: n
+    integer(int32) :: pos
+    pos = 1
+    do
+       if (pos*2 > n) exit
+       if (arr(pos*2) > arr(pos)) then
+          pos = pos*2
+          if (pos == n) then
+             call swap(arr(pos), arr(pos/2))
+             exit
+          end if
+          if (arr(pos*2+1) > arr(pos*2)) pos = pos+1
+          call swap(arr(pos), arr(pos/2))
+       end if
+    end do
+  end subroutine shift_down${suffix}
+#+end_src
+*** test
+** radix-sort
+#+name: radix_sort
+#+begin_src fortran :exports code
+  module radix_sort_m
+    use, intrinsic :: iso_fortran_env
+    use unwrapped_vector_m
+    implicit none
+    private
+    integer(int32), parameter :: ten_pow(10) = [1, 10, 10**2, 10**3, 10**4, 10**5, 10**6, 10**7, 10**8, 10**9]
+    public :: radix_sort
+    interface radix_sort
+       module procedure :: radix_sort_int32
+    end interface radix_sort
+  contains
+    subroutine radix_sort_int32(arr, pow_max)
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32), intent(in) :: pow_max
+      integer(int32) :: n, i, p, r, idx
+      integer(int32), allocatable :: arr_tmp(:, :)
+      integer(int32) :: old, next
+      type(unwrapped_vector_int32) :: radix(-9:9)
+      n = size(arr)
+      allocate(arr_tmp(n, 0:1))
+      old = 0
+      arr_tmp(:, old) = arr(:)
+      do p = 0, pow_max
+         next = ieor(old, 1)
+         do r = -9, 9
+            call radix(r)%resize(0)
+         end do
+         do i = 1, n
+            r = mod(arr_tmp(i, old) / ten_pow(p+1), 10)
+            ! write(error_unit, '(*(i0, 1x))') p, i, r
+            call radix(r)%push_back(i)
+         end do
+         idx = 0
+         do r = -9, 9
+            do i = 1, radix(r)%size()
+               idx = idx + 1
+               arr_tmp(idx, next) = arr_tmp(radix(r)%arr_(i), old)
+            end do
+         end do
+         old = next
+      end do
+      arr(:) = arr_tmp(:, old)
+    end subroutine radix_sort_int32
+  end module radix_sort_m
+
+  program radix_sort_test
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    use radix_sort_m
+    implicit none
+    integer(int32), parameter :: p = 3, n = 10**8+1
+    integer(int32) :: i, j
+    integer(int32) :: arr(n), arr2(n), arr_tmp(n)
+    integer(int32) :: t_beg, t_end, count_per_sec, count_max
+    call arr_init_by_rand(arr_tmp, p)
+    ! call arr_init(arr_tmp)
+    arr = arr_tmp
+    write(output_unit, '(a, *(i0, 1x))') "before: ", arr([1, 2, n/2, n-1, n])
+    call system_clock(t_beg, count_per_sec, count_max)
+    call radix_sort(arr, p)
+    call system_clock(t_end)
+    write(output_unit, '(a, g0, a)') "elapsed time: ", real(t_end - t_beg) / count_per_sec, " sec"
+    write(output_unit, '(a, *(i0, 1x))') "after: ", arr([1, 2, n/2, n-1, n])
+
+    arr2 = arr_tmp
+    write(output_unit, '(a, *(i0, 1x))') "before: ", arr2([1, 2, n/2, n-1, n])
+    call system_clock(t_beg)
+    call merge_sort(arr2)
+    call system_clock(t_end)
+    write(output_unit, '(a, g0, a)') "elapsed time: ", real(t_end - t_beg) / count_per_sec, " sec"
+    write(output_unit, '(a, *(i0, 1x))') "after: ", arr2([1, 2, n/2, n-1, n])
+
+    if (.not. all(arr(:) == arr2(:))) then
+       write(error_unit, '(a)') "algorithm error"
+       error stop 2
+    end if
+  contains
+    subroutine arr_init(arr)
+      integer(int32), intent(out) :: arr(:)
+      integer(int32) :: n
+      integer(int32) :: i, j
+      n = size(arr)
+      j = 0
+      do i = n/2, -(n+1)/2+1, -1
+         j = j + 1
+         arr(j) = i
+      end do
+    end subroutine arr_init
+    subroutine arr_init_by_rand(arr, pow_max)
+      integer(int32), intent(out) :: arr(:)
+      integer(int32), intent(in) :: pow_max
+      integer(int32) :: n
+      real(real32), allocatable :: rnds(:)
+      n = size(arr)
+      allocate(rnds(n))
+      call random_number(rnds)
+      arr(:) = int(10**pow_max * rnds) - 10**pow_max/2
+    end subroutine arr_init_by_rand
+  end program radix_sort_test
+#+end_src

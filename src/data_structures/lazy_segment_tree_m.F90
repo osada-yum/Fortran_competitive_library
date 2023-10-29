@@ -7,7 +7,8 @@ module lazy_segment_tree_m
   type :: lazy_segment_tree_int32
      private
      integer(int32) :: num_elems_, arr_size_, tree_size_, depth_, idx_range_left_, idx_range_right_
-     integer(int32), allocatable :: arr_(:), lazy_(:)
+     integer(int32), allocatable :: arr_(:)
+     , allocatable :: lazy_(:)
      logical, allocatable :: is_lazy_(:)
      class(monoid_op_int32), allocatable :: monoid_
    contains
@@ -53,73 +54,14 @@ module lazy_segment_tree_m
      end function bin_op_int32
      pure integer(int32) function mapping_int32(v, c, length) result(res)
        import int32
-       integer(int32), intent(in) :: v, c
+       integer(int32), intent(in) :: v
+       , intent(in) :: c
        integer(4), intent(in) :: length
      end function mapping_int32
      pure integer(int32) function composite_int32(c_first, c_second) result(res)
        import int32
-       integer(int32), intent(in) :: c_first, c_second
+       , intent(in) :: c_first, c_second
      end function composite_int32
-  end interface
-  
-  public :: lazy_segment_tree_int64
-  public :: monoid_op_int64
-  type :: lazy_segment_tree_int64
-     private
-     integer(int32) :: num_elems_, arr_size_, tree_size_, depth_, idx_range_left_, idx_range_right_
-     integer(int64), allocatable :: arr_(:), lazy_(:)
-     logical, allocatable :: is_lazy_(:)
-     class(monoid_op_int64), allocatable :: monoid_
-   contains
-     procedure, pass :: init_lazy_segment_tree_int64
-     procedure, pass :: init_by_arr_lazy_segment_tree_int64
-     generic :: init => &
-          init_lazy_segment_tree_int64, &
-          init_by_arr_lazy_segment_tree_int64
-     procedure, pass :: dump => &
-          dump_lazy_segment_tree_int64
-     procedure, pass :: unsafe_set => &
-          unsafe_set_lazy_segment_tree_int64
-     procedure, pass :: unsafe_bottomup_update => &
-          unsafe_bottomup_update_lazy_segment_tree_int64
-     procedure, pass :: strict_propagate_all => &
-          strict_propagate_all_lazy_segment_tree_int64
-     procedure, pass, private :: strict_propagate_all_sub => &
-          strict_propagate_all_sub_lazy_segment_tree_int64
-     procedure, pass :: update => &
-          update_lazy_segment_tree_int64
-     procedure, pass, private :: update_sub => &
-          update_sub_lazy_segment_tree_int64
-     procedure, pass :: query => &
-          query_lazy_segment_tree_int64
-     procedure, pass, private :: eval_and_propagate => &
-          eval_and_propagate_lazy_segment_tree_int64
-  end type lazy_segment_tree_int64
-  type, abstract :: monoid_op_int64
-     private
-   contains
-     procedure(identity_int64) , nopass, deferred :: identity
-     procedure(bin_op_int64)   , nopass, deferred :: bin_op
-     procedure(mapping_int64)  , nopass, deferred :: mapping
-     procedure(composite_int64), nopass, deferred :: composite
-  end type monoid_op_int64
-  abstract interface
-     pure integer(int64) function identity_int64() result(res)
-       import int64
-     end function identity_int64
-     pure integer(int64) function bin_op_int64(x, y) result(res)
-       import int64
-       integer(int64), intent(in) :: x, y
-     end function bin_op_int64
-     pure integer(int64) function mapping_int64(v, c, length) result(res)
-       import int64
-       integer(int64), intent(in) :: v, c
-       integer(4), intent(in) :: length
-     end function mapping_int64
-     pure integer(int64) function composite_int64(c_first, c_second) result(res)
-       import int64
-       integer(int64), intent(in) :: c_first, c_second
-     end function composite_int64
   end interface
   
   public :: sum_assign_int32_op, sum_add_int32_op, sum_mul_int32_op
@@ -183,6 +125,68 @@ module lazy_segment_tree_m
      procedure, nopass :: mapping   => mapping_max_add_int32_op
      procedure, nopass :: composite => composite_max_add_int32_op
   end type max_add_int32_op
+  
+  public :: lazy_segment_tree_int64
+  public :: monoid_op_int64
+  type :: lazy_segment_tree_int64
+     private
+     integer(int32) :: num_elems_, arr_size_, tree_size_, depth_, idx_range_left_, idx_range_right_
+     integer(int64), allocatable :: arr_(:)
+     , allocatable :: lazy_(:)
+     logical, allocatable :: is_lazy_(:)
+     class(monoid_op_int64), allocatable :: monoid_
+   contains
+     procedure, pass :: init_lazy_segment_tree_int64
+     procedure, pass :: init_by_arr_lazy_segment_tree_int64
+     generic :: init => &
+          init_lazy_segment_tree_int64, &
+          init_by_arr_lazy_segment_tree_int64
+     procedure, pass :: dump => &
+          dump_lazy_segment_tree_int64
+     procedure, pass :: unsafe_set => &
+          unsafe_set_lazy_segment_tree_int64
+     procedure, pass :: unsafe_bottomup_update => &
+          unsafe_bottomup_update_lazy_segment_tree_int64
+     procedure, pass :: strict_propagate_all => &
+          strict_propagate_all_lazy_segment_tree_int64
+     procedure, pass, private :: strict_propagate_all_sub => &
+          strict_propagate_all_sub_lazy_segment_tree_int64
+     procedure, pass :: update => &
+          update_lazy_segment_tree_int64
+     procedure, pass, private :: update_sub => &
+          update_sub_lazy_segment_tree_int64
+     procedure, pass :: query => &
+          query_lazy_segment_tree_int64
+     procedure, pass, private :: eval_and_propagate => &
+          eval_and_propagate_lazy_segment_tree_int64
+  end type lazy_segment_tree_int64
+  type, abstract :: monoid_op_int64
+     private
+   contains
+     procedure(identity_int64) , nopass, deferred :: identity
+     procedure(bin_op_int64)   , nopass, deferred :: bin_op
+     procedure(mapping_int64)  , nopass, deferred :: mapping
+     procedure(composite_int64), nopass, deferred :: composite
+  end type monoid_op_int64
+  abstract interface
+     pure integer(int64) function identity_int64() result(res)
+       import int64
+     end function identity_int64
+     pure integer(int64) function bin_op_int64(x, y) result(res)
+       import int64
+       integer(int64), intent(in) :: x, y
+     end function bin_op_int64
+     pure integer(int64) function mapping_int64(v, c, length) result(res)
+       import int64
+       integer(int64), intent(in) :: v
+       , intent(in) :: c
+       integer(4), intent(in) :: length
+     end function mapping_int64
+     pure integer(int64) function composite_int64(c_first, c_second) result(res)
+       import int64
+       , intent(in) :: c_first, c_second
+     end function composite_int64
+  end interface
   
   public :: sum_assign_int64_op, sum_add_int64_op, sum_mul_int64_op
   public :: min_assign_int64_op, min_add_int64_op
@@ -421,6 +425,93 @@ contains
     end do
   end subroutine dump_lazy_segment_tree_int32
   
+  pure integer(int32) function identity_sum_int32_op() result(res)
+    res = 0_int32
+  end function identity_sum_int32_op
+  pure integer(int32) function bin_op_sum_int32_op(x, y) result(res)
+    integer(int32), intent(in) :: x, y
+    res = x + y
+  end function bin_op_sum_int32_op
+  pure integer(int32) function mapping_sum_assign_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = c * length
+  end function mapping_sum_assign_int32_op
+  pure integer(int32) function composite_sum_assign_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_second
+  end function composite_sum_assign_int32_op
+  pure integer(int32) function mapping_sum_add_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = v + c * length
+  end function mapping_sum_add_int32_op
+  pure integer(int32) function composite_sum_add_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_sum_add_int32_op
+  pure integer(int32) function mapping_sum_mul_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = v * c
+  end function mapping_sum_mul_int32_op
+  pure integer(int32) function composite_sum_mul_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_sum_mul_int32_op
+  
+  pure integer(int32) function identity_min_int32_op() result(res)
+    res = huge(0_int32)
+  end function identity_min_int32_op
+  pure integer(int32) function bin_op_min_int32_op(x, y) result(res)
+    integer(int32), intent(in) :: x, y
+    res = min(x, y)
+  end function bin_op_min_int32_op
+  pure integer(int32) function mapping_min_assign_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = c
+  end function mapping_min_assign_int32_op
+  pure integer(int32) function composite_min_assign_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_second
+  end function composite_min_assign_int32_op
+  pure integer(int32) function mapping_min_add_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = v + c
+  end function mapping_min_add_int32_op
+  pure integer(int32) function composite_min_add_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_min_add_int32_op
+  
+  pure integer(int32) function identity_max_int32_op() result(res)
+    res = -huge(0_int32)-1
+  end function identity_max_int32_op
+  pure integer(int32) function bin_op_max_int32_op(x, y) result(res)
+    integer(int32), intent(in) :: x, y
+    res = max(x, y)
+  end function bin_op_max_int32_op
+  pure integer(int32) function mapping_max_assign_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = c
+  end function mapping_max_assign_int32_op
+  pure integer(int32) function composite_max_assign_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_second
+  end function composite_max_assign_int32_op
+  pure integer(int32) function mapping_max_add_int32_op(v, c, length) result(res)
+    integer(int32), intent(in) :: v, c
+    integer(4), intent(in) :: length
+    res = v + c
+  end function mapping_max_add_int32_op
+  pure integer(int32) function composite_max_add_int32_op(c_first, c_second) result(res)
+    integer(int32), intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_max_add_int32_op
+  
   !> indices rage [1:2^a-1]
   !> init_lazy_segment_tree_int64: Initialize lazy_segment_tree_int64 with  and monoid
   pure subroutine init_lazy_segment_tree_int64(this, num_elems, monoid)
@@ -594,93 +685,6 @@ contains
        write(error_unit, '(g0, ": ", *(L, 1x))') i, this%is_lazy_(2**(i-1):2**i-1)
     end do
   end subroutine dump_lazy_segment_tree_int64
-  
-  pure integer(int32) function identity_sum_int32_op() result(res)
-    res = 0_int32
-  end function identity_sum_int32_op
-  pure integer(int32) function bin_op_sum_int32_op(x, y) result(res)
-    integer(int32), intent(in) :: x, y
-    res = x + y
-  end function bin_op_sum_int32_op
-  pure integer(int32) function mapping_sum_assign_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = c * length
-  end function mapping_sum_assign_int32_op
-  pure integer(int32) function composite_sum_assign_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_second
-  end function composite_sum_assign_int32_op
-  pure integer(int32) function mapping_sum_add_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = v + c * length
-  end function mapping_sum_add_int32_op
-  pure integer(int32) function composite_sum_add_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_first + c_second
-  end function composite_sum_add_int32_op
-  pure integer(int32) function mapping_sum_mul_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = v * c
-  end function mapping_sum_mul_int32_op
-  pure integer(int32) function composite_sum_mul_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_first + c_second
-  end function composite_sum_mul_int32_op
-  
-  pure integer(int32) function identity_min_int32_op() result(res)
-    res = huge(0_int32)
-  end function identity_min_int32_op
-  pure integer(int32) function bin_op_min_int32_op(x, y) result(res)
-    integer(int32), intent(in) :: x, y
-    res = min(x, y)
-  end function bin_op_min_int32_op
-  pure integer(int32) function mapping_min_assign_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = c
-  end function mapping_min_assign_int32_op
-  pure integer(int32) function composite_min_assign_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_second
-  end function composite_min_assign_int32_op
-  pure integer(int32) function mapping_min_add_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = v + c
-  end function mapping_min_add_int32_op
-  pure integer(int32) function composite_min_add_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_first + c_second
-  end function composite_min_add_int32_op
-  
-  pure integer(int32) function identity_max_int32_op() result(res)
-    res = -huge(0_int32)-1
-  end function identity_max_int32_op
-  pure integer(int32) function bin_op_max_int32_op(x, y) result(res)
-    integer(int32), intent(in) :: x, y
-    res = max(x, y)
-  end function bin_op_max_int32_op
-  pure integer(int32) function mapping_max_assign_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = c
-  end function mapping_max_assign_int32_op
-  pure integer(int32) function composite_max_assign_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_second
-  end function composite_max_assign_int32_op
-  pure integer(int32) function mapping_max_add_int32_op(v, c, length) result(res)
-    integer(int32), intent(in) :: v, c
-    integer(4), intent(in) :: length
-    res = v + c
-  end function mapping_max_add_int32_op
-  pure integer(int32) function composite_max_add_int32_op(c_first, c_second) result(res)
-    integer(int32), intent(in) :: c_first, c_second
-    res = c_first + c_second
-  end function composite_max_add_int32_op
   
   pure integer(int64) function identity_sum_int64_op() result(res)
     res = 0_int64

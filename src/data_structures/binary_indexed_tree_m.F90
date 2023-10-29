@@ -82,10 +82,7 @@ contains
     integer(int32), intent(in) :: n
     !> Error exist if already allocated.
     if (allocated(this%arr_)) then
-       write(error_unit, '(a, i0, a)', advance = "no")&
-            "Error in "//&
-            __FILE__&
-            //":", __LINE__, ":"
+       
          write(error_unit, '(a)')&
            "This binary_indexed_tree_int32 is already allocated."
          error stop 1
@@ -198,10 +195,7 @@ contains
     integer(int32), intent(in) :: n
     !> Error exist if already allocated.
     if (allocated(this%arr_)) then
-       write(error_unit, '(a, i0, a)', advance = "no")&
-            "Error in "//&
-            __FILE__&
-            //":", __LINE__, ":"
+       
          write(error_unit, '(a)')&
            "This binary_indexed_tree_int64 is already allocated."
          error stop 1
@@ -314,10 +308,7 @@ contains
     integer(int32), intent(in) :: n
     !> Error exist if already allocated.
     if (allocated(this%arr_)) then
-       write(error_unit, '(a, i0, a)', advance = "no")&
-            "Error in "//&
-            __FILE__&
-            //":", __LINE__, ":"
+       
          write(error_unit, '(a)')&
            "This binary_indexed_tree_real32 is already allocated."
          error stop 1
@@ -430,10 +421,7 @@ contains
     integer(int32), intent(in) :: n
     !> Error exist if already allocated.
     if (allocated(this%arr_)) then
-       write(error_unit, '(a, i0, a)', advance = "no")&
-            "Error in "//&
-            __FILE__&
-            //":", __LINE__, ":"
+       
          write(error_unit, '(a)')&
            "This binary_indexed_tree_real64 is already allocated."
          error stop 1

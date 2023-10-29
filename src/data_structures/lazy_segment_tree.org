@@ -88,7 +88,7 @@
 :END:
 **** メソッド
 ***** initializer
-#+begin_src fortran :exports code
+#+begin_src fortran :exports code :noweb no-export
   !> indices rage [1:2^a-1]
   !> init_${lazy_segment_tree}: Initialize ${lazy_segment_tree} with `num_elems` and monoid
   pure subroutine init_${lazy_segment_tree}(this, num_elems, monoid)

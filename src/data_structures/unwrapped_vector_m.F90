@@ -9,8 +9,10 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_int32
-     procedure, pass :: push_back_unwrapped_vector_int32, push_back_array_unwrapped_vector_int32
-     generic         :: push_back => push_back_unwrapped_vector_int32, push_back_array_unwrapped_vector_int32
+     procedure, pass :: push_back_unwrapped_vector_int32, &
+          push_back_array_unwrapped_vector_int32
+     generic         :: push_back => push_back_unwrapped_vector_int32, &
+          push_back_array_unwrapped_vector_int32
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_int32
      procedure, pass :: back      => back_unwrapped_vector_int32
      procedure, pass :: size      => size_unwrapped_vector_int32
@@ -30,8 +32,10 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_int64
-     procedure, pass :: push_back_unwrapped_vector_int64, push_back_array_unwrapped_vector_int64
-     generic         :: push_back => push_back_unwrapped_vector_int64, push_back_array_unwrapped_vector_int64
+     procedure, pass :: push_back_unwrapped_vector_int64, &
+          push_back_array_unwrapped_vector_int64
+     generic         :: push_back => push_back_unwrapped_vector_int64, &
+          push_back_array_unwrapped_vector_int64
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_int64
      procedure, pass :: back      => back_unwrapped_vector_int64
      procedure, pass :: size      => size_unwrapped_vector_int64
@@ -51,8 +55,10 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_real32
-     procedure, pass :: push_back_unwrapped_vector_real32, push_back_array_unwrapped_vector_real32
-     generic         :: push_back => push_back_unwrapped_vector_real32, push_back_array_unwrapped_vector_real32
+     procedure, pass :: push_back_unwrapped_vector_real32, &
+          push_back_array_unwrapped_vector_real32
+     generic         :: push_back => push_back_unwrapped_vector_real32, &
+          push_back_array_unwrapped_vector_real32
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_real32
      procedure, pass :: back      => back_unwrapped_vector_real32
      procedure, pass :: size      => size_unwrapped_vector_real32
@@ -72,8 +78,10 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_real64
-     procedure, pass :: push_back_unwrapped_vector_real64, push_back_array_unwrapped_vector_real64
-     generic         :: push_back => push_back_unwrapped_vector_real64, push_back_array_unwrapped_vector_real64
+     procedure, pass :: push_back_unwrapped_vector_real64, &
+          push_back_array_unwrapped_vector_real64
+     generic         :: push_back => push_back_unwrapped_vector_real64, &
+          push_back_array_unwrapped_vector_real64
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_real64
      procedure, pass :: back      => back_unwrapped_vector_real64
      procedure, pass :: size      => size_unwrapped_vector_real64
@@ -93,8 +101,10 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_character
-     procedure, pass :: push_back_unwrapped_vector_character, push_back_array_unwrapped_vector_character
-     generic         :: push_back => push_back_unwrapped_vector_character, push_back_array_unwrapped_vector_character
+     procedure, pass :: push_back_unwrapped_vector_character, &
+          push_back_array_unwrapped_vector_character
+     generic         :: push_back => push_back_unwrapped_vector_character, &
+          push_back_array_unwrapped_vector_character
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_character
      procedure, pass :: back      => back_unwrapped_vector_character
      procedure, pass :: size      => size_unwrapped_vector_character

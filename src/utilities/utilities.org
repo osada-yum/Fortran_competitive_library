@@ -1,0 +1,410 @@
+* utilities
+もしかして要らない?
+** swap
+*** base code
+We write a swap subroutine by ~Fortran~.
+This takes two variables and swaps values of them.
+So, this is impure.
+We can expand ~bash~ variables that are expressed by =${variable}=, so decide the type of variables later src block.
+- Let us explain ~bash~ variables.
+  + =${type_arg}= is the type of =i, j=.
+  + =${type_tmp}= is the type of =tmp= and is usually the same as =${type_arg}=.
+    If =${type_arg}= is src_fortran[:exports code]{character(len=*)}, =${type_tmp}= must be src_fortran[:exports code]{character(len=:), allocatable}.
+  + =${suffix}= is the suffix of name of subroutine for generic.
+This is the whole subroutine.
+The algorithm of the swap is [[cref:swap-subroutine-body]].
+#+name: swap-subroutine
+#+begin_src fortran :exports code :noweb no-export
+  subroutine swap_${suffix}(i, j)
+    ${type_arg}, intent(inout) :: i, j
+    ${type_tmp} :: tmp
+    <<swap-subroutine-body>>
+  end subroutine swap_${suffix}
+#+end_src
+The algorithm of the swap is simple.
+We store the =i= in =tmp=, substitute =j= into =i= and =tmp= into =j=.
+#+name: swap-subroutine-body
+#+begin_src fortran :exports code
+  tmp = i
+  i   = j
+  j   = tmp
+#+end_src
+*** process base code by bash
+#+name: swap-subroutine-var
+#+begin_src bash :exports code :var type_arg="integer" type_kind="int32" :results output :noweb no-export
+  case "${type_arg}" in
+      "character")
+          suffix="character"
+          type_tmp="character(len=max(len(i), len(j)))"
+          type_arg="character(len=*)"
+          ;;
+      ,*)
+          suffix="${type_kind}"
+          type_tmp="${type_arg}(${type_kind})"
+          type_arg="${type_tmp}"
+          ;;
+  esac
+  cat <<EOF
+  <<swap-subroutine>>
+  EOF
+#+end_src
+*** module
+#+name: swap-module
+#+begin_src fortran :exports code :noweb no-export :tangle "src/swap_m.f90"
+  module swap_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: swap
+    !> ,swap: swap the two elements in the array.
+    !> This is generic function for (int32, int64, real32, real64, character).
+    interface swap
+       module procedure :: swap_int32, swap_int64
+       module procedure :: swap_real32, swap_real64
+       module procedure :: swap_character
+    end interface swap
+
+  contains
+
+    <<swap-subroutine-var(type_arg="integer", type_kind="int32")>>
+    <<swap-subroutine-var(type_arg="integer", type_kind="int64")>>
+    <<swap-subroutine-var(type_arg="real", type_kind="real32")>>
+    <<swap-subroutine-var(type_arg="real", type_kind="real64")>>
+    <<swap-subroutine-var(type_arg="character")>>
+
+  end module swap_m
+#+end_src
+*** test
+#+name: swap-test
+#+begin_src fortran :exports code :tangle "test/test_swap.f90"
+  program test_swap
+    use, intrinsic :: iso_fortran_env
+    use swap_m
+    implicit none
+    integer      :: i
+    integer      :: a(6) = [1, 2, 3, 4, 5, 6], a_init(6)
+    integer      :: tmp_i
+    real(real64) :: b(6), b_first(6)
+    real(real64) :: epsilon = 1d-6
+    character(len=3) :: strs(4) = [character(len=3)::"hi", "hoi", "hey", "hui"], strs_init(4)
+
+    a_init(:) = a(:)
+    call swap(a(1), a(1))
+    if (sum(a_init - a) /= 0) then
+       error stop 1
+    end if
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    call swap(a(2), a(1))
+    ! print'(*(i0, " "))', (a(i), i = 1, size(a))
+    if (a_init(2) /= a(1) .or. a_init(1) /= a(2)) then
+       error stop 2
+    end if
+
+    call random_number(b)
+    b_first(:) = b(:)
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    call swap(b(3), b(4))
+    ! print'(*(f5.3, " "))', (b(i), i = 1, size(b))
+    if (abs(b_first(4) - b(3)) > epsilon .or. abs(b_first(3) - b(4)) > epsilon) then
+       error stop 3
+    end if
+
+    strs_init = strs
+    ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+    call swap(strs(4), strs(1))
+    ! print'(4(a, ", "))', (strs(i), i = 1, size(strs))
+    if (strs_init(4) /= strs(1) .or. strs_init(1) /= strs(4)) then
+       error stop 4
+    end if
+
+  end program test_swap
+#+end_src
+#+name: test-swap
+#+begin_src fortran :exports code :results output :noweb no-export :cache yes
+  <<swap-module>>
+  <<swap-test>>
+#+end_src
+
+#+RESULTS[812b722e6fbca1b993444bade70915aaa90f1da8]: test-swap
+
+** is-sorted
+*** base
+#+name: is-sorted-function
+#+begin_src fortran :exports code
+  !> ,is_sorted: Check arr is sorted in the ${op} order.
+  !> arguments:
+  !> arr: array of ${type}.
+  !> return:
+  !> ${res}: logical, .true. if arr is sorted.
+  !> variables:
+  !> i: integer, loop counter.
+  pure logical function is_sorted_${suffix}(arr) result(${res})
+    ${type}, intent(in) :: arr(:)
+    integer(int32) :: i
+    ${res} = .true.
+    do i = 1, size(arr)-1
+       if (.not. (arr(i) ${op} arr(i+1))) then
+          ${res} = .false.
+          return
+       end if
+    end do
+  end function is_sorted_${suffix}
+#+end_src
+#+name: is-sorted-function-var
+#+begin_src bash :exports code :var type="integer" type_kind="int32" op="<=" :results output :noweb yes
+  order=""
+  if [ "${op}" = ">=" ]; then
+      order="descending_"
+  fi
+  case "${type}" in
+      "character")
+          type="${type}(len=*)"
+          suffix="${order}character"
+      ;;
+      ,*)
+          type="${type}(${type_kind})"
+          suffix="${order}${type_kind}"
+      ;;
+  esac
+  res="sorted"
+  cat <<EOF
+  <<is-sorted-function>>
+  EOF
+#+end_src
+*** module
+#+name: is-sorted-module
+#+begin_src fortran :exports code :noweb yes :tangle "src/is_sorted_m.f90"
+  module is_sorted_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: is_sorted, is_sorted_descending
+    !> ,is_sorted: Check arr is sorted and return logical value.
+    !> This is generic function for (int32, int64, real32, real64, character).
+    interface is_sorted
+       module procedure :: is_sorted_int32, is_sorted_int64
+       module procedure :: is_sorted_real32, is_sorted_real64
+       module procedure :: is_sorted_character
+    end interface is_sorted
+    interface is_sorted_descending
+       module procedure :: is_sorted_descending_int32, is_sorted_descending_int64
+       module procedure :: is_sorted_descending_real32, is_sorted_descending_real64
+       module procedure :: is_sorted_descending_character
+    end interface is_sorted_descending
+
+  contains
+
+  !!! Check an array is sorted in the ascending order.
+    <<is-sorted-function-var(type="integer", type_kind="int32", op="<=")>>
+    <<is-sorted-function-var(type="integer", type_kind="int64", op="<=")>>
+    <<is-sorted-function-var(type="real", type_kind="real32", op="<=")>>
+    <<is-sorted-function-var(type="real", type_kind="real64", op="<=")>>
+    <<is-sorted-function-var(type="character", op="<=")>>
+  !!! Check an array is sorted in the descending order.
+    <<is-sorted-function-var(type="integer", type_kind="int32", op=">=")>>
+    <<is-sorted-function-var(type="integer", type_kind="int64", op=">=")>>
+    <<is-sorted-function-var(type="real", type_kind="real32", op=">=")>>
+    <<is-sorted-function-var(type="real", type_kind="real64", op=">=")>>
+    <<is-sorted-function-var(type="character", op=">=")>>
+
+  end module is_sorted_m
+#+end_src
+*** test
+#+name: is-sorted-test
+#+begin_src fortran :exports code :tangle "test/test_is_sorted.f90"
+  program is_sorted_test
+    use, intrinsic :: iso_fortran_env
+    use is_sorted_m
+    use merge_sort_m
+    implicit none
+    integer(int64)    :: sorted_arr(4) = [1_int64, 10_int64, 10_int64, 100_int64]
+    real(real32)      :: arr(10)
+    character(len=10) :: strings(5) = [character(len=10) :: "apple", "apple", "banana", "brain", "brought"]
+    if (.not. is_sorted(sorted_arr)) then
+       error stop 1
+    end if
+    call random_number(arr)
+    call merge_sort(arr)
+    if (.not. is_sorted(arr)) then
+       error stop 2
+    end if
+    if (.not. is_sorted(strings)) then
+       error stop 3
+    end if
+  end program is_sorted_test
+#+end_src
+#+name: test-is-sorted
+#+begin_src fortran :exports code :results output :cache yes :noweb yes
+  <<is-sorted-module>>
+  <<merge-sort-module>>
+  <<is-sorted-test>>
+#+end_src
+
+#+RESULTS[e4ae4f05814e3cf4effe1357e4c9e1b426a73143]: test-is-sorted
+
+** compress coordinate class
+*** base
+*** module
+#+begin_src fortran :exports code :results output :cache yes
+  module compress_m
+    use, intrinsic :: iso_fortran_env
+    use merge_sort_m
+    use binary_search_m
+    implicit none
+    private
+    public :: compress
+    type :: compress
+       integer(int32) :: size_, ub_
+       integer(int32), allocatable :: sorted_(:)
+     contains
+       procedure, pass :: init       => init_compress
+       procedure, pass :: compress   => compress_compress
+       procedure, pass :: decompress => decompress_compress
+    end type compress
+  contains
+    subroutine init_compress(this, arr)
+      class(compress), intent(inout) :: this
+      integer(int32), intent(inout) :: arr(:)
+      integer(int32), allocatable :: tmp(:)
+      integer(int32) :: i
+      this%size_ = size(arr)
+      allocate(this%sorted_(this%size_), tmp(this%size_))
+      this%sorted_ = arr
+      call merge_sort(this%sorted_)
+
+      i = 1
+      this%ub_ = 0
+      unique:do
+         if (i == this%size_) then
+            this%ub_ = this%ub_ + 1
+            this%sorted_(this%ub_) = this%sorted_(i)
+            exit
+         end if
+         if (this%sorted_(i) == this%sorted_(i+1)) then
+            i = i + 1
+            cycle
+         end if
+         this%ub_ = this%ub_ + 1
+         this%sorted_(this%ub_) = this%sorted_(i)
+         i = i + 1
+      end do unique
+      do i = 1, this%size_
+         tmp(i) = binary_search(arr(i), this%sorted_, 1, this%ub_)
+      end do
+      arr = tmp
+    end subroutine init_compress
+    impure elemental integer(int32) function compress_compress(this, v)
+      class(compress), intent(in) :: this
+      integer(int32), intent(in) :: v
+      compress_compress = binary_search(v, this%sorted_, 1, this%ub_)
+      if (compress_compress < 1) then
+         write(error_unit, '(a)') "Error in compress."
+         error stop 2
+      end if
+    end function compress_compress
+    impure elemental integer(int32) function decompress_compress(this, v, ierr)
+      class(compress), intent(in) :: this
+      integer(int32), intent(in) :: v
+      integer(int32), optional, intent(out) :: ierr
+      ierr = 0
+      if (v < 1 .or. v > size(this%sorted_)) then
+         if (present(ierr)) ierr = 1
+         return
+      end if
+      decompress_compress = this%sorted_(v)
+    end function decompress_compress
+  end module compress_m
+#+end_src
+** extend euclid
+#+begin_src fortran :exports code
+  module extend_euclid_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    public :: extend_euclid
+  contains
+    subroutine extend_euclid(a, b, g, x, y)
+      integer(int32), intent(in)  :: a, b
+      integer(int32), intent(out) :: g, x, y
+      integer(int32) :: q, old, next
+      integer(int32) :: zs(0:1), xs(0:1), ys(0:1)
+      zs(0) = a; zs(1) = b
+      xs(0) = 1; xs(1) = 0
+      ys(0) = 0; ys(1) = 1
+      old = 1
+      do
+         next = ieor(old, 1)
+         if (zs(old) == 0) exit
+         q = zs(next) / zs(old)
+         zs(next) = zs(next) - q*zs(old)
+         xs(next) = xs(next) - q*xs(old)
+         ys(next) = ys(next) - q*ys(old)
+         ! write(error_unit, '(*(i0, 1x))') zs(next), q, xs(next), ys(next)
+         old = next
+      end do
+      x = xs(next)
+      y = ys(next)
+      g = a*x + b*y
+    end subroutine extend_euclid
+  end module extend_euclid_m
+#+end_src
+** polymorphic class(*)
+Fortran has polymorphic type =class(*)=.
+We can store any values in a variable of =class(*) :: var= and extract value from it by =select type= statement.
+*** test
+#+begin_src fortran :exports code :results output :cache yes
+  module polymorphic_class_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    ! interface operator(.as.)
+    !    module procedure :: class_to_int32
+    !    module procedure :: class_to_real32
+    ! end interface operator(.as.)
+
+  contains
+    pure integer(int32) function class_to_int32(v)
+      class(*), intent(in) :: v
+      select type(v)
+      type is(integer(int32))
+         class_to_int32 = v
+      class default
+         error stop 2
+      end select
+    end function class_to_int32
+
+    pure integer(int32) function class_to_int32_dash(v, n)
+      class(*), intent(in) :: v
+      integer(int32), intent(in) :: n
+      select type(v)
+      type is(integer(int32))
+         class_to_int32_dash = v
+      class default
+         error stop 2
+      end select
+    end function class_to_int32_dash
+    pure real(real32) function class_to_real32(v, x)
+      class(*), intent(in) :: v
+      real(real32), intent(in) :: x
+      select type(v)
+      type is(real(real32))
+         class_to_real32 = v
+      class default
+         error stop 3
+      end select
+    end function class_to_real32
+  end module polymorphic_class_m
+
+  program test_polymorphic_class
+    use, intrinsic :: iso_fortran_env
+    use polymorphic_class_m
+    implicit none
+    class(*), pointer :: val
+    allocate(val, source = 3)
+    ! print*, val .as. 0.0_real32
+    print*, class_to_int32(val)
+    ! print*, val .as. 0_int32
+  end program test_polymorphic_class
+#+end_src
+
+#+RESULTS[06aefb575a0f3b072e691d7711c5d7cce0c69e5c]:
+: 3

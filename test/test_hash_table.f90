@@ -1,4 +1,4 @@
-! [[file:../Implementations.org::hash_table-test][hash_table-test]]
+! [[file:../src/data_structures/hash_table.org::hash_table-test][hash_table-test]]
 program test_hash_table
   use, intrinsic :: iso_fortran_env
   use hash_table_m
