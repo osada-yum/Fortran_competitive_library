@@ -103,4 +103,47 @@ program test_unwrapped_vector
      end if
      
   end do
+  block
+    type(unwrapped_vector_int32) :: v3
+    integer(int32) :: arr(5)
+    arr(:) = [(i, i = 1, size(arr))]
+    arr(4) = 3
+    call v3%push_back(arr)
+    if (.not. (all(v3%arr_(1:v3%size()) == arr(:)))) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'all(v3%arr_(1:v3%size()) == arr(:))' must be false."
+       if (len_trim("push_back_arr for `v3` is illegal.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'push_back_arr for `v3` is illegal.'"
+       end if
+       error stop 24
+    end if
+    
+    if (.not. (v3%lower_bound(arr(3)) == 3)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'v3%lower_bound(arr(3)) == 3' must be false."
+       if (len_trim("lower_bound for `v3` is illegal.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'lower_bound for `v3` is illegal.'"
+       end if
+       error stop 25
+    end if
+    
+    if (.not. (v3%upper_bound(arr(3)) == 5)) then
+       write(error_unit, '(a, i0, a)', advance = "no")&
+            "Error in "//&
+            __FILE__&
+            //":", __LINE__, ":"
+       write(error_unit, '(a)') " Assertion 'v3%upper_bound(arr(3)) == 5' must be false."
+       if (len_trim("upper_bound for `v3` is illegal.") /= 0) then
+          write(error_unit, '(a)') "Extra message: 'upper_bound for `v3` is illegal.'"
+       end if
+       error stop 26
+    end if
+    
+  end block
 end program test_unwrapped_vector

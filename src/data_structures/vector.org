@@ -45,9 +45,10 @@ Variables like ${variable} are expanded by bash.
           push_back_array_${uwvec}
      procedure, pass :: pop_back  => pop_back_${uwvec}
      procedure, pass :: back      => back_${uwvec}
-     procedure, pass :: size      => size_${uwvec}
-     procedure, pass :: resize    => resize_${uwvec}
+     procedure, pass :: size   => size_${uwvec}
+     procedure, pass :: resize => resize_${uwvec}
      procedure, pass :: lower_bound => lower_bound_${uwvec}
+     procedure, pass :: upper_bound => upper_bound_${uwvec}
   end type ${uwvec}
   interface ${uwvec}
      module procedure :: construct_${uwvec}_by_size, &
@@ -206,28 +207,29 @@ Variables like ${variable} are expanded by bash.
 =function lower_bound= returns the minimum index that is higher than or equal to `val`.
 #+name: lower_bonud-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
-  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to `val`.
-  integer(int32) function lower_bound_${uwvec}(this, val)
+  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_${uwvec}(this, val) result(res)
     class(${uwvec}), intent(in) :: this
     ${type}, intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_${uwvec} = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_${uwvec} = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    <<../search/search.org:lower_bound_some_type_of_arr(type="${type}", purity="pure")>>
   end function lower_bound_${uwvec}
+#+end_src
+***** upper_bound
+=function upper_bound= returns the minimum index that is higher than to `val`.
+#+name: upper_bonud-unwrapped_vector
+#+begin_src fortran :exports code :noweb no-export
+  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_${uwvec}(this, val) result(res)
+    class(${uwvec}), intent(in) :: this
+    ${type}, intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    <<../search/search.org:upper_bound_some_type_of_arr(type="${type}", purity="pure")>>
+  end function upper_bound_${uwvec}
 #+end_src
 **** process definition and procedures of the vector
 #+name: unwrapped_vector-var
@@ -263,6 +265,16 @@ Variables like ${variable} are expanded by bash.
   EOF
 #+end_src
 **** test
+***** test実行
+#+name: test-unwrapped_vector
+#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
+<<unwrapped_vector-module>>
+<<unwrapped_vector-test>>
+#+end_src
+
+#+RESULTS[90824bd90ade5897171f2351b869dd3ec6669d58]: test-unwrapped_vector
+
+***** test本体
 #+name: unwrapped_vector-test
 #+begin_src fortran :exports code :tangle "../../test/test_unwrapped_vector.F90" :noweb no-export
   program test_unwrapped_vector
@@ -308,19 +320,14 @@ Variables like ${variable} are expanded by bash.
       type(unwrapped_vector_int32) :: v3
       integer(int32) :: arr(5)
       arr(:) = [(i, i = 1, size(arr))]
+      arr(4) = 3
       call v3%push_back(arr)
       <<../Implementations.org:assert(cond="all(v3%arr_(1:v3%size()) == arr(:))", code=24, message="push_back_arr for `v3` is illegal.")>>
+      <<../Implementations.org:assert(cond="v3%lower_bound(arr(3)) == 3", code=25, message="lower_bound for `v3` is illegal.")>>
+      <<../Implementations.org:assert(cond="v3%upper_bound(arr(3)) == 5", code=26, message="upper_bound for `v3` is illegal.")>>
     end block
   end program test_unwrapped_vector
 #+end_src
-#+name: test-unwrapped_vector
-#+begin_src fortran :flags "-cpp -g -fbacktrace -fcheck=bounds" :exports code :results output :noweb no-export :cache yes
-<<unwrapped_vector-module>>
-<<unwrapped_vector-test>>
-#+end_src
-
-#+RESULTS[f4d58e4595aecbf77553fdd0fd7c8ef6c1f77d67]: test-unwrapped_vector
-
 *** COMMENT wrapped Vector
 **** whole module of the vector
 #+name: vector-module
@@ -539,7 +546,7 @@ Variables like ${variable} are expanded by bash.
 =function at= return the element that locate at `i` of the vector.
 #+name: at-vector
 #+begin_src fortran :exports code :noweb no-export
-  !> at_vector_${suffix}: Return the element that locate at `i` of the vector.
+  !> at_vector_${suffix}: Return the element that locate at 'i' of the vector.
   ${type} function at_vector_${suffix}(this, i, ierr)
     class(vector_${suffix}), intent(in) :: this
     integer(int32), intent(in) :: i
@@ -568,7 +575,7 @@ Variables like ${variable} are expanded by bash.
 =function lower_bound= returns the minimum index that is higher than or equal to `val`.
 #+name: lower_bonud-vector
 #+begin_src fortran :exports code :noweb no-export
-  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to `val`.
+  !> lower_bound_vector_${suffix}: Return the minimum index that is higher than or equal to 'val'.
   integer(int32) function lower_bound_vector_${suffix}(this, val)
     class(vector_${suffix}), intent(in) :: this
     ${type}, intent(in) :: val

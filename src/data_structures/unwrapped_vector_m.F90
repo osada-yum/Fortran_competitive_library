@@ -9,15 +9,17 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_int32
+     procedure, pass :: with_capacity => with_capacity_unwrapped_vector_int32
      procedure, pass :: push_back_unwrapped_vector_int32, &
           push_back_array_unwrapped_vector_int32
      generic         :: push_back => push_back_unwrapped_vector_int32, &
           push_back_array_unwrapped_vector_int32
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_int32
      procedure, pass :: back      => back_unwrapped_vector_int32
-     procedure, pass :: size      => size_unwrapped_vector_int32
-     procedure, pass :: resize    => resize_unwrapped_vector_int32
+     procedure, pass :: size   => size_unwrapped_vector_int32
+     procedure, pass :: resize => resize_unwrapped_vector_int32
      procedure, pass :: lower_bound => lower_bound_unwrapped_vector_int32
+     procedure, pass :: upper_bound => upper_bound_unwrapped_vector_int32
   end type unwrapped_vector_int32
   interface unwrapped_vector_int32
      module procedure :: construct_unwrapped_vector_int32_by_size, &
@@ -32,15 +34,17 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_int64
+     procedure, pass :: with_capacity => with_capacity_unwrapped_vector_int64
      procedure, pass :: push_back_unwrapped_vector_int64, &
           push_back_array_unwrapped_vector_int64
      generic         :: push_back => push_back_unwrapped_vector_int64, &
           push_back_array_unwrapped_vector_int64
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_int64
      procedure, pass :: back      => back_unwrapped_vector_int64
-     procedure, pass :: size      => size_unwrapped_vector_int64
-     procedure, pass :: resize    => resize_unwrapped_vector_int64
+     procedure, pass :: size   => size_unwrapped_vector_int64
+     procedure, pass :: resize => resize_unwrapped_vector_int64
      procedure, pass :: lower_bound => lower_bound_unwrapped_vector_int64
+     procedure, pass :: upper_bound => upper_bound_unwrapped_vector_int64
   end type unwrapped_vector_int64
   interface unwrapped_vector_int64
      module procedure :: construct_unwrapped_vector_int64_by_size, &
@@ -55,15 +59,17 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_real32
+     procedure, pass :: with_capacity => with_capacity_unwrapped_vector_real32
      procedure, pass :: push_back_unwrapped_vector_real32, &
           push_back_array_unwrapped_vector_real32
      generic         :: push_back => push_back_unwrapped_vector_real32, &
           push_back_array_unwrapped_vector_real32
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_real32
      procedure, pass :: back      => back_unwrapped_vector_real32
-     procedure, pass :: size      => size_unwrapped_vector_real32
-     procedure, pass :: resize    => resize_unwrapped_vector_real32
+     procedure, pass :: size   => size_unwrapped_vector_real32
+     procedure, pass :: resize => resize_unwrapped_vector_real32
      procedure, pass :: lower_bound => lower_bound_unwrapped_vector_real32
+     procedure, pass :: upper_bound => upper_bound_unwrapped_vector_real32
   end type unwrapped_vector_real32
   interface unwrapped_vector_real32
      module procedure :: construct_unwrapped_vector_real32_by_size, &
@@ -78,15 +84,17 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_real64
+     procedure, pass :: with_capacity => with_capacity_unwrapped_vector_real64
      procedure, pass :: push_back_unwrapped_vector_real64, &
           push_back_array_unwrapped_vector_real64
      generic         :: push_back => push_back_unwrapped_vector_real64, &
           push_back_array_unwrapped_vector_real64
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_real64
      procedure, pass :: back      => back_unwrapped_vector_real64
-     procedure, pass :: size      => size_unwrapped_vector_real64
-     procedure, pass :: resize    => resize_unwrapped_vector_real64
+     procedure, pass :: size   => size_unwrapped_vector_real64
+     procedure, pass :: resize => resize_unwrapped_vector_real64
      procedure, pass :: lower_bound => lower_bound_unwrapped_vector_real64
+     procedure, pass :: upper_bound => upper_bound_unwrapped_vector_real64
   end type unwrapped_vector_real64
   interface unwrapped_vector_real64
      module procedure :: construct_unwrapped_vector_real64_by_size, &
@@ -101,15 +109,17 @@ module unwrapped_vector_m
      integer(int32) :: size_ = 0, capa_ = 0
    contains
      procedure, pass :: init      => init_unwrapped_vector_character
+     procedure, pass :: with_capacity => with_capacity_unwrapped_vector_character
      procedure, pass :: push_back_unwrapped_vector_character, &
           push_back_array_unwrapped_vector_character
      generic         :: push_back => push_back_unwrapped_vector_character, &
           push_back_array_unwrapped_vector_character
      procedure, pass :: pop_back  => pop_back_unwrapped_vector_character
      procedure, pass :: back      => back_unwrapped_vector_character
-     procedure, pass :: size      => size_unwrapped_vector_character
-     procedure, pass :: resize    => resize_unwrapped_vector_character
+     procedure, pass :: size   => size_unwrapped_vector_character
+     procedure, pass :: resize => resize_unwrapped_vector_character
      procedure, pass :: lower_bound => lower_bound_unwrapped_vector_character
+     procedure, pass :: upper_bound => upper_bound_unwrapped_vector_character
   end type unwrapped_vector_character
   interface unwrapped_vector_character
      module procedure :: construct_unwrapped_vector_character_by_size, &
@@ -151,11 +161,21 @@ contains
        this%capa_ = n
     end if
   end subroutine init_unwrapped_vector_int32
+  !> with_capacity_unwrapped_vector_int32: Initialize the unwrapped_vector_int32 by size.
+  subroutine with_capacity_unwrapped_vector_int32(this, n)
+    class(unwrapped_vector_int32), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_unwrapped_vector_int32
   !> push_back_unwrapped_vector_int32: Insert value to the tail of elements of the unwrapped_vector_int32.
   subroutine push_back_unwrapped_vector_int32(this, val)
     class(unwrapped_vector_int32), intent(inout) :: this
     integer(int32), intent(in) :: val
-    if (.not. allocated(this%arr_)) call this%resize(0)
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
     if (this%size_ == this%capa_) then
        call this%resize(2*this%capa_)
     end if
@@ -168,7 +188,8 @@ contains
     integer(int32), intent(in) :: arr(:)
     integer(int32) :: s
     s = size(arr)
-    if (.not. allocated(this%arr_)) call this%init(s)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
     if (this%size_ + s > this%capa_) then
        call this%resize(this%size_ + s)
     end if
@@ -210,28 +231,78 @@ contains
        this%capa_ = resize
     end if
   end subroutine resize_unwrapped_vector_int32
-  !> lower_bound_vector_int32: Return the minimum index that is higher than or equal to .
-  integer(int32) function lower_bound_unwrapped_vector_int32(this, val)
+  !> lower_bound_vector_int32: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_unwrapped_vector_int32(this, val) result(res)
     class(unwrapped_vector_int32), intent(in) :: this
     integer(int32), intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_unwrapped_vector_int32 = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_unwrapped_vector_int32 = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+      integer(int32), intent(in) :: arr(:)
+      integer(int32), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) >= val) then
+         res = lb
+         return
+      else if (arr(ub) < val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v
+      !> arr(r) >= v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+    
   end function lower_bound_unwrapped_vector_int32
+  !> lower_bound_vector_int32: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_unwrapped_vector_int32(this, val) result(res)
+    class(unwrapped_vector_int32), intent(in) :: this
+    integer(int32), intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+      integer(int32), intent(in) :: arr(:)
+      integer(int32), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) > val) then
+         res = lb
+         return
+      else if (arr(ub) <= val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v
+      !> arr(r) > v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+    
+  end function upper_bound_unwrapped_vector_int32
   
   !> construct_unwrapped_vector_int64_by_size: Construct unwrapped_vector_int64 by the size, the initial values is unknown.
   impure function construct_unwrapped_vector_int64_by_size(size) result(res)
@@ -266,11 +337,21 @@ contains
        this%capa_ = n
     end if
   end subroutine init_unwrapped_vector_int64
+  !> with_capacity_unwrapped_vector_int64: Initialize the unwrapped_vector_int64 by size.
+  subroutine with_capacity_unwrapped_vector_int64(this, n)
+    class(unwrapped_vector_int64), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_unwrapped_vector_int64
   !> push_back_unwrapped_vector_int64: Insert value to the tail of elements of the unwrapped_vector_int64.
   subroutine push_back_unwrapped_vector_int64(this, val)
     class(unwrapped_vector_int64), intent(inout) :: this
     integer(int64), intent(in) :: val
-    if (.not. allocated(this%arr_)) call this%resize(0)
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
     if (this%size_ == this%capa_) then
        call this%resize(2*this%capa_)
     end if
@@ -283,7 +364,8 @@ contains
     integer(int64), intent(in) :: arr(:)
     integer(int32) :: s
     s = size(arr)
-    if (.not. allocated(this%arr_)) call this%init(s)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
     if (this%size_ + s > this%capa_) then
        call this%resize(this%size_ + s)
     end if
@@ -325,28 +407,78 @@ contains
        this%capa_ = resize
     end if
   end subroutine resize_unwrapped_vector_int64
-  !> lower_bound_vector_int64: Return the minimum index that is higher than or equal to .
-  integer(int32) function lower_bound_unwrapped_vector_int64(this, val)
+  !> lower_bound_vector_int64: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_unwrapped_vector_int64(this, val) result(res)
     class(unwrapped_vector_int64), intent(in) :: this
     integer(int64), intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_unwrapped_vector_int64 = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_unwrapped_vector_int64 = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+      integer(int64), intent(in) :: arr(:)
+      integer(int64), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) >= val) then
+         res = lb
+         return
+      else if (arr(ub) < val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v
+      !> arr(r) >= v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+    
   end function lower_bound_unwrapped_vector_int64
+  !> lower_bound_vector_int64: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_unwrapped_vector_int64(this, val) result(res)
+    class(unwrapped_vector_int64), intent(in) :: this
+    integer(int64), intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+      integer(int64), intent(in) :: arr(:)
+      integer(int64), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) > val) then
+         res = lb
+         return
+      else if (arr(ub) <= val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v
+      !> arr(r) > v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+    
+  end function upper_bound_unwrapped_vector_int64
   
   !> construct_unwrapped_vector_real32_by_size: Construct unwrapped_vector_real32 by the size, the initial values is unknown.
   impure function construct_unwrapped_vector_real32_by_size(size) result(res)
@@ -381,11 +513,21 @@ contains
        this%capa_ = n
     end if
   end subroutine init_unwrapped_vector_real32
+  !> with_capacity_unwrapped_vector_real32: Initialize the unwrapped_vector_real32 by size.
+  subroutine with_capacity_unwrapped_vector_real32(this, n)
+    class(unwrapped_vector_real32), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_unwrapped_vector_real32
   !> push_back_unwrapped_vector_real32: Insert value to the tail of elements of the unwrapped_vector_real32.
   subroutine push_back_unwrapped_vector_real32(this, val)
     class(unwrapped_vector_real32), intent(inout) :: this
     real(real32), intent(in) :: val
-    if (.not. allocated(this%arr_)) call this%resize(0)
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
     if (this%size_ == this%capa_) then
        call this%resize(2*this%capa_)
     end if
@@ -398,7 +540,8 @@ contains
     real(real32), intent(in) :: arr(:)
     integer(int32) :: s
     s = size(arr)
-    if (.not. allocated(this%arr_)) call this%init(s)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
     if (this%size_ + s > this%capa_) then
        call this%resize(this%size_ + s)
     end if
@@ -440,28 +583,78 @@ contains
        this%capa_ = resize
     end if
   end subroutine resize_unwrapped_vector_real32
-  !> lower_bound_vector_real32: Return the minimum index that is higher than or equal to .
-  integer(int32) function lower_bound_unwrapped_vector_real32(this, val)
+  !> lower_bound_vector_real32: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_unwrapped_vector_real32(this, val) result(res)
     class(unwrapped_vector_real32), intent(in) :: this
     real(real32), intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_unwrapped_vector_real32 = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_unwrapped_vector_real32 = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+      real(real32), intent(in) :: arr(:)
+      real(real32), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) >= val) then
+         res = lb
+         return
+      else if (arr(ub) < val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v
+      !> arr(r) >= v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+    
   end function lower_bound_unwrapped_vector_real32
+  !> lower_bound_vector_real32: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_unwrapped_vector_real32(this, val) result(res)
+    class(unwrapped_vector_real32), intent(in) :: this
+    real(real32), intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+      real(real32), intent(in) :: arr(:)
+      real(real32), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) > val) then
+         res = lb
+         return
+      else if (arr(ub) <= val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v
+      !> arr(r) > v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+    
+  end function upper_bound_unwrapped_vector_real32
   
   !> construct_unwrapped_vector_real64_by_size: Construct unwrapped_vector_real64 by the size, the initial values is unknown.
   impure function construct_unwrapped_vector_real64_by_size(size) result(res)
@@ -496,11 +689,21 @@ contains
        this%capa_ = n
     end if
   end subroutine init_unwrapped_vector_real64
+  !> with_capacity_unwrapped_vector_real64: Initialize the unwrapped_vector_real64 by size.
+  subroutine with_capacity_unwrapped_vector_real64(this, n)
+    class(unwrapped_vector_real64), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_unwrapped_vector_real64
   !> push_back_unwrapped_vector_real64: Insert value to the tail of elements of the unwrapped_vector_real64.
   subroutine push_back_unwrapped_vector_real64(this, val)
     class(unwrapped_vector_real64), intent(inout) :: this
     real(real64), intent(in) :: val
-    if (.not. allocated(this%arr_)) call this%resize(0)
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
     if (this%size_ == this%capa_) then
        call this%resize(2*this%capa_)
     end if
@@ -513,7 +716,8 @@ contains
     real(real64), intent(in) :: arr(:)
     integer(int32) :: s
     s = size(arr)
-    if (.not. allocated(this%arr_)) call this%init(s)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
     if (this%size_ + s > this%capa_) then
        call this%resize(this%size_ + s)
     end if
@@ -555,28 +759,78 @@ contains
        this%capa_ = resize
     end if
   end subroutine resize_unwrapped_vector_real64
-  !> lower_bound_vector_real64: Return the minimum index that is higher than or equal to .
-  integer(int32) function lower_bound_unwrapped_vector_real64(this, val)
+  !> lower_bound_vector_real64: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_unwrapped_vector_real64(this, val) result(res)
     class(unwrapped_vector_real64), intent(in) :: this
     real(real64), intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_unwrapped_vector_real64 = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_unwrapped_vector_real64 = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+      real(real64), intent(in) :: arr(:)
+      real(real64), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) >= val) then
+         res = lb
+         return
+      else if (arr(ub) < val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v
+      !> arr(r) >= v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+    
   end function lower_bound_unwrapped_vector_real64
+  !> lower_bound_vector_real64: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_unwrapped_vector_real64(this, val) result(res)
+    class(unwrapped_vector_real64), intent(in) :: this
+    real(real64), intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+      real(real64), intent(in) :: arr(:)
+      real(real64), intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) > val) then
+         res = lb
+         return
+      else if (arr(ub) <= val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v
+      !> arr(r) > v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+    
+  end function upper_bound_unwrapped_vector_real64
   
   !> construct_unwrapped_vector_character_by_size: Construct unwrapped_vector_character by the size, the initial values is unknown.
   impure function construct_unwrapped_vector_character_by_size(size) result(res)
@@ -611,11 +865,21 @@ contains
        this%capa_ = n
     end if
   end subroutine init_unwrapped_vector_character
+  !> with_capacity_unwrapped_vector_character: Initialize the unwrapped_vector_character by size.
+  subroutine with_capacity_unwrapped_vector_character(this, n)
+    class(unwrapped_vector_character), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_unwrapped_vector_character
   !> push_back_unwrapped_vector_character: Insert value to the tail of elements of the unwrapped_vector_character.
   subroutine push_back_unwrapped_vector_character(this, val)
     class(unwrapped_vector_character), intent(inout) :: this
     character, intent(in) :: val
-    if (.not. allocated(this%arr_)) call this%resize(0)
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
     if (this%size_ == this%capa_) then
        call this%resize(2*this%capa_)
     end if
@@ -628,7 +892,8 @@ contains
     character, intent(in) :: arr(:)
     integer(int32) :: s
     s = size(arr)
-    if (.not. allocated(this%arr_)) call this%init(s)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
     if (this%size_ + s > this%capa_) then
        call this%resize(this%size_ + s)
     end if
@@ -670,27 +935,77 @@ contains
        this%capa_ = resize
     end if
   end subroutine resize_unwrapped_vector_character
-  !> lower_bound_vector_character: Return the minimum index that is higher than or equal to .
-  integer(int32) function lower_bound_unwrapped_vector_character(this, val)
+  !> lower_bound_vector_character: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function lower_bound_unwrapped_vector_character(this, val) result(res)
     class(unwrapped_vector_character), intent(in) :: this
     character, intent(in) :: val
-    integer(int32) :: p, q, r
-    p = 1
-    r = this%size_
-    if (this%arr_(r) < val) then
-       lower_bound_unwrapped_vector_character = r + 1
-       return
-    end if
-    do
-       q = (p+r)/2
-       if (p + 1 > r) exit
-       if (this%arr_(q) >= val) then
-          r = q
-       else
-          p = q+1
-       end if
-    end do
-    lower_bound_unwrapped_vector_character = q
+    res = lower_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+      character, intent(in) :: arr(:)
+      character, intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) >= val) then
+         res = lb
+         return
+      else if (arr(ub) < val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v
+      !> arr(r) >= v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+    
   end function lower_bound_unwrapped_vector_character
+  !> lower_bound_vector_character: Return the minimum index that is higher than or equal to 'val'.
+  !> The elements in vector must be sorted.
+  pure integer(int32) function upper_bound_unwrapped_vector_character(this, val) result(res)
+    class(unwrapped_vector_character), intent(in) :: this
+    character, intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), 1, this%size(), val)
+  contains
+    pure integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+      character, intent(in) :: arr(:)
+      character, intent(in) :: val
+      integer(int32), intent(in) :: lb, ub
+      integer(int32) :: p, q, r
+      p = lb
+      r = ub
+      if (arr(lb) > val) then
+         res = lb
+         return
+      else if (arr(ub) <= val) then
+         res = ub + 1
+         return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v
+      !> arr(r) > v
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+    
+  end function upper_bound_unwrapped_vector_character
   
 end module unwrapped_vector_m
