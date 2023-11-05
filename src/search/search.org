@@ -88,6 +88,39 @@
 #+RESULTS[ba220b33f2ebf16ce1e74e14608023809130da5e]:
 
 ** lower_bound
+*** lower_bound の関数単体
+#+name: lower_bound_some_type_of_arr
+#+begin_src bash :exports code :var purity="pure" type="integer(int32)" :results output :cache no :shebang #!/bin/bash
+  cat <<EOF
+  ${purity} integer(int32) function lower_bound(arr, lb, ub, val) result(res)
+    ${type}, intent(in) :: arr(:)
+    ${type}, intent(in) :: val
+    integer(int32), intent(in) :: lb, ub
+    integer(int32) :: p, q, r
+    p = lb
+    r = ub
+    if (arr(lb) >= val) then
+       res = lb
+       return
+    else if (arr(ub) < val) then
+       res = ub + 1
+       return
+    end if
+    !> invariant conditions:
+    !> arr(p) < v
+    !> arr(r) >= v
+    do while (p + 1 < r)
+       q = (p + r)/ 2
+       if (arr(q) >= val) then
+          r = q
+       else !> arr(q) < val
+          p = q
+       end if
+    end do
+    res = r
+  end function lower_bound
+  EOF
+#+end_src
 *** whole module of the lower_bound
 This is whole module of the `lower_bound`.
 There are several types for `lower_bound`.
@@ -239,6 +272,39 @@ Index starts from 1.
 #+RESULTS[5f2c3ba8a52ab423762ff3bec73c5758c9ed4516]: test-lower_bound
 
 ** upper_bound
+*** upper_bound の関数単体
+#+name: upper_bound_some_type_of_arr
+#+begin_src bash :exports code :var purity="pure" type="integer(int32)" :results output :cache no :shebang #!/bin/bash
+  cat <<EOF
+  ${purity} integer(int32) function upper_bound(arr, lb, ub, val) result(res)
+    ${type}, intent(in) :: arr(:)
+    ${type}, intent(in) :: val
+    integer(int32), intent(in) :: lb, ub
+    integer(int32) :: p, q, r
+    p = lb
+    r = ub
+    if (arr(lb) > val) then
+       res = lb
+       return
+    else if (arr(ub) <= val) then
+       res = ub + 1
+       return
+    end if
+    !> invariant conditions:
+    !> arr(p) <= v
+    !> arr(r) > v
+    do while (p + 1 < r)
+       q = (p + r)/ 2
+       if (arr(q) > val) then
+          r = q
+       else !> arr(q) < val
+          p = q
+       end if
+    end do
+    res = r
+  end function upper_bound
+  EOF
+#+end_src
 *** whole module of the upper_bound
 This is whole module of the `upper_bound`.
 There are several types for `upper_bound`.
