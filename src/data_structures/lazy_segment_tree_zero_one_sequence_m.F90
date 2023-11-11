@@ -7,75 +7,79 @@ module lazy_segment_tree_zero_one_sequence_m
      integer(int32) :: v_(7) = 0_int32
    contains
   end type zero_one_sequence
-  public :: lazy_segment_tree_zero_one_sequence
-  public :: monoid_op_zero_one_sequence
-  type :: lazy_segment_tree_zero_one_sequence
+  public :: lazy_segment_tree_zero_one_sequence_lazy_logical
+  public :: monoid_op_zero_one_sequence_lazy_logical
+  type :: lazy_segment_tree_zero_one_sequence_lazy_logical
      private
      integer(int32) :: num_elems_, arr_size_, tree_size_, depth_, idx_range_left_, idx_range_right_
      type(zero_one_sequence), allocatable :: arr_(:)
-     , allocatable :: lazy_(:)
+     logical, allocatable :: lazy_(:)
      logical, allocatable :: is_lazy_(:)
-     class(monoid_op_zero_one_sequence), allocatable :: monoid_
+     class(monoid_op_zero_one_sequence_lazy_logical), allocatable :: monoid_
    contains
-     procedure, pass :: init_lazy_segment_tree_zero_one_sequence
-     procedure, pass :: init_by_arr_lazy_segment_tree_zero_one_sequence
+     procedure, pass :: init_lazy_segment_tree_zero_one_sequence_lazy_logical
+     procedure, pass :: init_by_arr_lazy_segment_tree_zero_one_sequence_lazy_logical
      generic :: init => &
-          init_lazy_segment_tree_zero_one_sequence, &
-          init_by_arr_lazy_segment_tree_zero_one_sequence
+          init_lazy_segment_tree_zero_one_sequence_lazy_logical, &
+          init_by_arr_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: dump => &
-          dump_lazy_segment_tree_zero_one_sequence
+          dump_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: unsafe_set => &
-          unsafe_set_lazy_segment_tree_zero_one_sequence
+          unsafe_set_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: unsafe_bottomup_update => &
-          unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence
+          unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: strict_propagate_all => &
-          strict_propagate_all_lazy_segment_tree_zero_one_sequence
+          strict_propagate_all_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass, private :: strict_propagate_all_sub => &
-          strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence
+          strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: update => &
-          update_lazy_segment_tree_zero_one_sequence
+          update_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass, private :: update_sub => &
-          update_sub_lazy_segment_tree_zero_one_sequence
+          update_sub_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass :: query => &
-          query_lazy_segment_tree_zero_one_sequence
+          query_lazy_segment_tree_zero_one_sequence_lazy_logical
      procedure, pass, private :: eval_and_propagate => &
-          eval_and_propagate_lazy_segment_tree_zero_one_sequence
-  end type lazy_segment_tree_zero_one_sequence
-  type, abstract :: monoid_op_zero_one_sequence
+          eval_and_propagate_lazy_segment_tree_zero_one_sequence_lazy_logical
+  end type lazy_segment_tree_zero_one_sequence_lazy_logical
+  type, abstract :: monoid_op_zero_one_sequence_lazy_logical
      private
    contains
      procedure(identity_zero_one_sequence) , nopass, deferred :: identity
      procedure(bin_op_zero_one_sequence)   , nopass, deferred :: bin_op
      procedure(mapping_zero_one_sequence)  , nopass, deferred :: mapping
      procedure(composite_zero_one_sequence), nopass, deferred :: composite
-  end type monoid_op_zero_one_sequence
+  end type monoid_op_zero_one_sequence_lazy_logical
   abstract interface
      pure type(zero_one_sequence) function identity_zero_one_sequence() result(res)
+       import int32, int64
        import zero_one_sequence
      end function identity_zero_one_sequence
      pure type(zero_one_sequence) function bin_op_zero_one_sequence(x, y) result(res)
+       import int32, int64
        import zero_one_sequence
        type(zero_one_sequence), intent(in) :: x, y
      end function bin_op_zero_one_sequence
      pure type(zero_one_sequence) function mapping_zero_one_sequence(v, c, length) result(res)
+       import int32, int64
        import zero_one_sequence
        type(zero_one_sequence), intent(in) :: v
-       , intent(in) :: c
-       integer(4), intent(in) :: length
+       logical, intent(in) :: c
+       integer(int32), intent(in) :: length
      end function mapping_zero_one_sequence
      pure type(zero_one_sequence) function composite_zero_one_sequence(c_first, c_second) result(res)
+       import int32, int64
        import zero_one_sequence
-       , intent(in) :: c_first, c_second
+       logical, intent(in) :: c_first, c_second
      end function composite_zero_one_sequence
   end interface
   
 contains
   !> indices rage [1:2^a-1]
-  !> init_lazy_segment_tree_zero_one_sequence: Initialize lazy_segment_tree_zero_one_sequence with  and monoid
-  pure subroutine init_lazy_segment_tree_zero_one_sequence(this, num_elems, monoid)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  !> init_lazy_segment_tree_zero_one_sequence_lazy_logical: Initialize lazy_segment_tree_zero_one_sequence_lazy_logical with  and monoid
+  pure subroutine init_lazy_segment_tree_zero_one_sequence_lazy_logical(this, num_elems, monoid)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: num_elems
-    class(monoid_op_zero_one_sequence), intent(in) :: monoid
+    class(monoid_op_zero_one_sequence_lazy_logical), intent(in) :: monoid
     integer(int32) :: tree_size
     allocate(this%monoid_, source = monoid)
     tree_size = 1
@@ -92,69 +96,69 @@ contains
     allocate(this%arr_(this%arr_size_), source = this%monoid_%identity())
     allocate(this%lazy_(this%arr_size_))
     allocate(this%is_lazy_(this%arr_size_), source = .false.)
-  end subroutine init_lazy_segment_tree_zero_one_sequence
-  !> init_by_arr_lazy_segment_tree_zero_one_sequence: Initialize lazy segment tree by array.
-  pure subroutine init_by_arr_lazy_segment_tree_zero_one_sequence(this, arr, monoid)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  end subroutine init_lazy_segment_tree_zero_one_sequence_lazy_logical
+  !> init_by_arr_lazy_segment_tree_zero_one_sequence_lazy_logical: Initialize lazy segment tree by array.
+  pure subroutine init_by_arr_lazy_segment_tree_zero_one_sequence_lazy_logical(this, arr, monoid)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     type(zero_one_sequence), intent(in) :: arr(:)
-    class(monoid_op_zero_one_sequence), intent(in) :: monoid
+    class(monoid_op_zero_one_sequence_lazy_logical), intent(in) :: monoid
     integer(int32) :: i
     call this%init(size(arr), monoid)
     do i = 1, size(arr)
        this%arr_(i + this%tree_size_ - 1) = arr(i)
     end do
     call this%strict_propagate_all()
-  end subroutine init_by_arr_lazy_segment_tree_zero_one_sequence
+  end subroutine init_by_arr_lazy_segment_tree_zero_one_sequence_lazy_logical
   
-  !> unsafe_set_lazy_segment_tree_zero_one_sequence: Set value into the node of leaf of tree.
-  pure subroutine unsafe_set_lazy_segment_tree_zero_one_sequence(this, idx, val)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  !> unsafe_set_lazy_segment_tree_zero_one_sequence_lazy_logical: Set value into the node of leaf of tree.
+  pure subroutine unsafe_set_lazy_segment_tree_zero_one_sequence_lazy_logical(this, idx, val)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: idx
     type(zero_one_sequence), intent(in) :: val
     this%arr_(this%tree_size_ + idx - 1) = val
-  end subroutine unsafe_set_lazy_segment_tree_zero_one_sequence
-  !> unsafe_set_lazy_segment_tree_zero_one_sequence: Update all node.
-  pure subroutine unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence(this)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  end subroutine unsafe_set_lazy_segment_tree_zero_one_sequence_lazy_logical
+  !> unsafe_set_lazy_segment_tree_zero_one_sequence_lazy_logical: Update all node.
+  pure subroutine unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence_lazy_logical(this)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32) :: i
     do i = this%tree_size_ - 1, 1, -1
        this%arr_(i) = this%monoid_%bin_op(this%arr_(2 * i), this%arr_(2 * i + 1))
     end do
     this%is_lazy_(:) = .false.
-  end subroutine unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence
+  end subroutine unsafe_bottomup_update_lazy_segment_tree_zero_one_sequence_lazy_logical
   
-  !> strict_propagate_all_lazy_segment_tree_zero_one_sequence: Update all node.
-  pure subroutine strict_propagate_all_lazy_segment_tree_zero_one_sequence(this)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  !> strict_propagate_all_lazy_segment_tree_zero_one_sequence_lazy_logical: Update all node.
+  pure subroutine strict_propagate_all_lazy_segment_tree_zero_one_sequence_lazy_logical(this)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     call this%strict_propagate_all_sub(1, this%idx_range_left_, this%idx_range_right_)
-  end subroutine strict_propagate_all_lazy_segment_tree_zero_one_sequence
-  pure recursive subroutine strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence(this, idx, l, r)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  end subroutine strict_propagate_all_lazy_segment_tree_zero_one_sequence_lazy_logical
+  pure recursive subroutine strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence_lazy_logical(this, idx, l, r)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: idx, l, r
     call this%eval_and_propagate(idx, r - l + 1)
     if (l == r) return
     call this%strict_propagate_all_sub(2 * idx,                   l, (l + r) / 2)
     call this%strict_propagate_all_sub(2 * idx + 1, (l + r + 1) / 2, r)
     this%arr_(idx) = this%monoid_%bin_op(this%arr_(2 * idx), this%arr_(2 * idx + 1))
-  end subroutine strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence
+  end subroutine strict_propagate_all_sub_lazy_segment_tree_zero_one_sequence_lazy_logical
   
-  !> update_lazy_segment_tree_zero_one_sequence: Update tree by .
+  !> update_lazy_segment_tree_zero_one_sequence_lazy_logical: Update tree by .
   !> [a, b]: Range to update.
   !> val: Value of update.
-  pure subroutine update_lazy_segment_tree_zero_one_sequence(this, a, b, val)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  pure subroutine update_lazy_segment_tree_zero_one_sequence_lazy_logical(this, a, b, val)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: a, b
     type(zero_one_sequence), intent(in) :: val
     if (a > b) error stop "Illegal range of a > b."
     call this%update_sub(a, b, val, 1, this%idx_range_left_, this%idx_range_right_)
-  end subroutine update_lazy_segment_tree_zero_one_sequence
-  !> update_sub_lazy_segment_tree_zero_one_sequence: Update tree by .
+  end subroutine update_lazy_segment_tree_zero_one_sequence_lazy_logical
+  !> update_sub_lazy_segment_tree_zero_one_sequence_lazy_logical: Update tree by .
   !> [a, b]: Range to update.
   !> val: Value of update.
   !> idx: Index of tree.
   !> [l, r]: Range of current node of tree.
-  pure recursive subroutine update_sub_lazy_segment_tree_zero_one_sequence(this, a, b, val, idx, l, r)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  pure recursive subroutine update_sub_lazy_segment_tree_zero_one_sequence_lazy_logical(this, a, b, val, idx, l, r)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: a, b, idx, l, r
     type(zero_one_sequence), intent(in) :: val
     ! write(error_unit, '(a, *(i0, 1x))') "update_sub: ", a, b, l, r, idx
@@ -174,11 +178,11 @@ contains
     call this%update_sub(a, b, val, 2 * idx,                   l, (l + r) / 2)
     call this%update_sub(a, b, val, 2 * idx + 1, (l + r + 1) / 2, r)
     this%arr_(idx) = this%monoid_%bin_op(this%arr_(2 * idx), this%arr_(2 * idx + 1))
-  end subroutine update_sub_lazy_segment_tree_zero_one_sequence
+  end subroutine update_sub_lazy_segment_tree_zero_one_sequence_lazy_logical
   
   ! 閉区間[a, b]で操作.
-  impure type(zero_one_sequence) function query_lazy_segment_tree_zero_one_sequence (this, a, b) result(query)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  impure type(zero_one_sequence) function query_lazy_segment_tree_zero_one_sequence_lazy_logical (this, a, b) result(query)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: a, b
     if (a > b) error stop "Illegal range of a > b."
     query = query_sub(1, this%idx_range_left_, this%idx_range_right_)
@@ -200,12 +204,12 @@ contains
          res = this%monoid_%bin_op(val_l, val_r)
       end if
     end function query_sub
-  end function query_lazy_segment_tree_zero_one_sequence
-  !> eval_and_propagate_lazy_segment_tree_zero_one_sequence: Treat lazy propagation.
+  end function query_lazy_segment_tree_zero_one_sequence_lazy_logical
+  !> eval_and_propagate_lazy_segment_tree_zero_one_sequence_lazy_logical: Treat lazy propagation.
   !> idx: Index of node of tree.
   !> length: Length of range of node.
-  pure subroutine eval_and_propagate_lazy_segment_tree_zero_one_sequence(this, idx, length)
-    class(lazy_segment_tree_zero_one_sequence), intent(inout) :: this
+  pure subroutine eval_and_propagate_lazy_segment_tree_zero_one_sequence_lazy_logical(this, idx, length)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(inout) :: this
     integer(int32), intent(in) :: idx, length
     ! write(error_unit, '(a, L, *(1x, i0))') "eval_and_propagate: ", this%is_lazy_(idx) &
     !      , idx, this%arr_(idx), this%lazy_(idx), length, this%monoid_%mapping(this%arr_(idx), this%lazy_(idx), length)
@@ -225,10 +229,10 @@ contains
        this%lazy_(2 * idx + 1) = this%lazy_(idx)
        this%is_lazy_(2 * idx + 1) = .true.
     end if
-  end subroutine eval_and_propagate_lazy_segment_tree_zero_one_sequence
+  end subroutine eval_and_propagate_lazy_segment_tree_zero_one_sequence_lazy_logical
   
-  subroutine dump_lazy_segment_tree_zero_one_sequence(this)
-    class(lazy_segment_tree_zero_one_sequence), intent(in) :: this
+  subroutine dump_lazy_segment_tree_zero_one_sequence_lazy_logical(this)
+    class(lazy_segment_tree_zero_one_sequence_lazy_logical), intent(in) :: this
     integer(int32) :: i
     write(error_unit, '(a)') "tree: "
     do i = 1, this%depth_
@@ -242,6 +246,6 @@ contains
     do i = 1, this%depth_
        write(error_unit, '(g0, ": ", *(L, 1x))') i, this%is_lazy_(2**(i-1):2**i-1)
     end do
-  end subroutine dump_lazy_segment_tree_zero_one_sequence
+  end subroutine dump_lazy_segment_tree_zero_one_sequence_lazy_logical
   
 end module lazy_segment_tree_zero_one_sequence_m
