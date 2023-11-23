@@ -65,13 +65,13 @@ Variables like ${variable} are expanded by bash.
 #+name: construct-unwrapped_vector
 #+begin_src fortran :exports code
   !> construct_${uwvec}_by_size: Construct ${uwvec} by the size, the initial values is unknown.
-  impure function construct_${uwvec}_by_size(size) result(res)
+  pure function construct_${uwvec}_by_size(size) result(res)
     type(${uwvec}) :: res
     integer(int32), intent(in) :: size
     call res%init(size)
   end function construct_${uwvec}_by_size
   !> construct_${uwvec}_by_arr: Construct ${uwvec} by the array of ${type}.
-  impure function construct_${uwvec}_by_arr(arr) result(res)
+  pure function construct_${uwvec}_by_arr(arr) result(res)
     type(${uwvec}) :: res
     ${type}, intent(in) :: arr(:)
     integer(int32) :: n
@@ -80,7 +80,7 @@ Variables like ${variable} are expanded by bash.
     res%arr_(1:n) = arr(1:n)
   end function construct_${uwvec}_by_arr
   !> construct_${uwvec}_by_init_val: Construct ${uwvec} by size and the initial values.
-  impure function construct_${uwvec}_by_init_val(size, val) result(res)
+  pure function construct_${uwvec}_by_init_val(size, val) result(res)
     type(${uwvec}) :: res
     integer(int32), intent(in) :: size
     ${type}, intent(in) :: val
@@ -93,7 +93,7 @@ Variables like ${variable} are expanded by bash.
 #+name: init-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
   !> init_${uwvec}: Initialize the ${uwvec} by size.
-  subroutine init_${uwvec}(this, n)
+  pure subroutine init_${uwvec}(this, n)
     class(${uwvec}), intent(inout) :: this
     integer(int32), intent(in) :: n
     if (.not. allocated(this%arr_)) then
@@ -108,7 +108,7 @@ Variables like ${variable} are expanded by bash.
 #+name: with_capacity-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
   !> with_capacity_${uwvec}: Initialize the ${uwvec} by size.
-  subroutine with_capacity_${uwvec}(this, n)
+  pure subroutine with_capacity_${uwvec}(this, n)
     class(${uwvec}), intent(inout) :: this
     integer(int32), intent(in) :: n
     if (.not. allocated(this%arr_)) then
@@ -123,7 +123,7 @@ Variables like ${variable} are expanded by bash.
 #+name: push_back-unwrapped_vector
 #+begin_src fortran :exports code
   !> push_back_${uwvec}: Insert value to the tail of elements of the ${uwvec}.
-  subroutine push_back_${uwvec}(this, val)
+  pure subroutine push_back_${uwvec}(this, val)
     class(${uwvec}), intent(inout) :: this
     ${type}, intent(in) :: val
     if (.not. allocated(this%arr_)) call this%with_capacity(1)
@@ -134,7 +134,7 @@ Variables like ${variable} are expanded by bash.
     this%arr_(this%size_) = val
   end subroutine push_back_${uwvec}
   !> push_back_array_${uwvec}: Insert elemeents of array to the tail of elements of the ${uwvec}.
-  subroutine push_back_array_${uwvec}(this, arr)
+  pure subroutine push_back_array_${uwvec}(this, arr)
     class(${uwvec}), intent(inout) :: this
     ${type}, intent(in) :: arr(:)
     integer(int32) :: s
@@ -152,20 +152,19 @@ Variables like ${variable} are expanded by bash.
 =function pop_back= deletes the value in the end of arr_(:) of the unwrapped vector and returns it.
 #+name: pop_back-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
-  !> pop_back_${uwvec}: Delete the value in the end of arr_(:) of the ${uwvec} and return it.
-  ${type} function pop_back_${uwvec}(this)
+  !> pop_back_${uwvec}: Delete the value in the end of arr_(:) of the ${uwvec}.
+  pure subroutine pop_back_${uwvec}(this)
     class(${uwvec}), intent(inout) :: this
-    pop_back_${uwvec} = this%arr_(this%size_)
     this%size_ = this%size_ - 1
-  end function pop_back_${uwvec}
+  end subroutine pop_back_${uwvec}
 #+end_src
 ***** back
 =function back= returns the value in the end of arr_(:) of the unwrapped vector.
 #+name: back-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
   !> back_${uwvec}: Delete the value in the end of arr_(:) of the ${uwvec} and return it.
-  ${type} function back_${uwvec}(this)
-    class(${uwvec}), intent(inout) :: this
+  pure ${type} function back_${uwvec}(this)
+    class(${uwvec}), intent(in) :: this
     back_${uwvec} = this%arr_(this%size_)
   end function back_${uwvec}
 #+end_src
@@ -184,7 +183,7 @@ Variables like ${variable} are expanded by bash.
 #+name: resize-unwrapped_vector
 #+begin_src fortran :exports code :noweb no-export
   !> resize_${uwvec}: Shrink or expand arr_(:) of the ${uwvec}.
-  subroutine resize_${uwvec}(this, resize)
+  pure subroutine resize_${uwvec}(this, resize)
     class(${uwvec}), intent(inout) :: this
     integer(int32), intent(in) :: resize
     ${type}, allocatable :: tmp(:)

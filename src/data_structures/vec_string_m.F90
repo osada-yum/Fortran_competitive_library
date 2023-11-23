@@ -29,14 +29,14 @@ module vec_string_m
   end interface vec_string
   public destroy_vec_string
 contains
-  impure type(vec_string) function construct_vec_string() result(res)
+  pure type(vec_string) function construct_vec_string() result(res)
     call res%with_capacity(1)
   end function construct_vec_string
-  impure type(vec_string) function construct_by_size_vec_string(n) result(res)
+  pure type(vec_string) function construct_by_size_vec_string(n) result(res)
     integer(int32), intent(in) :: n
     call res%with_capacity(n)
   end function construct_by_size_vec_string
-  impure type(vec_string) function construct_by_str_vec_string(str) result(res)
+  pure type(vec_string) function construct_by_str_vec_string(str) result(res)
     character(len=*), intent(in) :: str
     integer(int32) :: n, capa
     integer(int32) :: i
@@ -51,7 +51,7 @@ contains
     end do
   end function construct_by_str_vec_string
 
-  subroutine destroy_vec_string(this)
+  pure subroutine destroy_vec_string(this)
     type(vec_string), intent(inout) :: this
     if (allocated(this%str_)) &
          deallocate(this%str_)
@@ -59,7 +59,7 @@ contains
     this%capa_ = 0
   end subroutine destroy_vec_string
 
-  subroutine assign_vec_string(lhs, rhs)
+  pure subroutine assign_vec_string(lhs, rhs)
     class(vec_string), intent(inout) :: lhs
     class(vec_string), intent(in) :: rhs
     call destroy_vec_string(lhs)
@@ -67,11 +67,11 @@ contains
     lhs%size_ = rhs%size_
     lhs%capa_ = rhs%capa_
   end subroutine assign_vec_string
-  subroutine init_vec_string(this)
+  pure subroutine init_vec_string(this)
     class(vec_string), intent(inout) :: this
     call this%with_capacity(1)
   end subroutine init_vec_string
-  subroutine with_capacity_vec_string(this, n)
+  pure subroutine with_capacity_vec_string(this, n)
     class(vec_string), intent(inout) :: this
     integer(int32), intent(in) :: n
     character, allocatable :: tmp(:)
@@ -94,14 +94,14 @@ contains
        allocate(this%str_(capa))
     end if
   end subroutine with_capacity_vec_string
-  subroutine resize_vec_string(this, n)
+  pure subroutine resize_vec_string(this, n)
     class(vec_string), intent(inout) :: this
     integer(int32), intent(in) :: n
     if (n < 0) return
     call this%with_capacity(n)
     this%size_ = n
   end subroutine resize_vec_string
-  subroutine push_back_vec_string(this, c)
+  pure subroutine push_back_vec_string(this, c)
     class(vec_string), intent(inout) :: this
     character, intent(in) :: c
     if (this%size() == this%capa_) &
@@ -109,11 +109,10 @@ contains
     this%size_ = this%size_ + 1
     this%str_(this%size()) = c
   end subroutine push_back_vec_string
-  impure character function pop_back_vec_string(this) result(res)
+  pure subroutine pop_back_vec_string(this)
     class(vec_string), intent(inout) :: this
-    res = this%back()
     this%size_ = this%size_ - 1
-  end function pop_back_vec_string
+  end subroutine pop_back_vec_string
   pure character function back_vec_string(this) result(res)
     class(vec_string), intent(in) :: this
     res = this%str_(this%size())
@@ -122,7 +121,7 @@ contains
     class(vec_string), intent(in) :: this
     res = this%size_
   end function size_vec_string
-  subroutine read_vec_string(this, unit)
+  impure subroutine read_vec_string(this, unit)
     class(vec_string), intent(inout) :: this
     integer(int32), intent(in) :: unit
     character :: c
@@ -156,7 +155,7 @@ contains
     end do
     ! write(error_unit, '(a)') this%str_(1:this%size())
   end subroutine read_vec_string
-  subroutine formatted_read_vec_string(this, unit, iotype, vlist, iostat, iomsg)
+  impure subroutine formatted_read_vec_string(this, unit, iotype, vlist, iostat, iomsg)
     class(vec_string), intent(inout) :: this
     integer(int32), intent(in) :: unit
     character(len=*), intent(in) :: iotype

@@ -3,205 +3,204 @@
 read文を使うとメモリリークするので, なるべくread subroutineを使うこと.
 #+name： vec_string-module
 #+begin_src fortran :exports code :tangle "vec_string_m.F90" :comment link :noweb no-export
-module vec_string_m
-  use, intrinsic :: iso_fortran_env
-  implicit none
-  private
-  integer(int32), public :: vec_string_iostat
-  character(len=100), public :: vec_string_iomsg = ""
-  public vec_string
-  type :: vec_string
-     private
-     character, allocatable, public :: str_(:)
-     integer(int32) :: size_ = 0_int32, capa_ = 0_int32
-   contains
-     procedure, pass :: init => init_vec_string
-     procedure, pass :: with_capacity => with_capacity_vec_string
-     procedure, pass :: resize => resize_vec_string
-     procedure, pass :: push_back => push_back_vec_string
-     procedure, pass :: pop_back => pop_back_vec_string
-     procedure, pass :: back => back_vec_string
-     procedure, pass :: size => size_vec_string
-     procedure, pass, private :: assign => assign_vec_string
-     generic :: assignment(=) => assign
-     procedure, pass :: read => read_vec_string
-     procedure, pass, private :: formatted_read => formatted_read_vec_string
-     generic :: read(formatted) => formatted_read
-     final :: destroy_vec_string
-  end type vec_string
-  interface vec_string
-     module procedure :: construct_vec_string, construct_by_size_vec_string, construct_by_str_vec_string
-  end interface vec_string
-  public destroy_vec_string
-contains
-  impure type(vec_string) function construct_vec_string() result(res)
-    call res%with_capacity(1)
-  end function construct_vec_string
-  impure type(vec_string) function construct_by_size_vec_string(n) result(res)
-    integer(int32), intent(in) :: n
-    call res%with_capacity(n)
-  end function construct_by_size_vec_string
-  impure type(vec_string) function construct_by_str_vec_string(str) result(res)
-    character(len=*), intent(in) :: str
-    integer(int32) :: n, capa
-    integer(int32) :: i
-    n = len_trim(str)
-    capa = 1_int32
-    do while (capa < n)
-       capa = capa * 2
-    end do
-    call res%with_capacity(capa)
-    do i = 1, n
-       res%str_(i) = str(i:i)
-    end do
-  end function construct_by_str_vec_string
+  module vec_string_m
+    use, intrinsic :: iso_fortran_env
+    implicit none
+    private
+    integer(int32), public :: vec_string_iostat
+    character(len=100), public :: vec_string_iomsg = ""
+    public vec_string
+    type :: vec_string
+       private
+       character, allocatable, public :: str_(:)
+       integer(int32) :: size_ = 0_int32, capa_ = 0_int32
+     contains
+       procedure, pass :: init => init_vec_string
+       procedure, pass :: with_capacity => with_capacity_vec_string
+       procedure, pass :: resize => resize_vec_string
+       procedure, pass :: push_back => push_back_vec_string
+       procedure, pass :: pop_back => pop_back_vec_string
+       procedure, pass :: back => back_vec_string
+       procedure, pass :: size => size_vec_string
+       procedure, pass, private :: assign => assign_vec_string
+       generic :: assignment(=) => assign
+       procedure, pass :: read => read_vec_string
+       procedure, pass, private :: formatted_read => formatted_read_vec_string
+       generic :: read(formatted) => formatted_read
+       final :: destroy_vec_string
+    end type vec_string
+    interface vec_string
+       module procedure :: construct_vec_string, construct_by_size_vec_string, construct_by_str_vec_string
+    end interface vec_string
+    public destroy_vec_string
+  contains
+    pure type(vec_string) function construct_vec_string() result(res)
+      call res%with_capacity(1)
+    end function construct_vec_string
+    pure type(vec_string) function construct_by_size_vec_string(n) result(res)
+      integer(int32), intent(in) :: n
+      call res%with_capacity(n)
+    end function construct_by_size_vec_string
+    pure type(vec_string) function construct_by_str_vec_string(str) result(res)
+      character(len=*), intent(in) :: str
+      integer(int32) :: n, capa
+      integer(int32) :: i
+      n = len_trim(str)
+      capa = 1_int32
+      do while (capa < n)
+         capa = capa * 2
+      end do
+      call res%with_capacity(capa)
+      do i = 1, n
+         res%str_(i) = str(i:i)
+      end do
+    end function construct_by_str_vec_string
 
-  subroutine destroy_vec_string(this)
-    type(vec_string), intent(inout) :: this
-    if (allocated(this%str_)) &
-         deallocate(this%str_)
-    this%size_ = 0
-    this%capa_ = 0
-  end subroutine destroy_vec_string
+    pure subroutine destroy_vec_string(this)
+      type(vec_string), intent(inout) :: this
+      if (allocated(this%str_)) &
+           deallocate(this%str_)
+      this%size_ = 0
+      this%capa_ = 0
+    end subroutine destroy_vec_string
 
-  subroutine assign_vec_string(lhs, rhs)
-    class(vec_string), intent(inout) :: lhs
-    class(vec_string), intent(in) :: rhs
-    call destroy_vec_string(lhs)
-    lhs%str_ = rhs%str_(:)
-    lhs%size_ = rhs%size_
-    lhs%capa_ = rhs%capa_
-  end subroutine assign_vec_string
-  subroutine init_vec_string(this)
-    class(vec_string), intent(inout) :: this
-    call this%with_capacity(1)
-  end subroutine init_vec_string
-  subroutine with_capacity_vec_string(this, n)
-    class(vec_string), intent(inout) :: this
-    integer(int32), intent(in) :: n
-    character, allocatable :: tmp(:)
-    integer(int32) :: capa
-    if (n < 1) return
-    capa = 1_int32
-    do while (capa < n)
-       capa = capa * 2
-    end do
-    !> capa >= n.
-    ! write(error_unit, '(a, i0, " < ", i0)') "hi", this%capa_, capa
-    if (this%capa_ >= capa) return
-    !> this%capa_ < capa
-    this%capa_ = capa
-    if (allocated(this%str_)) then
-       allocate(tmp(capa))
-       tmp(1:this%size()) = this%str_(1:this%size())
-       call move_alloc(from = tmp, to = this%str_)
-    else
-       allocate(this%str_(capa))
-    end if
-  end subroutine with_capacity_vec_string
-  subroutine resize_vec_string(this, n)
-    class(vec_string), intent(inout) :: this
-    integer(int32), intent(in) :: n
-    if (n < 0) return
-    call this%with_capacity(n)
-    this%size_ = n
-  end subroutine resize_vec_string
-  subroutine push_back_vec_string(this, c)
-    class(vec_string), intent(inout) :: this
-    character, intent(in) :: c
-    if (this%size() == this%capa_) &
-         call this%with_capacity(max(1, 2 * this%capa_))
-    this%size_ = this%size_ + 1
-    this%str_(this%size()) = c
-  end subroutine push_back_vec_string
-  impure character function pop_back_vec_string(this) result(res)
-    class(vec_string), intent(inout) :: this
-    res = this%back()
-    this%size_ = this%size_ - 1
-  end function pop_back_vec_string
-  pure character function back_vec_string(this) result(res)
-    class(vec_string), intent(in) :: this
-    res = this%str_(this%size())
-  end function back_vec_string
-  pure integer(int32) function size_vec_string(this) result(res)
-    class(vec_string), intent(in) :: this
-    res = this%size_
-  end function size_vec_string
-  subroutine read_vec_string(this, unit)
-    class(vec_string), intent(inout) :: this
-    integer(int32), intent(in) :: unit
-    character :: c
-    ! write(error_unit, '(a)') this%str_(1:this%size())
-    call this%resize(0)
-    ! write(error_unit, '(a)') "hi"
-    do
-       read(unit, '(a1)', advance = "no", iostat = vec_string_iostat, iomsg = vec_string_iomsg) c
-       ! write(error_unit, *) this%size(), ": ", c, ", ", this%str_(1:this%size())
-       select case(vec_string_iostat)
-       case(iostat_end)
-          if (this%size() == 0) error stop "End of file in reading Symbol’s value as variable is void: vec_string."
-          vec_string_iomsg = "End of file in reading Symbol’s value as variable is void: vec_string."
-          exit
-       case(iostat_eor)
-          if (this%size() == 0) cycle
-          vec_string_iostat = 0
-          vec_string_iomsg = ""
-          ! write(error_unit, '(a)') "End of record"
-          exit
-       case(0)
-          if (c == " ") then
-             if (this%size() == 0) cycle
-             exit
-          end if
-       case default
-          ! vec_string_iomsg = "Unknown iostat in reading Symbol’s value as variable is void: vec_string."
-          return
-       end select
-       call this%push_back(c)
-    end do
-    ! write(error_unit, '(a)') this%str_(1:this%size())
-  end subroutine read_vec_string
-  subroutine formatted_read_vec_string(this, unit, iotype, vlist, iostat, iomsg)
-    class(vec_string), intent(inout) :: this
-    integer(int32), intent(in) :: unit
-    character(len=*), intent(in) :: iotype
-    integer(int32), intent(in) :: vlist(:)
-    integer(int32), intent(out) :: iostat
-    character(len=*), intent(inout) :: iomsg
-    character :: c
-    ! write(error_unit, '(a, 2(i0, 1x))') "loc: ", loc(this), loc(this%str_)
-    ! write(error_unit, '(a, i0)') "loc: ", loc(iomsg)
-    ! write(error_unit, '(*(a1))') "|", this%str_(1:this%size()), "|"
-    ! call destroy_vec_string(this)
-    ! this = vec_string(1)
-    ! write(error_unit, '(a, *(1x, i0))') iotype, vlist(:)
-    call this%resize(0)
-    do
-       read(unit, '(a1)', advance = "no", iostat = iostat) c
-       ! write(error_unit, *) this%size(), ": ", c, ", ", this%str_(1:this%size())
-       ! write(error_unit, '(2(i0, 1x), a, i0, 1x, a)') iostat_end, iostat_eor, ", ", iostat, "|"//c//"| "//trim(iomsg)
-       select case(iostat)
-       case(iostat_end)
-          if (this%size() == 0) error stop "End of file in reading Symbol’s value as variable is void: vec_string."
-          iomsg = "End of file in reading Symbol’s value as variable is void: vec_string."
-          exit
-       case(iostat_eor)
-          if (this%size() == 0) cycle
-          ! iostat = 0
-          iomsg = "hi"
-          ! backspace(unit)
-          exit
-       case(0)
-          if (c == " ") then
-             if (this%size() == 0) cycle
-             exit
-          end if
-       case default
-          iomsg = "Unknown iostat in reading Symbol’s value as variable is void: vec_string."
-          return
-       end select
-       call this%push_back(c)
-    end do
-  end subroutine formatted_read_vec_string
-end module vec_string_m
+    pure subroutine assign_vec_string(lhs, rhs)
+      class(vec_string), intent(inout) :: lhs
+      class(vec_string), intent(in) :: rhs
+      call destroy_vec_string(lhs)
+      lhs%str_ = rhs%str_(:)
+      lhs%size_ = rhs%size_
+      lhs%capa_ = rhs%capa_
+    end subroutine assign_vec_string
+    pure subroutine init_vec_string(this)
+      class(vec_string), intent(inout) :: this
+      call this%with_capacity(1)
+    end subroutine init_vec_string
+    pure subroutine with_capacity_vec_string(this, n)
+      class(vec_string), intent(inout) :: this
+      integer(int32), intent(in) :: n
+      character, allocatable :: tmp(:)
+      integer(int32) :: capa
+      if (n < 1) return
+      capa = 1_int32
+      do while (capa < n)
+         capa = capa * 2
+      end do
+      !> capa >= n.
+      ! write(error_unit, '(a, i0, " < ", i0)') "hi", this%capa_, capa
+      if (this%capa_ >= capa) return
+      !> this%capa_ < capa
+      this%capa_ = capa
+      if (allocated(this%str_)) then
+         allocate(tmp(capa))
+         tmp(1:this%size()) = this%str_(1:this%size())
+         call move_alloc(from = tmp, to = this%str_)
+      else
+         allocate(this%str_(capa))
+      end if
+    end subroutine with_capacity_vec_string
+    pure subroutine resize_vec_string(this, n)
+      class(vec_string), intent(inout) :: this
+      integer(int32), intent(in) :: n
+      if (n < 0) return
+      call this%with_capacity(n)
+      this%size_ = n
+    end subroutine resize_vec_string
+    pure subroutine push_back_vec_string(this, c)
+      class(vec_string), intent(inout) :: this
+      character, intent(in) :: c
+      if (this%size() == this%capa_) &
+           call this%with_capacity(max(1, 2 * this%capa_))
+      this%size_ = this%size_ + 1
+      this%str_(this%size()) = c
+    end subroutine push_back_vec_string
+    pure subroutine pop_back_vec_string(this)
+      class(vec_string), intent(inout) :: this
+      this%size_ = this%size_ - 1
+    end subroutine pop_back_vec_string
+    pure character function back_vec_string(this) result(res)
+      class(vec_string), intent(in) :: this
+      res = this%str_(this%size())
+    end function back_vec_string
+    pure integer(int32) function size_vec_string(this) result(res)
+      class(vec_string), intent(in) :: this
+      res = this%size_
+    end function size_vec_string
+    impure subroutine read_vec_string(this, unit)
+      class(vec_string), intent(inout) :: this
+      integer(int32), intent(in) :: unit
+      character :: c
+      ! write(error_unit, '(a)') this%str_(1:this%size())
+      call this%resize(0)
+      ! write(error_unit, '(a)') "hi"
+      do
+         read(unit, '(a1)', advance = "no", iostat = vec_string_iostat, iomsg = vec_string_iomsg) c
+         ! write(error_unit, *) this%size(), ": ", c, ", ", this%str_(1:this%size())
+         select case(vec_string_iostat)
+         case(iostat_end)
+            if (this%size() == 0) error stop "End of file in reading Symbol’s value as variable is void: vec_string."
+            vec_string_iomsg = "End of file in reading Symbol’s value as variable is void: vec_string."
+            exit
+         case(iostat_eor)
+            if (this%size() == 0) cycle
+            vec_string_iostat = 0
+            vec_string_iomsg = ""
+            ! write(error_unit, '(a)') "End of record"
+            exit
+         case(0)
+            if (c == " ") then
+               if (this%size() == 0) cycle
+               exit
+            end if
+         case default
+            ! vec_string_iomsg = "Unknown iostat in reading Symbol’s value as variable is void: vec_string."
+            return
+         end select
+         call this%push_back(c)
+      end do
+      ! write(error_unit, '(a)') this%str_(1:this%size())
+    end subroutine read_vec_string
+    impure subroutine formatted_read_vec_string(this, unit, iotype, vlist, iostat, iomsg)
+      class(vec_string), intent(inout) :: this
+      integer(int32), intent(in) :: unit
+      character(len=*), intent(in) :: iotype
+      integer(int32), intent(in) :: vlist(:)
+      integer(int32), intent(out) :: iostat
+      character(len=*), intent(inout) :: iomsg
+      character :: c
+      ! write(error_unit, '(a, 2(i0, 1x))') "loc: ", loc(this), loc(this%str_)
+      ! write(error_unit, '(a, i0)') "loc: ", loc(iomsg)
+      ! write(error_unit, '(*(a1))') "|", this%str_(1:this%size()), "|"
+      ! call destroy_vec_string(this)
+      ! this = vec_string(1)
+      ! write(error_unit, '(a, *(1x, i0))') iotype, vlist(:)
+      call this%resize(0)
+      do
+         read(unit, '(a1)', advance = "no", iostat = iostat) c
+         ! write(error_unit, *) this%size(), ": ", c, ", ", this%str_(1:this%size())
+         ! write(error_unit, '(2(i0, 1x), a, i0, 1x, a)') iostat_end, iostat_eor, ", ", iostat, "|"//c//"| "//trim(iomsg)
+         select case(iostat)
+         case(iostat_end)
+            if (this%size() == 0) error stop "End of file in reading Symbol’s value as variable is void: vec_string."
+            iomsg = "End of file in reading Symbol’s value as variable is void: vec_string."
+            exit
+         case(iostat_eor)
+            if (this%size() == 0) cycle
+            ! iostat = 0
+            iomsg = "hi"
+            ! backspace(unit)
+            exit
+         case(0)
+            if (c == " ") then
+               if (this%size() == 0) cycle
+               exit
+            end if
+         case default
+            iomsg = "Unknown iostat in reading Symbol’s value as variable is void: vec_string."
+            return
+         end select
+         call this%push_back(c)
+      end do
+    end subroutine formatted_read_vec_string
+  end module vec_string_m
 #+end_src
