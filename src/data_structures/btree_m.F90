@@ -775,15 +775,18 @@ contains
        !>       !>   c'
        block
          integer(int32) :: key_tmp
+         integer(int32) :: val_tmp
          type(btree_node_ptr_int32_to_int32) :: prev
          prev%p_ => x%p_%children_(pos)%p_
          do while (.not. prev%is_leaf())
             prev%p_ => prev%p_%children_(prev%size()+1)%p_
          end do
          key_tmp = prev%p_%key_(prev%size())
+         val_tmp = prev%p_%val_(prev%size())
          ! write(error_unit, '(a, *(i0, 1x))') "prev: ", key_tmp, key
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2a end: ", key, key_tmp
          return
        end block
@@ -800,15 +803,18 @@ contains
        !>     c'
        block
          integer(int32) :: key_tmp
+         integer(int32) :: val_tmp
          type(btree_node_ptr_int32_to_int32) :: next
          next%p_ => x%p_%children_(pos+1)%p_
          do while (.not. next%is_leaf())
             next%p_ => next%p_%children_(1)%p_
          end do
          key_tmp = next%p_%key_(1)
+         val_tmp = next%p_%val_(1)
          ! write(error_unit, '(a, *(i0, 1x))') "next: ", key, key_tmp
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2b end: ", key, key_tmp
          return
        end block
@@ -1541,15 +1547,18 @@ contains
        !>       !>   c'
        block
          integer(int64) :: key_tmp
+         integer(int64) :: val_tmp
          type(btree_node_ptr_int64_to_int64) :: prev
          prev%p_ => x%p_%children_(pos)%p_
          do while (.not. prev%is_leaf())
             prev%p_ => prev%p_%children_(prev%size()+1)%p_
          end do
          key_tmp = prev%p_%key_(prev%size())
+         val_tmp = prev%p_%val_(prev%size())
          ! write(error_unit, '(a, *(i0, 1x))') "prev: ", key_tmp, key
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2a end: ", key, key_tmp
          return
        end block
@@ -1566,15 +1575,18 @@ contains
        !>     c'
        block
          integer(int64) :: key_tmp
+         integer(int64) :: val_tmp
          type(btree_node_ptr_int64_to_int64) :: next
          next%p_ => x%p_%children_(pos+1)%p_
          do while (.not. next%is_leaf())
             next%p_ => next%p_%children_(1)%p_
          end do
          key_tmp = next%p_%key_(1)
+         val_tmp = next%p_%val_(1)
          ! write(error_unit, '(a, *(i0, 1x))') "next: ", key, key_tmp
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2b end: ", key, key_tmp
          return
        end block
@@ -2307,15 +2319,18 @@ contains
        !>       !>   c'
        block
          character(100) :: key_tmp
+         integer(int32) :: val_tmp
          type(btree_node_ptr_character100_to_int32) :: prev
          prev%p_ => x%p_%children_(pos)%p_
          do while (.not. prev%is_leaf())
             prev%p_ => prev%p_%children_(prev%size()+1)%p_
          end do
          key_tmp = prev%p_%key_(prev%size())
+         val_tmp = prev%p_%val_(prev%size())
          ! write(error_unit, '(a, *(i0, 1x))') "prev: ", key_tmp, key
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2a end: ", key, key_tmp
          return
        end block
@@ -2332,15 +2347,18 @@ contains
        !>     c'
        block
          character(100) :: key_tmp
+         integer(int32) :: val_tmp
          type(btree_node_ptr_character100_to_int32) :: next
          next%p_ => x%p_%children_(pos+1)%p_
          do while (.not. next%is_leaf())
             next%p_ => next%p_%children_(1)%p_
          end do
          key_tmp = next%p_%key_(1)
+         val_tmp = next%p_%val_(1)
          ! write(error_unit, '(a, *(i0, 1x))') "next: ", key, key_tmp
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2b end: ", key, key_tmp
          return
        end block
@@ -3073,15 +3091,18 @@ contains
        !>       !>   c'
        block
          character(100) :: key_tmp
+         integer(int64) :: val_tmp
          type(btree_node_ptr_character100_to_int64) :: prev
          prev%p_ => x%p_%children_(pos)%p_
          do while (.not. prev%is_leaf())
             prev%p_ => prev%p_%children_(prev%size()+1)%p_
          end do
          key_tmp = prev%p_%key_(prev%size())
+         val_tmp = prev%p_%val_(prev%size())
          ! write(error_unit, '(a, *(i0, 1x))') "prev: ", key_tmp, key
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2a end: ", key, key_tmp
          return
        end block
@@ -3098,15 +3119,18 @@ contains
        !>     c'
        block
          character(100) :: key_tmp
+         integer(int64) :: val_tmp
          type(btree_node_ptr_character100_to_int64) :: next
          next%p_ => x%p_%children_(pos+1)%p_
          do while (.not. next%is_leaf())
             next%p_ => next%p_%children_(1)%p_
          end do
          key_tmp = next%p_%key_(1)
+         val_tmp = next%p_%val_(1)
          ! write(error_unit, '(a, *(i0, 1x))') "next: ", key, key_tmp
          call x%remove(key_tmp)
          x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
          ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2b end: ", key, key_tmp
          return
        end block
