@@ -1,3 +1,0 @@
-* math
-** prime
-*** prime factorization
