@@ -1,9 +1,9 @@
 name = "algorithms_by_Fortran"
 version = "0.1.0"
-license = "BSD"
+license = "CC0-1.0"
 author = "Yuma Osada"
 maintainer = "osada.yum@gmail.com"
-copyright = "Copyright 2022, Yuma Osada"
+copyright = "Copyright 2022-2024, Yuma Osada"
 [build]
 auto-executables = false
 auto-tests = true
