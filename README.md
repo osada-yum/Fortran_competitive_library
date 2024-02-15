@@ -8,9 +8,9 @@ GFortran, fypp を使うことを想定.
 ## 使い方
 
 - `src/` 以下のファイル `special.fypp` を `#:include "filepath/special.fypp"` で読み込む.
-- `src/` 以下のファイルを見て, 例えば `tuple2` を使うときは `src/tuple2_m.fypp` を見てみる.
+- `src/` 以下のファイルを見てみる. 例えば `tuple2` を使うときは `src/tuple2_m.fypp` の先頭のコメントで, どのような fypp の変数を定義すればよいかが分かる.
 
-- 例
+- 例 (`#` で始まるものは fypp の命令.)
 ```
 #:include "src/special.fypp"
 #:set TUPLE2_ITEM1_TYPES = ["integer"]
