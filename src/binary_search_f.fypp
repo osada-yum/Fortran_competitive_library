@@ -1,0 +1,31 @@
+#:def binary_search(item)
+pure integer(int32) function binary_search(arr, v) result(res)
+  ${item}$, intent(in) :: arr(:), v
+  integer(int32) :: p, q, r
+  p = 1
+  r = size(arr)
+  if (arr(p) == v) then
+     res = p
+     return
+  else if (arr(r) == v) then
+     res = r
+     return
+  end if
+  !> invariant conditions:
+  !> arr(p) < v
+  !> arr(r) > v
+  !> any(arr(:) == v) is .true..
+  do while (p + 1 < r)
+     q = (p + r) / 2
+     if (arr(q) == v) then
+        res = q
+        return
+     else if (arr(q) < v) then
+        p = q
+     else
+        r = q
+     end if
+  end do
+  res = -1
+end function binary_search
+#:enddef

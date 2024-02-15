@@ -1,0 +1,145 @@
+#! Include this file with settting these values.
+#! :set PRIORITY_QUEUE_ITEM_TYPES = ["integer"]
+#! :set PRIORITY_QUEUE_ITEM_KINDS = ["int32"]
+#! :set PRIORITY_QUEUE_USE_MODULES = ["modulename"]
+#:set PRIORITY_QUEUE_ITEMS = [f"{type}({kind})" for (type, kind) in zip(PRIORITY_QUEUE_ITEM_TYPES, PRIORITY_QUEUE_ITEM_KINDS)]
+#:set PRIORITY_QUEUE_NAMES = [f"priority_queue_{kind}" for kind in PRIORITY_QUEUE_ITEM_KINDS]
+
+#:set ops = ['<', '>']
+#:set suffixes = ['min', 'max']
+$:add_module("priority_queue_m")
+module priority_queue_m
+  use, intrinsic :: iso_fortran_env
+#:for modulename in PRIORITY_QUEUE_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for name_origin, item in zip(PRIORITY_QUEUE_NAMES, PRIORITY_QUEUE_ITEMS)
+#:block ordering_block(typename = item)
+#:for op, suffix in zip(ops, suffixes)
+#:set name = f"{name_origin}_{suffix}"
+  public :: ${name}$
+  type :: ${name}$
+     private
+     integer(int32) :: size_ = 0_int32, capa_ = 0_int32
+     ${item}$, allocatable :: arr_(:)
+   contains
+     procedure, pass :: push  => push_${name}$
+     procedure, pass :: pop   => pop_${name}$
+     procedure, pass :: front => front_${name}$
+     procedure, pass :: size => size_${name}$
+     procedure, pass :: empty     => empty_${name}$
+     procedure, pass :: not_empty => not_${name}$
+#:block debug_block(typename = item)
+     procedure, pass :: dump => dump_${name}$
+#:endblock debug_block
+  end type ${name}$
+#:endfor
+#:endblock ordering_block
+#:endfor
+contains
+#:for name_origin, item in zip(PRIORITY_QUEUE_NAMES, PRIORITY_QUEUE_ITEMS)
+#:block ordering_block(typename = item)
+#:for op, suffix in zip(ops, suffixes)
+#:set name = f"{name_origin}_{suffix}"
+  !> push_${name}$: adds an element to the heap and reconstructs the heap by < order.
+  subroutine push_${name}$(this, val)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: val
+    ${item}$ :: tmp
+    integer(int32) :: i
+    if (this%size_ == this%capa_) then
+       if (this%capa_ == 0) then
+          this%capa_ = 1
+          allocate(this%arr_(1))
+       else
+          this%capa_ = 2*this%capa_
+          block
+            ${item}$, allocatable :: tmp_arr(:)
+            allocate(tmp_arr(this%capa_))
+            tmp_arr(1:this%size_) = this%arr_(1:this%size_)
+            call move_alloc(from = tmp_arr, to = this%arr_)
+          end block
+       end if
+    end if
+    this%size_ = this%size_ + 1
+    ! add  to heap.
+    this%arr_(this%size_) = val
+    i = this%size_
+    tmp = val
+    upheap:do ! reconstruct the heap by <.
+       if (i == 1) then ! top of the heap
+          this%arr_(1) = tmp
+          exit
+       else if (tmp ${op}$ this%arr_(i / 2)) then ! move the element up in the heap
+          this%arr_(i) = this%arr_(i / 2)
+       else ! move the element up in the heap
+          this%arr_(i) = tmp
+          tmp = this%arr_(i / 2)
+       end if
+       i = i / 2
+    end do upheap
+  end subroutine push_${name}$
+  !> pop_${name}$: extracts the < element from the heap.
+  pure subroutine pop_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    integer(int32) :: n, prev, next
+    ! add  to heap.
+    ! swap  and  and delete < element, .
+    this%arr_(1) = this%arr_(this%size_)
+    this%size_ = this%size_ - 1
+    n = this%size_
+    ! reconstruct the heap by moving the element  downwards.
+    next = 1
+    downheap:do ! reconstruct the heap by <.
+       prev = next
+       if (2 * prev > n) exit
+       if (this%arr_(2 * prev) ${op}$ this%arr_(next)) &
+            next = 2*prev
+       if (2 * prev + 1 <= n) then
+          if (this%arr_(2 * prev + 1) ${op}$ this%arr_(next)) &
+               next = 2 * prev + 1
+       end if
+       if (prev == next) exit ! arr(next) < arr(2*prev) .and. arr(next) < arr(2*prev+1)
+       call swap(this%arr_(prev), this%arr_(next))
+    end do downheap
+  contains
+    pure subroutine swap(x, y)
+      ${item}$, intent(inout) :: x, y
+      ${item}$ :: tmp
+      tmp = x
+      x   = y
+      y   = tmp
+    end subroutine swap
+  end subroutine pop_${name}$
+  !> front_${name}$: returns the top of the element of the heap, which has either the minimum or maximum value depending on the type of heap.
+  pure ${item}$ function front_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%arr_(1)
+  end function front_${name}$
+  !> size_${name}$: returns the size of the heap.
+  pure integer(int32) function size_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_
+  end function size_${name}$
+  !> empty_${name}$: returns if heap is empty or not.
+  pure logical function empty_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_ == 0
+  end function empty_${name}$
+  !> not_${name}$: returns if heap is not empty or empty.
+  pure logical function not_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = .not. this%empty()
+  end function not_${name}$
+#:block debug_block(typename = item)
+  impure subroutine dump_${name}$(this)
+    class(${name}$), intent(in) :: this
+    write(error_unit, '(*(g0, 1x))') this%arr_(1:this%size_)
+  end subroutine dump_${name}$
+#:endblock debug_block
+#:endfor
+#:endblock ordering_block
+#:endfor
+end module priority_queue_m

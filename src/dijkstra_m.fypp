@@ -1,0 +1,84 @@
+#:include "../../fypp/special.fypp"
+#:set TUPLE2_ITEM1_TYPES = ["integer"]
+#:set TUPLE2_ITEM2_TYPES = ["integer"]
+#:set TUPLE2_ITEM1_KINDS = ["int64"]
+#:set TUPLE2_ITEM2_KINDS = ["int32"]
+#:set TUPLE2_USE_MODULES = []
+#:include "../../fypp/tuple2_m.fypp"
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = ["type"]
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = ["tuple2_int64_int32"]
+#:set UNWRAPPED_VECTOR_USE_MODULES = ["tuple2_m"]
+#:include "../../fypp/unwrapped_vector_m.fypp"
+#:set PRIORITY_QUEUE_ITEM_TYPES = ["type"]
+#:set PRIORITY_QUEUE_ITEM_KINDS = ["tuple2_int64_int32"]
+#:set PRIORITY_QUEUE_USE_MODULES = ["tuple2_m"]
+#:include "../../fypp/priority_queue_m.fypp"
+module dijkstra_m
+  use, intrinsic :: iso_fortran_env
+  use tuple2_m, only: t2 => tuple2_int64_int32
+  use unwrapped_vector_m, only: &
+       vec_t2 => unwrapped_vector_tuple2_int64_int32
+  use priority_queue_m, only: pq_t2_min => priority_queue_tuple2_int64_int32_min
+  implicit none
+  integer(int64), parameter :: infini = ishft(1_int64, 55)
+  type :: dijkstra
+     private
+     integer(int32) :: n_, m_
+     type(vec_t2), allocatable :: g(:)
+   contains
+     procedure, pass :: input => input_dijkstra
+     procedure, pass :: solve => solve_dijkstra
+  end type dijkstra
+contains
+  impure subroutine input_dijkstra(this)
+    class(dijkstra), intent(inout) :: this
+    integer(int32) :: a, b
+    integer(int64) :: w
+    integer(int32) :: i
+    read(input_unit, *) this%n_, this%m_
+    allocate(this%g_(this%n_))
+    do i = 1, this%m_
+       read(input_unit, *) a, b, w
+       call this%g_(a)%push_back(t2(w, b))
+       call this%g_(b)%push_back(t2(w, a))
+    end do
+  end subroutine input_dijkstra
+  impure subroutine solve_dijkstra(this)
+    class(dijkstra), intent(in) :: this
+    integer(int64), allocatable :: dist(:)
+    logical, allocatable :: visited(:)
+    type(pq_t2_min) :: pq
+    integer(int32) :: i
+    allocate(dist(this%n_), source = infini)
+    dist(1) = 0_int64
+    allocate(visited(this%n_), source = .false.)
+    call pq%push(t2(0_int64, 1))
+    do while (pq%size() > 0)
+       associate(dist_vertex => pq%front())
+         call pq%pop()
+         associate(d => dist_vertex%v1_, v => dist_vertex%v2_)
+           if (visited(v)) cycle
+           visited(v) = .true.
+           do i = 1, g(v)%size()
+              associate(nv => this%g_(v)%arr_(i)%v2_, &
+                   & next_dist => d + this%g_(v)%arr_(i)%v1_)
+                if (visited(nv)) cycle
+                if (dist(nv) <= next_dist) cycle
+                dist(nv) = next_dist
+                call pq%push(t2(next_dist, nv))
+              end associate
+           end do
+         end associate
+       end associate
+    end do
+  end subroutine solve_dijkstra
+end module dijkstra_m
+
+program ${PROGNAME}$
+  use, intrinsic :: iso_fortran_env
+  use dijkstra_m
+  implicit none
+  type(dijkstra) :: prob
+  call prob%input()
+  call prob%solve()
+end program ${PROGNAME}$

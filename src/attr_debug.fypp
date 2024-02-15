@@ -1,0 +1,23 @@
+#:set DEBUG_TYPES = []
+#:def add_attr_debug(typename)
+#:mute
+  #: global DEBUG_TYPES
+  #:set DEBUG_TYPES = DEBUG_TYPES + [typename]
+  $: globalvar(f"DEBUG_{typename}".replace('(', '_').replace(')', '_'))
+  $: setvar(f"DEBUG_{typename}".replace('(', '_').replace(')', '_'), True)
+#:endmute
+#:enddef add_attr_debug
+
+#:def debug_block(code, typename)
+  #:if defined(f"DEBUG_{typename}".replace('(', '_').replace(')', '_'))
+  $: code
+  #:endif
+#:enddef debug_block
+
+#:set types = [f"integer({kind})" for kind in ["int8", "int16", "int32", "int64"]]
+#:set types = types + [f"real({kind})" for kind in ["real32", "real64"]]
+#:set types = types + ["logical"]
+#:for type in types
+  $: add_attr_debug(f"{type}")
+#:endfor
+#:del types

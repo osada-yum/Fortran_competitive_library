@@ -1,0 +1,455 @@
+#! Include this file with settting these values.
+#! :set LAZY_SEGMENT_TREE_ITEM_TYPES = ["integer", "integer"]
+#! :set LAZY_SEGMENT_TREE_ITEM_KINDS = ["int32", "int64"]
+#! :set LAZY_SEGMENT_TREE_LAZY_TYPES = ["integer", "integer"]
+#! :set LAZY_SEGMENT_TREE_LAZY_KINDS = ["int32", "int64"]
+#! :set LAZY_SEGMENT_TREE_USE_MODULES = ["modulename"]
+#:set LAZY_SEGMENT_TREE_ITEMS = [f"{type}({kind})" for (type, kind) in zip(LAZY_SEGMENT_TREE_ITEM_TYPES, LAZY_SEGMENT_TREE_ITEM_KINDS)]
+#:set LAZY_SEGMENT_TREE_LAZYS = [f"{type}({kind})" for (type, kind) in zip(LAZY_SEGMENT_TREE_LAZY_TYPES, LAZY_SEGMENT_TREE_LAZY_KINDS)]
+#:set LAZY_SEGMENT_TREE_NAMES = []
+#:set LAZY_SEGMENT_TREE_MONOID_NAMES = []
+$:add_module("lazy_segment_tree_m")
+module lazy_segment_tree_m
+  use, intrinsic :: iso_fortran_env
+#:for modulename in LAZY_SEGMENT_TREE_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for item, lazy, item_kind, lazy_kind in zip(LAZY_SEGMENT_TREE_ITEMS, LAZY_SEGMENT_TREE_LAZYS, LAZY_SEGMENT_TREE_ITEM_KINDS, LAZY_SEGMENT_TREE_LAZY_KINDS)
+  #:set name = f"lazy_segment_tree_{item_kind}_lazy_{lazy_kind}"
+  #:set monoid_name = f"monoid_{item_kind}_lazy_{lazy_kind}"
+  #:set LAZY_SEGMENT_TREE_NAMES = LAZY_SEGMENT_TREE_NAMES + [name]
+  #:set LAZY_SEGMENT_TREE_MONOID_NAMES = LAZY_SEGMENT_TREE_MONOID_NAMES + [monoid_name]
+  public :: ${name}$
+  public :: ${monoid_name}$
+  type :: ${name}$
+     private
+     integer(int32) :: num_elems_, arr_size_, tree_size_, depth_, idx_range_left_, idx_range_right_
+     ${item}$, allocatable :: arr_(:)
+     ${lazy}$, allocatable :: lazy_(:)
+     logical, allocatable :: is_lazy_(:)
+     class(${monoid_name}$), allocatable :: monoid_
+   contains
+     procedure, pass :: init_${name}$
+     procedure, pass :: init_by_arr_${name}$
+     generic :: init => &
+          init_${name}$, &
+          init_by_arr_${name}$
+#:block debug_block(typename = item)
+     procedure, pass :: dump => &
+          dump_${name}$
+#:endblock debug_block
+     procedure, pass :: unsafe_set => &
+          unsafe_set_${name}$
+     procedure, pass :: unsafe_get => &
+          unsafe_get_${name}$
+     procedure, pass :: unsafe_bottomup_update => &
+          unsafe_bottomup_update_${name}$
+     procedure, pass :: strict_propagate_all => &
+          strict_propagate_all_${name}$
+     procedure, pass, private :: strict_propagate_all_sub => &
+          strict_propagate_all_sub_${name}$
+     procedure, pass :: update => &
+          update_${name}$
+     procedure, pass, private :: update_sub => &
+          update_sub_${name}$
+     procedure, pass :: query => &
+          query_${name}$
+     procedure, pass, private :: eval_and_propagate => &
+          eval_and_propagate_${name}$
+  end type ${name}$
+  type, abstract :: ${monoid_name}$
+     private
+   contains
+     procedure(identity_${monoid_name}$) , nopass, deferred :: identity
+     procedure(bin_op_${monoid_name}$)   , nopass, deferred :: bin_op
+     procedure(mapping_${monoid_name}$)  , nopass, deferred :: mapping
+     procedure(composite_${monoid_name}$), nopass, deferred :: composite
+  end type ${monoid_name}$
+  abstract interface
+     pure ${item}$ function identity_${monoid_name}$() result(res)
+       $:import_kind(typenames = [item_kind])
+     end function identity_${monoid_name}$
+     pure ${item}$ function bin_op_${monoid_name}$(lhs, rhs) result(res)
+       $:import_kind(typenames = [item_kind])
+       ${item}$, intent(in) :: lhs, rhs
+     end function bin_op_${monoid_name}$
+     pure ${item}$ function mapping_${monoid_name}$(v, c, length) result(res)
+       $:import_kind(typenames = [item_kind, lazy_kind, "int32"])
+       ${item}$, intent(in) :: v
+       ${lazy}$, intent(in) :: c
+       integer(int32), intent(in) :: length
+     end function mapping_${monoid_name}$
+     pure ${lazy}$ function composite_${monoid_name}$(c_first, c_second) result(res)
+       $:import_kind(typenames = [lazy_kind])
+       ${lazy}$, intent(in) :: c_first, c_second
+     end function composite_${monoid_name}$
+  end interface
+
+#:block number_block(typename = item)
+#:if item == lazy
+  public :: sum_assign_${monoid_name}$, &
+       & sum_add_${monoid_name}$, &
+       & sum_mul_${monoid_name}$
+  public :: min_assign_${monoid_name}$, &
+       & min_add_${monoid_name}$
+  public :: max_assign_${monoid_name}$, &
+       & max_add_${monoid_name}$
+  type, extends(${monoid_name}$) :: sum_assign_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_sum_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_sum_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_sum_assign_${monoid_name}$
+     procedure, nopass :: composite => composite_sum_assign_${monoid_name}$
+  end type sum_assign_${monoid_name}$
+  type, extends(${monoid_name}$) :: sum_add_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_sum_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_sum_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_sum_add_${monoid_name}$
+     procedure, nopass :: composite => composite_sum_add_${monoid_name}$
+  end type sum_add_${monoid_name}$
+  type, extends(${monoid_name}$) :: sum_mul_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_sum_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_sum_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_sum_mul_${monoid_name}$
+     procedure, nopass :: composite => composite_sum_mul_${monoid_name}$
+  end type sum_mul_${monoid_name}$
+
+  type, extends(${monoid_name}$) :: min_assign_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_min_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_min_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_min_assign_${monoid_name}$
+     procedure, nopass :: composite => composite_min_assign_${monoid_name}$
+  end type min_assign_${monoid_name}$
+  type, extends(${monoid_name}$) :: min_add_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_min_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_min_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_min_add_${monoid_name}$
+     procedure, nopass :: composite => composite_min_add_${monoid_name}$
+  end type min_add_${monoid_name}$
+
+  type, extends(${monoid_name}$) :: max_assign_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_max_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_max_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_max_assign_${monoid_name}$
+     procedure, nopass :: composite => composite_max_assign_${monoid_name}$
+  end type max_assign_${monoid_name}$
+  type, extends(${monoid_name}$) :: max_add_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_max_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_max_${monoid_name}$
+     procedure, nopass :: mapping   => mapping_max_add_${monoid_name}$
+     procedure, nopass :: composite => composite_max_add_${monoid_name}$
+  end type max_add_${monoid_name}$
+#:endif
+#:endblock number_block
+#:endfor
+contains
+#:for item, lazy, item_kind, lazy_kind in zip(LAZY_SEGMENT_TREE_ITEMS, LAZY_SEGMENT_TREE_LAZYS, LAZY_SEGMENT_TREE_ITEM_KINDS, LAZY_SEGMENT_TREE_LAZY_KINDS)
+  #:set name = f"lazy_segment_tree_{item_kind}_lazy_{lazy_kind}"
+  #:set monoid_name = f"monoid_{item_kind}_lazy_{lazy_kind}"
+  !> indices rage [1:2^a-1]
+  !> init_${name}$: Initialize ${name}$ with  and monoid
+  pure subroutine init_${name}$(this, num_elems, monoid)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: num_elems
+    class(${monoid_name}$), intent(in) :: monoid
+    integer(int32) :: tree_size
+    allocate(this%monoid_, source = monoid)
+    tree_size = 1
+    this%depth_ = 1
+    do while (tree_size < num_elems)
+       tree_size = tree_size * 2
+       this%depth_ = this%depth_ + 1
+    end do
+    this%tree_size_ = tree_size
+    this%arr_size_ = 2 * tree_size - 1
+    this%num_elems_ = num_elems
+    this%idx_range_left_  = 1
+    this%idx_range_right_ = tree_size
+    allocate(this%arr_(this%arr_size_), source = this%monoid_%identity())
+    allocate(this%lazy_(this%arr_size_))
+    allocate(this%is_lazy_(this%arr_size_), source = .false.)
+  end subroutine init_${name}$
+  !> init_by_arr_${name}$: Initialize lazy segment tree by array.
+  pure subroutine init_by_arr_${name}$(this, arr, monoid)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: arr(:)
+    class(${monoid_name}$), intent(in) :: monoid
+    integer(int32) :: i
+    call this%init(size(arr), monoid)
+    do i = 1, size(arr)
+       this%arr_(i + this%tree_size_ - 1) = arr(i)
+    end do
+    call this%strict_propagate_all()
+  end subroutine init_by_arr_${name}$
+
+  !> unsafe_set_${name}$: Set value into the node of leaf of tree.
+  pure elemental subroutine unsafe_set_${name}$(this, idx, val)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: idx
+    ${item}$, intent(in) :: val
+    this%arr_(this%tree_size_ + idx - 1) = val
+  end subroutine unsafe_set_${name}$
+  !> unsafe_get_${name}$: Retrun values.
+  pure elemental ${item}$ function unsafe_get_${name}$(this, idx) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32), intent(in) :: idx
+    res = this%arr_(this%tree_size_ + idx - 1)
+  end function unsafe_get_${name}$
+  !> unsafe_set_${name}$: Update all node.
+  pure subroutine unsafe_bottomup_update_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    integer(int32) :: i
+    do i = this%tree_size_ - 1, 1, -1
+       this%arr_(i) = this%monoid_%bin_op(this%arr_(2 * i), this%arr_(2 * i + 1))
+    end do
+    this%is_lazy_(:) = .false.
+  end subroutine unsafe_bottomup_update_${name}$
+
+  !> strict_propagate_all_${name}$: Update all node.
+  pure subroutine strict_propagate_all_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    call this%strict_propagate_all_sub(1, this%idx_range_left_, this%idx_range_right_)
+  end subroutine strict_propagate_all_${name}$
+  pure recursive subroutine strict_propagate_all_sub_${name}$(this, idx, l, r)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: idx, l, r
+    call this%eval_and_propagate(idx, r - l + 1)
+    if (l == r) return
+    call this%strict_propagate_all_sub(2 * idx,                   l, (l + r) / 2)
+    call this%strict_propagate_all_sub(2 * idx + 1, (l + r + 1) / 2, r)
+    this%arr_(idx) = this%monoid_%bin_op(this%arr_(2 * idx), this%arr_(2 * idx + 1))
+  end subroutine strict_propagate_all_sub_${name}$
+
+  !> update_${name}$: Update tree by .
+  !> [a, b]: Range to update.
+  !> val: Value of update.
+  pure subroutine update_${name}$(this, a, b, val)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: a, b
+    ${lazy}$, intent(in) :: val
+    if (a > b) error stop "Illegal range of a > b."
+    call this%update_sub(a, b, val, 1, this%idx_range_left_, this%idx_range_right_)
+  end subroutine update_${name}$
+  !> update_sub_${name}$: Update tree by .
+  !> [a, b]: Range to update.
+  !> val: Value of update.
+  !> idx: Index of tree.
+  !> [l, r]: Range of current node of tree.
+  pure recursive subroutine update_sub_${name}$(this, a, b, val, idx, l, r)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: a, b, idx, l, r
+    ${lazy}$, intent(in) :: val
+    ! write(error_unit, '(a, *(i0, 1x))') "update_sub: ", a, b, l, r, idx
+    if (a <= l .and. r <= b) then !> [a, b] に [l, r]が内包.
+       if (this%is_lazy_(idx)) then
+          this%lazy_(idx) = this%monoid_%composite(this%lazy_(idx), val)
+       else
+          this%lazy_(idx) = val
+          this%is_lazy_(idx) = .true.
+       end if
+       call this%eval_and_propagate(idx, r - l + 1)
+       return
+    end if
+    call this%eval_and_propagate(idx, r - l + 1)
+    if (r < a .or. b < l) return !> r < [a, b] or [a, b] < l
+    !> 一部が [a, b]に入っている.
+    call this%update_sub(a, b, val, 2 * idx,                   l, (l + r) / 2)
+    call this%update_sub(a, b, val, 2 * idx + 1, (l + r + 1) / 2, r)
+    this%arr_(idx) = this%monoid_%bin_op(this%arr_(2 * idx), this%arr_(2 * idx + 1))
+  end subroutine update_sub_${name}$
+
+  ! 閉区間[a, b]で操作.
+  impure ${item}$ function query_${name}$ (this, a, b) result(query)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: a, b
+    if (a > b) error stop "Illegal range of a > b."
+    query = query_sub(1, this%idx_range_left_, this%idx_range_right_)
+  contains
+    impure recursive ${item}$ function query_sub(idx, l, r) result(res)
+      integer(int32), intent(in) :: idx, l, r
+      ${item}$ :: val_l, val_r
+      ! write(error_unit, '(a, *(i0, 1x))') "query_sub: ", a, b, l, r
+      call this%eval_and_propagate(idx, r - l + 1)
+      res = this%monoid_%identity()
+      if (r < a .or. b < l) return !> r < [a, b] or [a, b] < l
+      if (a <= l .and. r <= b) then !> [a, b] に [l, r]が内包.
+         res = this%arr_(idx)
+         return
+      else !> l in [a, b] or r in [a, b]
+         !> [l, r] -> [l, (l + r) / 2], [(l + r + 1) / 2, r]
+         val_l = query_sub(2 * idx,                   l, (l + r) / 2)
+         val_r = query_sub(2 * idx + 1, (l + r + 1) / 2, r)
+         res = this%monoid_%bin_op(val_l, val_r)
+      end if
+    end function query_sub
+  end function query_${name}$
+  !> eval_and_propagate_${name}$: Treat lazy propagation.
+  !> idx: Index of node of tree.
+  !> length: Length of range of node.
+  pure subroutine eval_and_propagate_${name}$(this, idx, length)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: idx, length
+    ! write(error_unit, '(a, L, *(1x, i0))') "eval_and_propagate: ", this%is_lazy_(idx) &
+    !      , idx, this%arr_(idx), this%lazy_(idx), length, this%monoid_%mapping(this%arr_(idx), this%lazy_(idx), length)
+    if (.not. this%is_lazy_(idx)) return
+    this%arr_(idx) = this%monoid_%mapping(this%arr_(idx), this%lazy_(idx), length)
+    this%is_lazy_(idx) = .false.
+    if (2 * idx > this%arr_size_) return
+    if (this%is_lazy_(2 * idx)) then
+       this%lazy_(2 * idx) = this%monoid_%composite(this%lazy_(2 * idx), this%lazy_(idx))
+    else
+       this%lazy_(2 * idx) = this%lazy_(idx)
+       this%is_lazy_(2 * idx) = .true.
+    end if
+    if (this%is_lazy_(2 * idx + 1)) then
+       this%lazy_(2 * idx + 1) = this%monoid_%composite(this%lazy_(2 * idx + 1), this%lazy_(idx))
+    else
+       this%lazy_(2 * idx + 1) = this%lazy_(idx)
+       this%is_lazy_(2 * idx + 1) = .true.
+    end if
+  end subroutine eval_and_propagate_${name}$
+
+#:block debug_block(typename = item)
+#:block debug_block(typename = lazy)
+  impure subroutine dump_${name}$(this)
+    class(${name}$), intent(in) :: this
+    integer(int32) :: i
+    write(error_unit, '(a)') "tree: "
+    do i = 1, this%depth_
+       write(error_unit, '(g0, ": ", *(g0, 1x))') i, this%arr_(2**(i-1):2**i-1)
+    end do
+    write(error_unit, '(a)') "lazy tree: "
+    do i = 1, this%depth_
+       write(error_unit, '(g0, ": ", *(g0, 1x))') i, this%lazy_(2**(i-1):2**i-1)
+    end do
+    write(error_unit, '(a)') "is_lazy?: "
+    do i = 1, this%depth_
+       write(error_unit, '(g0, ": ", *(L, 1x))') i, this%is_lazy_(2**(i-1):2**i-1)
+    end do
+  end subroutine dump_${name}$
+#:endblock debug_block
+#:endblock debug_block
+
+#:block number_block(typename = item)
+#:if item == lazy
+  pure ${item}$ function identity_sum_${monoid_name}$() result(res)
+    res = ${getvar(f"ZERO_{item_kind}")}$
+  end function identity_sum_${monoid_name}$
+  pure ${item}$ function bin_op_sum_${monoid_name}$(lhs, rhs) result(res)
+    ${item}$, intent(in) :: lhs, rhs
+    res = lhs + rhs
+  end function bin_op_sum_${monoid_name}$
+  pure ${item}$ function mapping_sum_assign_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(v => v); end associate !> not use.
+    res = c * length
+  end function mapping_sum_assign_${monoid_name}$
+  pure ${lazy}$ function composite_sum_assign_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    associate(c_first => c_first); end associate !> not use.
+    res = c_second
+  end function composite_sum_assign_${monoid_name}$
+  pure ${item}$ function mapping_sum_add_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    res = v + c * length
+  end function mapping_sum_add_${monoid_name}$
+  pure ${lazy}$ function composite_sum_add_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_sum_add_${monoid_name}$
+  pure ${item}$ function mapping_sum_mul_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(length => length); end associate !> not use.
+    res = v * c
+  end function mapping_sum_mul_${monoid_name}$
+  pure ${lazy}$ function composite_sum_mul_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_sum_mul_${monoid_name}$
+
+  pure ${item}$ function identity_min_${monoid_name}$() result(res)
+    res = ${getvar(f"MAXIMUM_{item_kind}")}$
+  end function identity_min_${monoid_name}$
+  pure ${item}$ function bin_op_min_${monoid_name}$(lhs, rhs) result(res)
+    ${item}$, intent(in) :: lhs, rhs
+    res = min(lhs, rhs)
+  end function bin_op_min_${monoid_name}$
+  pure ${item}$ function mapping_min_assign_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(v => v, length => length); end associate !> not use.
+    res = c
+  end function mapping_min_assign_${monoid_name}$
+  pure ${lazy}$ function composite_min_assign_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    associate(c_first => c_first); end associate !> not use.
+    res = c_second
+  end function composite_min_assign_${monoid_name}$
+  pure ${item}$ function mapping_min_add_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(v => v, length => length); end associate !> not use.
+    res = v + c
+  end function mapping_min_add_${monoid_name}$
+  pure ${lazy}$ function composite_min_add_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_min_add_${monoid_name}$
+
+  pure ${item}$ function identity_max_${monoid_name}$() result(res)
+    res = ${getvar(f"MINIMUM_{item_kind}")}$
+  end function identity_max_${monoid_name}$
+  pure ${item}$ function bin_op_max_${monoid_name}$(lhs, rhs) result(res)
+    ${item}$, intent(in) :: lhs, rhs
+    res = max(lhs, rhs)
+  end function bin_op_max_${monoid_name}$
+  pure ${item}$ function mapping_max_assign_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(v => v, length => length); end associate !> not use.
+    res = c
+  end function mapping_max_assign_${monoid_name}$
+  pure ${lazy}$ function composite_max_assign_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    associate(c_first => c_first); end associate !> not use.
+    res = c_second
+  end function composite_max_assign_${monoid_name}$
+  pure ${item}$ function mapping_max_add_${monoid_name}$(v, c, length) result(res)
+    ${item}$, intent(in) :: v
+    ${lazy}$, intent(in) :: c
+    integer(int32), intent(in) :: length
+    associate(length => length); end associate !> not use.
+    res = v + c
+  end function mapping_max_add_${monoid_name}$
+  pure ${lazy}$ function composite_max_add_${monoid_name}$(c_first, c_second) result(res)
+    ${lazy}$, intent(in) :: c_first, c_second
+    res = c_first + c_second
+  end function composite_max_add_${monoid_name}$
+#:endif
+#:endblock number_block
+#:endfor
+end module lazy_segment_tree_m

@@ -1,0 +1,202 @@
+#! Include this file with settting these values.
+#! :set UNWRAPPED_VECTOR_ITEM_TYPES = ["integer", "integer"]
+#! :set UNWRAPPED_VECTOR_ITEM_KINDS = ["int32", "int64"]
+#! :set UNWRAPPED_VECTOR_USE_MODULES = ["modulename"]
+#:set UNWRAPPED_VECTOR_ITEMS = [f"{type}({kind})" for (type, kind) in zip(UNWRAPPED_VECTOR_ITEM_TYPES, UNWRAPPED_VECTOR_ITEM_KINDS)]
+#:set UNWRAPPED_VECTOR_NAMES = [f"unwrapped_vector_{kind}" for kind in UNWRAPPED_VECTOR_ITEM_KINDS]
+$:add_module("unwrapped_vector_m")
+module unwrapped_vector_m
+  use, intrinsic :: iso_fortran_env
+  !> maybe use module.
+#:for modulename in UNWRAPPED_VECTOR_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for name, item in zip(UNWRAPPED_VECTOR_NAMES, UNWRAPPED_VECTOR_ITEMS)
+  public :: ${name}$
+  type :: ${name}$
+     private
+     integer(int32) :: size_ = 0, capa_ = 0
+     ${item}$, allocatable, public :: arr_(:)
+   contains
+     procedure, pass :: init      => init_${name}$
+     procedure, pass :: with_capacity => with_capacity_${name}$
+     procedure, pass :: push_back_${name}$, &
+          push_back_array_${name}$
+     generic         :: push_back => push_back_${name}$, &
+          push_back_array_${name}$
+     procedure, pass :: pop_back  => pop_back_${name}$
+     procedure, pass :: back      => back_${name}$
+     procedure, pass :: size   => size_${name}$
+     procedure, pass :: resize => resize_${name}$
+#:block ordering_block(typename = item)
+     procedure, pass :: lower_bound => lower_bound_${name}$
+     procedure, pass :: upper_bound => upper_bound_${name}$
+#:endblock ordering_block
+  end type ${name}$
+  interface ${name}$
+     module procedure :: construct_${name}$_by_size, &
+          construct_${name}$_by_arr, &
+          construct_${name}$_by_init_val
+  end interface ${name}$
+#:endfor
+contains
+#:for name, item in zip(UNWRAPPED_VECTOR_NAMES, UNWRAPPED_VECTOR_ITEMS)
+  pure function construct_${name}$_by_size(size) result(res)
+    type(${name}$) :: res
+    integer(int32), intent(in) :: size
+    call res%init(size)
+  end function construct_${name}$_by_size
+  pure function construct_${name}$_by_arr(arr) result(res)
+    type(${name}$) :: res
+    ${item}$, intent(in) :: arr(:)
+    integer(int32) :: n
+    n = size(arr)
+    call res%init(n)
+    res%arr_(1:n) = arr(1:n)
+  end function construct_${name}$_by_arr
+  pure function construct_${name}$_by_init_val(size, val) result(res)
+    type(${name}$) :: res
+    integer(int32), intent(in) :: size
+    ${item}$, intent(in) :: val
+    call res%init(size)
+    res%arr_(1:size) = val
+  end function construct_${name}$_by_init_val
+  pure subroutine init_${name}$(this, n)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = n
+       this%capa_ = n
+    end if
+  end subroutine init_${name}$
+  pure subroutine with_capacity_${name}$(this, n)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (.not. allocated(this%arr_)) then
+       allocate(this%arr_(n))
+       this%size_ = 0
+       this%capa_ = n
+    end if
+  end subroutine with_capacity_${name}$
+  pure subroutine push_back_${name}$(this, val)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: val
+    if (.not. allocated(this%arr_)) call this%with_capacity(1)
+    if (this%size_ == this%capa_) then
+       call this%resize(2*this%capa_)
+    end if
+    this%size_ = this%size_ + 1
+    this%arr_(this%size_) = val
+  end subroutine push_back_${name}$
+  pure subroutine push_back_array_${name}$(this, arr)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: arr(:)
+    integer(int32) :: s
+    s = size(arr)
+    if (.not. allocated(this%arr_)) &
+         call this%with_capacity(s)
+    if (this%size_ + s > this%capa_) then
+       call this%resize(this%size_ + s)
+    end if
+    this%arr_(this%size_+1:this%size_+s) = arr(:)
+    this%size_ = this%size_ + s
+  end subroutine push_back_array_${name}$
+  pure subroutine pop_back_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    this%size_ = this%size_ - 1
+  end subroutine pop_back_${name}$
+  pure ${item}$ function back_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%arr_(this%size_)
+  end function back_${name}$
+  pure integer(int32) function size_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_
+  end function size_${name}$
+  pure subroutine resize_${name}$(this, resize)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: resize
+    ${item}$, allocatable :: tmp(:)
+    if (resize < 1) then
+       this%size_ = 0
+       allocate(tmp(1))
+       call move_alloc(from = tmp, to = this%arr_)
+       this%capa_ = 1
+    else
+       if (this%capa_ == resize) return
+       allocate(tmp(resize))
+       this%size_ = min(this%size_, resize)
+       tmp(1:this%size_) = this%arr_(1:this%size_)
+       call move_alloc(from = tmp, to = this%arr_)
+       this%capa_ = resize
+    end if
+  end subroutine resize_${name}$
+#:block ordering_block(typename = item)
+  pure integer(int32) function lower_bound_${name}$(this, val) result(res)
+    class(${name}$), intent(in) :: this
+    ${item}$, intent(in) :: val
+    res = lower_bound(this%arr_(1:this%size()), val)
+  contains
+    pure integer(int32) function lower_bound(arr, val) result(res)
+      ${item}$, intent(in) :: arr(:)
+      ${item}$, intent(in) :: val
+      integer(int32) :: p, q, r
+      p = 1
+      r = size(arr)
+      if (r == 0) then
+         res = r + 1; return
+      else if (arr(p) >= val) then
+         res = p; return
+      else if (arr(r) < val) then
+         res = r + 1; return
+      end if
+      !> invariant conditions:
+      !> arr(p) < v.
+      !> arr(r) >= v.
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) >= val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function lower_bound
+  end function lower_bound_${name}$
+  pure integer(int32) function upper_bound_${name}$(this, val) result(res)
+    class(${name}$), intent(in) :: this
+    ${item}$, intent(in) :: val
+    res = upper_bound(this%arr_(1:this%size()), val)
+  contains
+    pure integer(int32) function upper_bound(arr, val) result(res)
+      ${item}$, intent(in) :: arr(:)
+      ${item}$, intent(in) :: val
+      integer(int32) :: p, q, r
+      p = 1
+      r = size(arr)
+      if (arr(p) > val) then
+         res = p; return
+      else if (arr(r) <= val) then
+         res = r + 1; return
+      end if
+      !> invariant conditions:
+      !> arr(p) <= v.
+      !> arr(r) > v.
+      do while (p + 1 < r)
+         q = (p + r)/ 2
+         if (arr(q) > val) then
+            r = q
+         else !> arr(q) < val
+            p = q
+         end if
+      end do
+      res = r
+    end function upper_bound
+  end function upper_bound_${name}$
+#:endblock ordering_block
+#:endfor
+end module unwrapped_vector_m

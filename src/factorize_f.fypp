@@ -1,0 +1,15 @@
+pure type(vec_i64) function factorize(n) result(res)
+  integer(int64), intent(in) :: n
+  integer(int64) :: i
+  call res%push_back(1_int64)
+  call res%push_back(n)
+  i = 1_int64
+  do
+     i = i + 1
+     if (i * i > n) exit
+     if (mod(n, i) /= 0_int64) cycle
+     call res%push_back(i)
+     if (i * i == n) exit
+     call res%push_back(n / i)
+  end do
+end function factorize

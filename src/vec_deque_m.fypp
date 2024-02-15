@@ -1,0 +1,166 @@
+#! Include this file with settting these values.
+#! :set VEC_DEQUE_ITEM_TYPES = ["integer"]
+#! :set VEC_DEQUE_ITEM_KINDS = ["int32"]
+#! :set VEC_DEQUE_USE_MODULES = ["modulename"]
+#:set VEC_DEQUE_ITEMS = [f"{type}({kind})" for (type, kind) in zip(VEC_DEQUE_ITEM_TYPES, VEC_DEQUE_ITEM_KINDS)]
+#:set VEC_DEQUE_NAMES = [f"vec_deque_{kind}" for kind in VEC_DEQUE_ITEM_KINDS]
+$:add_module("vec_deque_m")
+module vec_deque_m
+  use, intrinsic :: iso_fortran_env
+  !> maybe use module.
+#:for modulename in VEC_DEQUE_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+  integer(int32), parameter :: init_size = 4
+#:for name, item in zip(VEC_DEQUE_NAMES, VEC_DEQUE_ITEMS)
+  public :: ${name}$
+  type :: ${name}$
+     private
+     integer(int32) :: size_ = 0, capa_ = 0
+     integer(int32) :: head_, tail_
+     ${item}$, allocatable :: arr_(:)
+   contains
+     procedure, pass :: init => init_${name}$
+     procedure, pass :: clear => clear_${name}$
+     procedure, pass, private :: resize => resize_${name}$
+     procedure, pass :: size => size_${name}$
+     procedure, pass :: push_front => push_front_${name}$
+     procedure, pass :: push_back  => push_back_${name}$
+     procedure, pass :: pop_front  => pop_front_${name}$
+     procedure, pass :: pop_back   => pop_back_${name}$
+     procedure, pass :: front  => front_${name}$
+     procedure, pass :: back   => back_${name}$
+     procedure, pass :: at => at_${name}$
+     procedure, pass :: to_array => to_array_${name}$
+  end type ${name}$
+#:endfor
+contains
+#:for name, item in zip(VEC_DEQUE_NAMES, VEC_DEQUE_ITEMS)
+  pure subroutine init_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    if (allocated(this%arr_)) return
+    allocate(this%arr_(init_size))
+    this%size_ = 0
+    this%capa_ = init_size
+    this%head_ = this%capa_
+    this%tail_ = 1
+  end subroutine init_${name}$
+  subroutine clear_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    if (.not. allocated(this%arr_)) return
+    deallocate(this%arr_)
+  end subroutine clear_${name}$
+  pure integer(int32) function size_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_
+  end function size_${name}$
+  pure subroutine resize_${name}$(this, capa)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: capa
+    integer(int32) :: s
+    ${item}$, allocatable :: tmp(:)
+    if (capa <= this%size_) return
+    allocate(tmp(capa))
+    if (this%head_ < this%tail_) then
+       !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
+       tmp(this%head_+1:this%tail_-1) = this%arr_(this%head_+1:this%tail_-1)
+       call move_alloc(from = tmp, to = this%arr_)
+    else !> this%head_ >= this%tail_
+       !> (1...t????h...c).
+       tmp(1:this%tail_-1) = this%arr_(1:this%tail_-1)
+       s = this%capa_ - (this%head_ + 1)
+       tmp(capa-s:capa) = this%arr_(this%capa_-s:this%capa_)
+       this%head_ = capa - s - 1
+       call move_alloc(from = tmp, to = this%arr_)
+    end if
+    this%capa_ = capa
+  end subroutine resize_${name}$
+  pure subroutine push_front_${name}$(this, v)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: v
+    if (.not. allocated(this%arr_)) &
+         & call this%init()
+    if (this%head_ == this%tail_) then
+       call this%resize(this%capa_ * 2)
+    end if
+    this%arr_(this%head_) = v
+    this%head_ = this%head_ - 1
+    if (this%head_ < 1) this%head_ = this%capa_
+    this%size_ = this%size_ + 1
+  end subroutine push_front_${name}$
+  pure subroutine push_back_${name}$(this, v)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: v
+    if (.not. allocated(this%arr_)) &
+         & call this%init()
+    if (this%head_ == this%tail_) then
+       call this%resize(this%capa_*2)
+    end if
+    this%arr_(this%tail_) = v
+    this%tail_ = this%tail_ + 1
+    if (this%tail_ > this%capa_) this%tail_ = 1
+    this%size_ = this%size_ + 1
+  end subroutine push_back_${name}$
+  pure subroutine pop_front_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    if (this%size_ == 0) then
+       error stop "Error in pop_front: ${name}$ is empty."
+    end if
+    this%size_ = this%size_ - 1
+    this%head_ = this%head_ + 1
+    if (this%head_ > this%capa_) this%head_ = 1
+  end subroutine pop_front_${name}$
+  pure subroutine pop_back_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    if (this%size_ == 0) then
+       error stop "Error in pop_back: ${name}$ is empty."
+    end if
+    this%size_ = this%size_ - 1
+    this%tail_ = this%tail_ - 1
+    if (this%tail_ < 1) this%tail_ = this%capa_
+  end subroutine pop_back_${name}$
+  pure ${item}$ function front_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32) :: head
+    if (this%size_ == 0) then
+       error stop "Error in front: ${name}$ is empty."
+    end if
+    head = this%head_ + 1
+    if (head > this%capa_) head = 1
+    res = this%arr_(head)
+  end function front_${name}$
+  pure ${item}$ function back_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32) :: tail
+    if (this%size_ == 0) then
+       error stop "Error in back: ${name}$ is empty."
+    end if
+    tail = this%tail_ - 1
+    if (tail < 1) tail = this%capa_
+    res = this%arr_(tail)
+  end function back_${name}$
+  pure ${item}$ function at_${name}$(this, idx) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32), intent(in) :: idx
+    integer(int32) :: pos
+    pos = mod((this%head_ + 1) + (idx - 1) - 1, this%capa_) + 1
+    res = this%arr_(pos)
+  end function at_${name}$
+  pure function to_array_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    ${item}$, allocatable :: res(:)
+    allocate(res(this%size_))
+    if (this%size() == 0) return
+    if (this%head_ < this%tail_) then
+       !> (1???h...t???c), ...が意味のあるデータ, ???が意味のないデータ.
+       res(:) = this%arr_(this%head_+1:this%tail_-1)
+    else !> this%head_ <= this%tail_
+       !> (1...t????h...c).
+       res(1 : this%capa_ - this%head_) = this%arr_(this%head_ + 1 : this%capa_)
+       res(this%capa_ - this%head_ + 1 : this%size_) = this%arr_(1 : this%tail_ - 1)
+    end if
+  end function to_array_${name}$
+#:endfor
+end module vec_deque_m

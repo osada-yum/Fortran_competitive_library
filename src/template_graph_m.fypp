@@ -1,0 +1,53 @@
+#:include "../../fypp/special.fypp"
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = ["integer"]
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = ["int32"]
+#:set UNWRAPPED_VECTOR_USE_MODULES = []
+#:include "../../fypp/unwrapped_vector_m.fypp"
+module graph_m
+  use, intrinsic :: iso_fortran_env
+  use unwrapped_vector_m, only: vec_i32 => unwrapped_vector_int32
+  implicit none
+  private
+  public :: graph
+  type :: graph
+     private
+     integer(int32) :: n_, m_
+     type(vec_i32), allocatable : :g_(:)
+     integer(int32), allocatable :: dist_(:)
+     logical, allocatable :: visited_(:)
+   contains
+     procedure, pass :: input => input_problem
+     procedure, pass :: solve => solve_problem
+     procedure, pass, private :: query => query_problem
+  end type graph
+contains
+  impure subroutine input_problem(this)
+    class(graph), intent(inout) :: this
+    integer(int32) :: a, b
+    integer(int32) :: i
+    read(input_unit, *) this%n_, this%m_
+    allocate(this%g_(this%n_))
+    do i = 1, this%m_
+       read(input_unit, *) a, b
+       call this%g_(a)%push_back(b)
+       call this%g_(b)%push_back(a)
+    end do
+  end subroutine input_problem
+  impure subroutine solve_problem(this)
+    class(graph), intent(inout) :: this
+    !> undefined.
+  end subroutine solve_problem
+  impure subroutine query_problem(this)
+    class(graph), intent(inout) :: this
+    !> undefined.
+  end subroutine query_problem
+end module graph_m
+
+program ${PROGNAME}$
+  use, intrinsic :: iso_fortran_env
+  use graph_m
+  implicit none
+  type(graph) :: prob
+  call prob%input()
+  call prob%solve()
+end program ${PROGNAME}$

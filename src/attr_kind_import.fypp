@@ -1,0 +1,20 @@
+#:def add_attr_kind_import(typename)
+#:mute
+  $: globalvar(f"KIND_{typename}")
+  $: setvar(f"KIND_{typename}", True)
+#:endmute
+#:enddef add_attr_kind_import
+
+#:def import_kind(typenames)
+  #:for typename in set(typenames)
+  #:if defined(f"KIND_{typename}")
+  import ${typename}$
+  #:endif
+  #:endfor
+#:enddef import_kind
+
+#:set types = ["int8", "int16", "int32", "int64", "real32", "real64"]
+#:for type in types
+  $: add_attr_kind_import(f"{type}")
+#:endfor
+#:del types

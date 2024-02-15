@@ -1,0 +1,72 @@
+$:add_module("union_find_m")
+module union_find_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  type union_find
+     integer(int32), allocatable :: par_(:), size_(:)
+     integer(int32) :: uf_size_
+   contains
+     procedure, pass :: init  => init_uf
+     procedure, pass :: union => union_uf
+     procedure, pass :: root  => root_uf
+     procedure, pass :: same  => same_uf
+     procedure, pass :: size  => size_uf
+  end type union_find
+contains
+  subroutine init_uf(this, n)
+    class(union_find), intent(inout) :: this
+    integer(int32)   , intent(in)    :: n
+    integer(int32)                   :: i
+    if (allocated(this%par_)) then
+       if (this%uf_size_ /= n) then
+          this%uf_size_ = n
+          block
+            integer(int32), allocatable :: new_par(:), new_size(:)
+            allocate(new_par(n), new_size(n))
+            call move_alloc(from = new_par, to = this%par_)
+            call move_alloc(from = new_size, to = this%size_)
+          end block
+       end if
+    else
+       this%uf_size_ = n
+       allocate(this%par_(n), this%size_(n))
+    end if
+    this%par_(:)  = [(i, i = 1, n)]
+    this%size_(:) = 1
+  end subroutine init_uf
+  subroutine union_uf(this, i, j)
+    class(union_find), intent(inout) :: this
+    integer(int32)   , intent(in)    :: i, j
+    integer(int32) :: x, y
+    x = this%root(i)
+    y = this%root(j)
+    if (x == y) return
+    if (this%size_(x) < this%size_(y)) then
+       this%par_(x) = y
+       this%size_(y) = this%size_(x) + this%size_(y)
+    else
+       this%par_(y) = x
+       this%size_(x) = this%size_(x) + this%size_(y)
+    end if
+  end subroutine union_uf
+  impure recursive integer(int32) function root_uf(this, i) result(res)
+    class(union_find), intent(inout) :: this
+    integer(int32)   , intent(in) :: i
+    res = i
+    if (this%par_(res) == res) return
+    this%par_(res) = this%root(this%par_(res))
+    res = this%par_(res)
+  end function root_uf
+  impure logical function same_uf(this, i, j)
+    class(union_find), intent(inout) :: this
+    integer(int32)   , intent(in) :: i, j
+    same_uf = this%root(i) == this%root(j)
+  end function same_uf
+  impure integer(int32) function size_uf(this, i) result(res)
+    class(union_find), intent(inout) :: this
+    integer(int32), intent(in) :: i
+    integer(int32) :: root
+    root = this%root(i)
+    res = this%size_(root)
+  end function size_uf
+end module union_find_m

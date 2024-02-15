@@ -1,0 +1,106 @@
+#! Include this file with settting these values.
+#! :set MERGE_SORT_ITEM_TYPES = ["integer", "integer"]
+#! :set MERGE_SORT_ITEM_KINDS = ["int32", "int64"]
+#! :set MERGE_SORT_USE_MODULES = []
+#:set MERGE_SORT_ITEMS = [f"{type}({kind})" for (type, kind) in zip(MERGE_SORT_ITEM_TYPES, MERGE_SORT_ITEM_KINDS)]
+#:set MERGE_SORT_NAMES = [f"merge_sort_{kind}" for kind in MERGE_SORT_ITEM_KINDS]
+$:add_module("merge_sort_m")
+module merge_sort_m
+  use, intrinsic :: iso_fortran_env
+  !> maybe use module.
+#:for modulename in MERGE_SORT_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+  public :: merge_sort
+  interface merge_sort
+#:for name, item in zip(MERGE_SORT_NAMES, MERGE_SORT_ITEMS)
+#:block ordering_block(typename = item)
+     module procedure :: ${name}$
+#:endblock ordering_block
+#:endfor
+  end interface merge_sort
+contains
+#:set ops = ['<=', '>=']
+#:set suffixes = ['ascending', 'descending']
+#:for name, item in zip(MERGE_SORT_NAMES, MERGE_SORT_ITEMS)
+#:block ordering_block(typename = item)
+  pure subroutine ${name}$(arr, indices, reverse)
+    ${item}$, intent(inout) :: arr(:)
+    integer(int32), intent(inout), optional :: indices(:)
+    logical, intent(in), optional :: reverse
+    integer(int32), allocatable :: idx(:)
+    integer(int32) :: n
+    integer(int32) :: i
+    n = size(arr)
+    allocate(idx, source = [(i, i = 1, n)])
+    if (present(reverse)) then
+       if (reverse) then
+          call merge_sort_sub_descending(n, arr, idx)
+          if (present(indices)) &
+               indices(:) = idx(:)
+          return
+       end if
+    end if
+    call merge_sort_sub_ascending(n, arr, idx)
+    if (present(indices)) &
+         indices(:) = idx(:)
+    return
+  contains
+#:for suffix in suffixes
+    pure subroutine merge_sort_sub_${suffix}$(n, arr, idx)
+      integer(int32), intent(in) :: n
+      ${item}$, intent(inout) :: arr(n)
+      integer(int32), intent(inout) :: idx(n)
+      integer(int32) :: width
+      integer(int32) :: i, l, r
+      width = 2
+      do while (width <= 2 * n)
+         do i = 1, n, width
+            if (i + width / 2 > n) exit
+            l = i
+            r = min(n, i + width - 1)
+            call ${name}$_merge_with_key_${suffix}$(r - l + 1, width/2, arr(l:r), idx(l:r))
+         end do
+         width = width * 2
+      end do
+    end subroutine merge_sort_sub_${suffix}$
+#:endfor
+  end subroutine ${name}$
+#:for op, suffix in zip(ops, suffixes)
+  pure subroutine ${name}$_merge_with_key_${suffix}$(n, nl, arr, indices)
+    integer(int32), intent(in) :: n, nl
+    ${item}$, intent(inout) :: arr(n)
+    integer(int32), intent(inout) :: indices(n)
+    integer(int32) :: idx_left(1:nl), idx_right(nl + 1:n)
+    integer(int32) :: idx(n)
+    integer(int32) :: i, j, k
+    if (n == 1) return
+    idx_left(1:nl) = [(i, i = 1, nl)]
+    idx_right(nl + 1:n) = [(i, i = nl + 1, n)]
+    i = 1
+    j = nl + 1
+    do k = 1, n
+       if (arr(i) ${op}$ arr(j)) then
+          idx(k) = idx_left(i)
+          i = i + 1
+       else
+          idx(k) = idx_right(j)
+          j = j + 1
+       end if
+       if (i > nl) then
+          idx(k + 1:n) = idx_right(j:n)
+          exit
+       else if (j > n) then
+          idx(k + 1:n) = idx_left(i:nl)
+          exit
+       end if
+    end do
+    arr(:) = arr(idx)
+    indices(:) = indices(idx)
+  end subroutine ${name}$_merge_with_key_${suffix}$
+#:endfor
+#:endblock ordering_block
+#:endfor
+end module merge_sort_m

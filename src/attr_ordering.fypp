@@ -1,0 +1,23 @@
+#!: Types implement numeric operators such as `<`, `<=`, `>`, `>=`, `==`, `/=` (and `compare`).
+#:set ORDERING_TYPES = []
+#:def add_attr_ordering(typename)
+#:mute
+  #: global ORDERING_TYPES
+  #:set ORDERING_TYPES = ORDERING_TYPES + [typename]
+  $: globalvar(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'))
+  $: setvar(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'), True)
+#:endmute
+#:enddef add_attr_ordering
+
+#:def ordering_block(code, typename)
+  #:if defined(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'))
+  $: code
+  #:endif
+#:enddef ordering_block
+
+#:set types = [f"integer({kind})" for kind in ["int8", "int16", "int32", "int64"]]
+#:set types = types + [f"real({kind})" for kind in ["real32", "real64"]]
+#:for type in types
+  $: add_attr_ordering(f"{type}")
+#:endfor
+#:del types

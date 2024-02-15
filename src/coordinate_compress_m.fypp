@@ -1,0 +1,80 @@
+#! Include this file with settting these values.
+#! :set COORDINATE_COMPRESS_ITEM_TYPES = ["integer"]
+#! :set COORDINATE_COMPRESS_ITEM_KINDS = ["int32"]
+#! :set COORDINATE_COMPRESS_USE_MODULES = []
+#:set CORRDINATE_COMPRESS_ITEMS = [f"{type}({kind})" for (type, kind) in zip(COORDINATE_COMPRESS_ITEM_TYPES, COORDINATE_COMPRESS_ITEM_KINDS)]
+#:set CORRDINATE_COMPRESS_NAMES = [f"coordinate_compress_{kind}" for kind in COORDINATE_COMPRESS_ITEM_KINDS]
+$:add_module("coordinate_compress_m")
+#:include "binary_search_f.fypp"
+module coordinate_compress_m
+  use, intrinsic :: iso_fortran_env
+  use merge_sort_m
+  implicit none
+  private
+#:for name, item in zip(CORRDINATE_COMPRESS_NAMES, CORRDINATE_COMPRESS_ITEMS)
+#:block ordering_block(typename = item)
+  public :: ${name}$
+  type :: ${name}$
+     private
+     integer(int32) :: size_, ub_
+     ${item}$, allocatable :: sorted_(:)
+     integer(int32), allocatable, public :: idx_(:)
+   contains
+     procedure, pass :: init       => init_${name}$
+     procedure, pass :: size       => size_${name}$
+     procedure, pass :: compress   => compress_${name}$
+     procedure, pass :: decompress => decompress_${name}$
+  end type ${name}$
+#:endblock ordering_block
+#:endfor
+contains
+#:for name, item in zip(CORRDINATE_COMPRESS_NAMES, CORRDINATE_COMPRESS_ITEMS)
+#:block ordering_block(typename = item)
+  pure subroutine init_${name}$(this, arr)
+    class(${name}$), intent(inout) :: this
+    ${item}$, intent(in) :: arr(:)
+    integer(int32) :: i
+    this%size_ = size(arr)
+    allocate(this%sorted_(this%size_))
+    this%sorted_ = arr
+    call merge_sort(this%sorted_)
+    i = 1
+    this%ub_ = 0
+    unique:do i = 1, this%size_
+       if (i == this%size_) then
+          this%ub_ = this%ub_ + 1
+          this%sorted_(this%ub_) = this%sorted_(i)
+          exit
+       end if
+       if (this%sorted_(i) /= this%sorted_(i+1)) then
+          this%ub_ = this%ub_ + 1
+          this%sorted_(this%ub_) = this%sorted_(i)
+       end if
+    end do unique
+    allocate(this%idx_, source = this%compress(arr))
+  end subroutine init_${name}$
+  pure integer(int32) function size_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_
+  end function size_${name}$
+  pure elemental integer(int32) function compress_${name}$(this, v) result(res)
+    class(${name}$), intent(in) :: this
+    ${item}$, intent(in) :: v
+    res = binary_search(this%sorted_(1:this%ub_), v)
+    if (res < 1) then
+       error stop "Error: `v` is not found in `coordinate_compress`."
+    end if
+  contains
+    @:binary_search(${item}$)
+  end function compress_${name}$
+  pure elemental ${item}$ function decompress_${name}$(this, v) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32), intent(in) :: v
+    if (v < 1 .or. v > this%ub_) then
+       error stop "Error: `v` is illegal"
+    end if
+    res = this%sorted_(v)
+  end function decompress_${name}$
+#:endblock ordering_block
+#:endfor
+end module coordinate_compress_m

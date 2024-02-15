@@ -1,0 +1,46 @@
+#!: Types implement numeric operators such as `+`, `-`, `*`, `/`, `min`, `max`.
+#:set NUMBER_TYPES = []
+#:def add_attr_number(typename, kindname, zero, minimum, maximum)
+#:mute
+  #: global NUMBER_TYPES
+  #:set NUMBER_TYPES = NUMBER_TYPES + [kindname]
+  $: globalvar(f"NUMBER_{typename}".replace('(', '_').replace(')', '_'))
+  $: setvar(f"NUMBER_{typename}".replace('(', '_').replace(')', '_'), True)
+  $: globalvar(f"ZERO_{kindname}")
+  $: setvar(f"ZERO_{kindname}", zero)
+  $: globalvar(f"MINIMUM_{kindname}")
+  $: setvar(f"MINIMUM_{kindname}", minimum)
+  $: globalvar(f"MAXIMUM_{kindname}")
+  $: setvar(f"MAXIMUM_{kindname}", maximum)
+#:endmute
+#:enddef add_attr_number
+
+#:def number_block(code, typename)
+  #:if defined(f"NUMBER_{typename}".replace('(', '_').replace(')', '_'))
+  $: code
+  #:endif
+#:enddef number_block
+
+#:set ikinds = ["int8", "int16", "int32", "int64"]
+#:set types = [f"integer({kind})" for kind in ikinds]
+#:set zeros = [f"0_{kind}" for kind in ikinds]
+#:set minimums = [f"(- huge(0_{kind}) - 1_{kind})" for kind in ikinds]
+#:set maximums = [f"(huge(0_{kind}))" for kind in ikinds]
+
+#:set rkinds = ["real32", "real64"]
+#:set types = types + [f"real({kind})" for kind in rkinds]
+#:set zeros = zeros + [f"0.0_{kind}" for kind in rkinds]
+#:set minimums = minimums + [f"(- huge(0.0_{kind}))" for kind in rkinds]
+#:set maximums = maximums + [f"(huge(0.0_{kind}))" for kind in rkinds]
+
+#:set kinds = ikinds + rkinds
+#:for type, kind, zero, minimum, maximum in zip(types, kinds, zeros, minimums, maximums)
+  $: add_attr_number(typename = type, kindname = kind, zero = zero, minimum = minimum, maximum = maximum)
+#:endfor
+#:del types
+#:del ikinds
+#:del rkinds
+#:del kinds
+#:del zeros
+#:del minimums
+#:del maximums

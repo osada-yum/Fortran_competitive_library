@@ -1,0 +1,880 @@
+#! Include this file with settting these values.
+#! :set BTREE_KEY_TYPES = ["integer"]
+#! :set BTREE_KEY_KINDS = ["int32"]
+#! :set BTREE_VAL_TYPES = ["integer"]
+#! :set BTREE_VAL_KINDS = ["int32"]
+#! :set BTREE_USE_MODULES = ["modulename"]
+#:set BTREE_KEYS = [f"{type}({kind})" for (type, kind) in zip(BTREE_KEY_TYPES, BTREE_KEY_KINDS)]
+#:set BTREE_VALS = [f"{type}({kind})" for (type, kind) in zip(BTREE_VAL_TYPES, BTREE_VAL_KINDS)]
+#:set BTREE_NAMES = [f"btree_{key_kind}_to_{val_kind}" for key_kind, val_kind in zip(BTREE_KEY_KINDS, BTREE_VAL_KINDS)]
+$:add_module("btree_m")
+#:include "lower_bound_f.fypp"
+module btree_m
+  use, intrinsic :: iso_fortran_env
+  !> maybe use module.
+#:for modulename in BTREE_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+  !> Symbol’s value as variable is void: t - 1 must be the least number of elements in Symbol’s value as variable is void: btree_node without root (minimum degree).
+  integer(int32), parameter :: t = 6
+  !> the number of internal node in Symbol’s value as variable is void: btree_node.
+  integer(int32), parameter :: inode = 2 * t - 1
+  integer(int32), parameter :: iter_max_depth = 20 !> Maximum number of item is `inode ** depth`.
+  !> Duplicated elements are not allowed.
+#:for name, key, val in zip(BTREE_NAMES, BTREE_KEYS, BTREE_VALS)
+#:block ordering_block(typename = key)
+#:set node_ptr = f"node_ptr_{name}"
+#:set node = f"node_{name}"
+#:set iter = f"iter_{name}"
+  !> pointer to ${node}$.
+  type :: ${node_ptr}$
+     type(${node}$), pointer :: p_ => null()
+   contains
+     procedure, pass :: size => size_${node_ptr}$
+     procedure, pass :: is_leaf => is_leaf_${node_ptr}$
+     procedure, pass :: get_iter => get_iter_${node_ptr}$
+     procedure, pass :: lower_bound_iter => lower_bound_iter_${node_ptr}$
+     procedure, pass :: upper_bound_iter => upper_bound_iter_${node_ptr}$
+     procedure, pass :: split_child => split_child_${node_ptr}$
+     procedure, pass :: insert => insert_${node_ptr}$
+     procedure, pass :: remove     => remove_${node_ptr}$
+     procedure, pass :: remove_key => remove_key_${node_ptr}$
+     procedure, pass :: merge_children => merge_children_${node_ptr}$
+     procedure, pass :: rotate_left  => rotate_left_${node_ptr}$
+     procedure, pass :: rotate_right => rotate_right_${node_ptr}$
+     procedure, pass :: shrink_left  => shrink_left_${node_ptr}$
+     procedure, pass :: expand_right => expand_right_${node_ptr}$
+#:block debug_block(typename = key)
+#:block debug_block(typename = val)
+     procedure, pass :: debug => debug_${node_ptr}$
+#:endblock
+#:endblock
+     procedure, pass :: check_invariant => check_invariant_${node_ptr}$
+  end type ${node_ptr}$
+  !> node of B-Tree.
+  type :: ${node}$
+     integer(int32) :: nelem_ = 0
+     ${key}$ :: key_(inode)
+     ${val}$ :: val_(inode)
+     type(${node_ptr}$) :: children_(inode + 1)
+     logical :: is_leaf_ = .true.
+  end type ${node}$
+
+  public :: ${name}$
+  !>  has pointer to root of B-Tree.
+  type :: ${name}$
+     private
+     type(${node_ptr}$) :: root_
+     integer(int32) :: size_   = 0
+     integer(int32) :: height_ = 0
+   contains
+     procedure, pass :: size   => size_${name}$
+     procedure, pass :: height => height_${name}$
+     procedure, pass :: init   => init_${name}$
+     procedure, pass :: get      => get_${name}$
+     procedure, pass :: get_iter => get_iter_${name}$
+     procedure, pass :: contains => contains_${name}$
+     procedure, pass :: insert => insert_${name}$
+     procedure, pass :: remove => remove_${name}$
+     procedure, pass :: minimum => minimum_${name}$
+     procedure, pass :: maximum => maximum_${name}$
+     procedure, pass :: minimum_iter => minimum_iter_${name}$
+     procedure, pass :: maximum_iter => maximum_iter_${name}$
+     procedure, pass :: lower_bound => lower_bound_${name}$
+     procedure, pass :: upper_bound => upper_bound_${name}$
+     procedure, pass :: lower_bound_iter => lower_bound_iter_${name}$
+     procedure, pass :: upper_bound_iter => upper_bound_iter_${name}$
+#:block debug_block(typename = key)
+#:block debug_block(typename = val)
+     procedure, pass :: debug => debug_${name}$
+#:endblock debug_block
+#:endblock debug_block
+     procedure, pass :: check_invariant => check_invariant_${name}$
+  end type ${name}$
+  public ${iter}$
+  type :: ${iter}$
+     private
+     integer(int32) :: idx_ = -1 !> [1:iter%nptr_%size()], ノード内の節点を指す.
+     type(${node_ptr}$) :: nptr_
+     integer(int32) :: depth_ = 1
+     integer(int32) :: indices_(iter_max_depth) !> [1:iter%nptr_%size()+1], 下ったポインタのインデックス.
+     type(${node_ptr}$) :: parents_(iter_max_depth)
+     logical :: found_ = .false.
+   contains
+     procedure, pass :: key => key_${iter}$
+     procedure, pass :: val => val_${iter}$
+     procedure, pass :: mut_val => mut_val_${iter}$
+     procedure, pass :: next => next_${iter}$
+     procedure, pass :: prev => prev_${iter}$
+     procedure, pass :: is_begin => is_begin_${iter}$
+     procedure, pass :: is_end => is_end_${iter}$
+     procedure, pass :: exist => exist_${iter}$
+  end type ${iter}$
+#:endblock ordering_block
+#:endfor
+contains
+#:for name, key, val in zip(BTREE_NAMES, BTREE_KEYS, BTREE_VALS)
+#:block ordering_block(typename = key)
+#:set node_ptr = f"node_ptr_{name}"
+#:set node = f"node_{name}"
+#:set iter = f"iter_{name}"
+  subroutine init_${name}$(this)
+    class(${name}$), intent(inout) :: this
+    type(${node}$), pointer :: x
+    if (associated(this%root_%p_)) return
+    allocate(x)
+    x%is_leaf_ = .true.
+    x%nelem_ = 0
+    this%size_   = 0
+    this%height_ = 0
+    this%root_%p_ => x
+  end subroutine init_${name}$
+  pure integer(int32) function size_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size_
+  end function size_${name}$
+  pure integer(int32) function height_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%height_
+  end function height_${name}$
+  ${val}$ function get_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    type(${iter}$) :: iter
+    iter = this%get_iter(key)
+    if (iter%found_) then
+       res = iter%val()
+    end if
+  end function get_${name}$
+  type(${iter}$) function get_iter_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    res = this%root_%get_iter(key)
+  end function get_iter_${name}$
+  logical function contains_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    type(${iter}$) :: iter
+    if (.not. associated(this%root_%p_)) then
+       res = .false.; return
+    end if
+    iter = this%get_iter(key)
+    res = iter%found_
+  end function contains_${name}$
+  subroutine insert_${name}$(this, key, val)
+    class(${name}$), intent(inout) :: this
+    ${key}$, intent(in) :: key
+    ${val}$, intent(in) :: val
+    type(${node_ptr}$) :: r
+    type(${iter}$) :: iter
+    if (.not. associated(this%root_%p_)) &
+         call this%init()
+    r%p_ => this%root_%p_
+    if (r%p_%nelem_ == inode) then
+       block
+         type(${node_ptr}$) :: s
+         allocate(s%p_)
+         this%root_%p_ => s%p_
+         s%p_%is_leaf_ = .false.
+         s%p_%nelem_ = 0
+         s%p_%children_(1)%p_ => r%p_
+         call s%split_child(1)
+         this%height_ = this%height_ + 1
+         iter = s%insert(key, val)
+       end block
+    else
+       iter = r%insert(key, val)
+    end if
+    if (iter%found_) &
+         this%size_ = this%size_ + 1
+  end subroutine insert_${name}$
+  subroutine remove_${name}$(this, key)
+    class(${name}$), intent(inout) :: this
+    ${key}$, intent(in) :: key
+    type(${node_ptr}$) :: tmp
+    call this%root_%remove(key)
+    if (this%root_%p_%nelem_ == 0 .and. (.not. this%root_%is_leaf())) then
+       tmp%p_ => this%root_%p_
+       this%root_%p_ => this%root_%p_%children_(1)%p_
+       deallocate(tmp%p_)
+       nullify(tmp%p_)
+       this%height_ = this%height_ - 1
+    end if
+    this%size_ = this%size_ - 1
+  end subroutine remove_${name}$
+  !> minimum_${name}$: Return the minimum value.
+  ${val}$ function minimum_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    type(${iter}$) :: iter
+    iter = this%minimum_iter()
+    res = iter%val()
+  end function minimum_${name}$
+  !> minimum_iter_${name}$: Return the iterator to node that has minimum key.
+  type(${iter}$) function minimum_iter_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res%nptr_%p_ => this%root_%p_
+    res%depth_ = 1
+    res%idx_ = 0
+    call res%next()
+  end function minimum_iter_${name}$
+  !> maximum_${name}$: Return the maximum value.
+  ${val}$ function maximum_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    type(${iter}$) :: iter
+    iter = this%maximum_iter()
+    res = iter%val()
+  end function maximum_${name}$
+  !> maximum_iter_${name}$: Return the iterator to node that has maximum key.
+  type(${iter}$) function maximum_iter_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res%nptr_%p_ => this%root_%p_
+    res%depth_ = 1
+    res%idx_ = res%nptr_%size() + 1
+    call res%prev()
+  end function maximum_iter_${name}$
+  ${val}$ function lower_bound_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    type(${iter}$) :: iter
+    iter = this%lower_bound_iter(key)
+    if (iter%found_) &
+         res = iter%val()
+  end function lower_bound_${name}$
+  type(${iter}$) function lower_bound_iter_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    res = this%root_%lower_bound_iter(key)
+  end function lower_bound_iter_${name}$
+  ${val}$ function upper_bound_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    type(${iter}$) :: iter
+    iter = this%upper_bound_iter(key)
+    if (iter%found_) &
+         res = iter%val()
+  end function upper_bound_${name}$
+  type(${iter}$) function upper_bound_iter_${name}$(this, key) result(res)
+    class(${name}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    res = this%root_%upper_bound_iter(key)
+  end function upper_bound_iter_${name}$
+#:block debug_block(typename = key)
+#:block debug_block(typename = val)
+  !> print_btree: Print whole node in B-tree for debug.
+  !> For debug.
+  subroutine debug_${name}$(this, unit)
+    class(${name}$), intent(in) :: this
+    integer(int32), intent(in) :: unit
+    if (associated(this%root_%p_)) &
+         call this%root_%debug(unit, 0)
+  end subroutine debug_${name}$
+#:endblock
+#:endblock
+  !> check_invariant_${name}$: Check invariant for debug.
+  !> invariant condition: The number of keys of each node in B-tree excluded root node must have at least  keys.
+  !> The keys in left children is less than key of current node.
+  !> The keys in right children is greater than key of current node.
+  subroutine check_invariant_${name}$(this)
+    class(${name}$), intent(in) :: this
+    type(${iter}$) :: bt_iter
+    ${key}$ :: k, k_bef
+    integer(int32) :: i
+    if (this%size() == 0) return
+    bt_iter = this%minimum_iter()
+    k_bef = bt_iter%key()
+    call bt_iter%next()
+    do while (.not. bt_iter%is_end())
+       k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
+       if (k_bef >= k) then
+          write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'minimum_iter' or 'next'."
+          error stop 5
+       end if
+       k_bef = k
+       call bt_iter%next()
+    end do
+    bt_iter = this%maximum_iter()
+    k_bef = bt_iter%key()
+    call bt_iter%prev()
+    do while (.not. bt_iter%is_begin())
+       k = bt_iter%key()
+       ! write(error_unit, *) k_bef, k
+       if (k_bef <= k) then
+          write(error_unit, '(a)') "Error: B-tree is not ordered."
+          write(error_unit, '(a)') "Something wrong occurred in 'maximum_iter' or 'prev'."
+          error stop 6
+       end if
+       k_bef = k
+       call bt_iter%prev()
+    end do
+    if (this%root_%is_leaf()) return
+    do i = 1, this%root_%size() + 1
+       call this%root_%p_%children_(i)%check_invariant()
+    end do
+  end subroutine check_invariant_${name}$
+  pure integer(int32) function size_${node_ptr}$(this) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    res = this%p_%nelem_
+  end function size_${node_ptr}$
+  pure logical function is_leaf_${node_ptr}$(this) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    res = this%p_%is_leaf_
+  end function is_leaf_${node_ptr}$
+  type(${iter}$) function get_iter_${node_ptr}$(this, key) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    res = this%lower_bound_iter(key)
+    if (res%key() /= key) &
+         res%found_ = .false.
+  end function get_iter_${node_ptr}$
+  type(${iter}$) function lower_bound_iter_${node_ptr}$(this, key) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    integer(int32) :: pos
+    res%nptr_%p_ => this%p_
+    if (res%nptr_%size() == 0) then
+       res%found_ = .false.
+       return
+    end if
+    res%depth_ = 1
+    do !> search , which satisfied arr(pos) < key <= arr(pos+1), arr(0) == -infinity, arr(n+1) == +infinity
+       pos = lower_bound(res%nptr_%p_%key_(1:res%nptr_%size()), key)
+       ! write(error_unit, '(3(a, i0, 1x), *(i0, 1x))') "pos: ", pos, "key: ", key, "arr: ", res%nptr_%p_%key_(1:res%nptr_%size())
+       !> key <= key_(pos)
+       if (pos <= res%nptr_%size()) then
+          if (res%nptr_%p_%key_(pos) == key) then !> key found.
+             res%idx_ = pos
+             res%found_ = .true.
+             return
+          end if
+       end if
+       if (res%nptr_%is_leaf()) exit
+       res%indices_(res%depth_) = pos
+       res%parents_(res%depth_)%p_ => res%nptr_%p_
+       res%nptr_%p_ => res%nptr_%p_%children_(pos)%p_
+       res%depth_ = res%depth_ + 1
+    end do
+    res%idx_ = pos
+    if (pos > res%nptr_%size()) then
+       res%idx_ = pos - 1
+       call res%next()
+    end if
+    res%found_ = .not. res%is_end()
+  contains
+    @:lower_bound(${key}$)
+  end function lower_bound_iter_${node_ptr}$
+  type(${iter}$) function upper_bound_iter_${node_ptr}$(this, key) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    res = this%lower_bound_iter(key)
+    if (res%is_end()) return
+    if (res%key() == key) &
+         call res%next()
+  end function upper_bound_iter_${node_ptr}$
+  subroutine split_child_${node_ptr}$(this, idx)
+    class(${node_ptr}$), intent(in) :: this
+    integer(int32), intent(in) :: idx
+    type(${node_ptr}$) :: y, z
+    integer(int32) :: i
+    allocate(z%p_)
+    y%p_ => this%p_%children_(idx)%p_
+    z%p_%is_leaf_ = y%p_%is_leaf_
+    z%p_%nelem_ = t - 1
+    do i = 1, t - 1
+       z%p_%key_(i) = y%p_%key_(i+t)
+       z%p_%val_(i) = y%p_%val_(i+t)
+    end do
+    if (.not. y%is_leaf()) then
+       do i = 1, t
+          z%p_%children_(i)%p_ => y%p_%children_(i+t)%p_
+       end do
+    end if
+    y%p_%nelem_ = t - 1
+    do i = this%size()+1, idx+1, -1
+       this%p_%children_(i+1)%p_ => this%p_%children_(i)%p_
+    end do
+    this%p_%children_(idx+1)%p_ => z%p_
+    do i = this%p_%nelem_, idx, -1
+       this%p_%key_(i+1) = this%p_%key_(i)
+       this%p_%val_(i+1) = this%p_%val_(i)
+    end do
+    this%p_%key_(idx) = y%p_%key_(t)
+    this%p_%val_(idx) = y%p_%val_(t)
+    this%p_%nelem_ = this%p_%nelem_ + 1
+  end subroutine split_child_${node_ptr}$
+  !> insert_${node_ptr}$: Insert (, ) into B-tree.
+  type(${iter}$) function insert_${node_ptr}$(this, key, val) result(res)
+    class(${node_ptr}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    ${val}$, intent(in) :: val
+    type(${node_ptr}$) :: x
+    integer(int32) :: pos
+    x%p_ => this%p_
+    if (x%size() == 0) then
+       x%p_%key_(1) = key
+       x%p_%val_(1) = val
+       x%p_%nelem_ = 1
+       res%nptr_%p_ => x%p_
+       res%idx_ = 1
+       res%found_ = .true.
+       return
+    end if
+    ! write(error_unit, '(L)') x%p_%is_leaf_
+    do while (.not. x%is_leaf())
+       pos = lower_bound(x%p_%key_(1:x%size()), key)
+       if (x%p_%children_(pos)%size() == 2*t - 1) then
+          call x%split_child(pos)
+          if (key > x%p_%key_(pos)) pos = pos + 1
+       end if
+       if (pos <= x%size()) then
+          if (key == x%p_%key_(pos)) then
+             nullify(res%nptr_%p_)
+             res%idx_ = -1
+             res%found_ = .false.
+             return
+          end if
+       end if
+       x%p_ => x%p_%children_(pos)%p_
+    end do
+    pos = lower_bound(x%p_%key_(1:x%size()), key)
+    if (pos <= x%size()) then !>  <= , where s == x%size().
+       if (key == x%p_%key_(pos)) then !>  already exists in B-tree.
+          nullify(res%nptr_%p_)
+          res%idx_ = -1
+          return
+       else !> expand for insertion.
+          call x%expand_right(pos)
+       end if
+    else !>  > , where s == x%size().
+       x%p_%nelem_ = x%p_%nelem_ + 1
+    end if
+    ! write(error_unit, '(a, i0, 2(1x, i0))') "insert: ", pos+1, key, x%p_%key_(pos+1)
+    x%p_%key_(pos) = key
+    x%p_%val_(pos) = val
+    res%nptr_%p_ => x%p_
+    res%idx_ = pos
+    res%found_ = .true.
+  contains
+    @:lower_bound(${key}$)
+  end function insert_${node_ptr}$
+  !> remove_${node_ptr}$: Remove  from B-tree.
+  !> invariant condition: the node  has at least  keys.
+  recursive subroutine remove_${node_ptr}$(this, key)
+    class(${node_ptr}$), intent(in) :: this
+    ${key}$, intent(in) :: key
+    type(${node_ptr}$) :: x, c
+    integer(int32) :: pos, s
+    ! write(error_unit, '(a, i0)') "search: ", key
+    x%p_ => this%p_
+    pos = lower_bound(x%p_%key_(1:x%size()), key)
+    if (x%p_%key_(min(pos, x%size())) == key) then !>  exists in current internal node.
+       call x%remove_key(key, pos)
+       return
+    end if
+    !>  does not exist in current internal node.
+    if (x%is_leaf()) then
+#:block debug_block(typename = key)
+#:block debug_block(typename = val)
+       write(error_unit, '(a, g0, a)') "key: ", key, " is not found."
+       call this%debug(error_unit, 0)
+#:endblock
+#:endblock
+       error stop 2
+       return
+    end if
+    c%p_ => x%p_%children_(pos)%p_
+    if (c%size() >= t) then
+       ! write(error_unit, '(a)') "pattern 3, recursive remove"
+       ! remove  recurrently.
+       call c%remove(key)
+       ! write(error_unit, '(a, i0)') "pattern 3 end: ", key
+       return
+    end if
+    !> size of child has  keys.
+    s = x%size()
+    if (pos == s + 1) then
+       if (x%p_%children_(s)%size() == t - 1) then
+          !> x: _w      key (== x(s))
+          !>      \    /           !>       c_to     c_from
+          !> ------------------------------
+          !> x: _w
+          !>               !>         (c_to//key//c_from)
+          call x%merge_children(s)
+          call x%p_%children_(x%size() + 1)%remove(key)
+          ! write(error_unit, '(a, i0)') "pattern 3b end: ", key
+          return
+       end if
+    else !> pos: [1, s]
+       if (x%p_%children_(pos+1)%size() == t - 1) then
+          !>        key            _w
+          !>      /     \        /            !> c_to         c_from        c3
+          !> ------------------------------
+          !>                    _w
+          !>                   /           !> c(c_to//x//c_from)      c3
+          call x%merge_children(pos)
+          call x%p_%children_(pos)%remove(key)
+          ! write(error_unit, '(a, i0)') "pattern 3b end: ", key
+          return
+       end if
+    end if
+    !> left or right child have n (>= t) keys.
+    ! write(error_unit, '(a, i0)') "pattern 3a: ", key
+    if (pos == s + 1) then
+       ! write(error_unit, '(a, i0)') "pattern 3a-1: ", key
+       !> x:            key
+       !>             /          !> (c_from:v1)         c_to
+       !> ------------------------------
+       !> x:         v1
+       !>          /         !>   c_from        (x:c_to)
+       call x%rotate_right(s)
+       call x%p_%children_(x%size() + 1)%remove(key)
+    else !> pos: [1, s]
+       ! write(error_unit, '(a, i0)') "pattern 3a-2: ", key
+       !>      x
+       !> c_to   (v1:c_from)
+       !> ------------------------------
+       !>          v1
+       !> (c_to:x)    c_from
+       call x%rotate_left(pos)
+       call x%p_%children_(pos)%remove(key)
+    end if
+    ! write(error_unit, '(a, i0)') "pattern 3a end: ", key
+    return
+  contains
+    @:lower_bound(${key}$)
+  end subroutine remove_${node_ptr}$
+  !> remove_key_${node_ptr}$: If some of current nodes have , call this.
+  recursive subroutine remove_key_${node_ptr}$(x, key, pos)
+    class(${node_ptr}$), intent(in) :: x
+    ${key}$, intent(in) :: key
+    integer(int32), intent(in) :: pos
+    !> pos: [1, x%size()].
+    if (x%is_leaf()) then
+       ! write(error_unit, '(a, i0)') "pattern 1: ", key
+       call x%shrink_left(pos, pos)
+       return
+    end if
+    !> x is not leaf.
+    if (x%p_%children_(pos)%size() >= t) then
+       !> Exchange previous  if left child has n (>= t) keys.
+       ! write(error_unit, '(a)') "pattern 2a"
+       !>   x             _y
+       !>  /
+       !> c           _c2
+       !>       !>   (c':v1)
+       !> ------------------------------
+       !>   v1     _y
+       !>  /
+       !> c    _c2
+       !>       !>   c'
+       block
+         ${key}$ :: key_tmp
+         ${val}$ :: val_tmp
+         type(${node_ptr}$) :: prev
+         prev%p_ => x%p_%children_(pos)%p_
+         do while (.not. prev%is_leaf())
+            prev%p_ => prev%p_%children_(prev%size()+1)%p_
+         end do
+         key_tmp = prev%p_%key_(prev%size())
+         val_tmp = prev%p_%val_(prev%size())
+         ! write(error_unit, '(a, *(i0, 1x))') "prev: ", key_tmp, key
+         call x%remove(key_tmp)
+         x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
+         ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2a end: ", key, key_tmp
+         return
+       end block
+    else if (x%p_%children_(pos+1)%size() >= t) then !> right child has n (>= t) keys.
+       ! write(error_unit, '(a)') "pattern 2b"
+       !>     x         _y
+       !>                !> _c1         c
+       !>            /
+       !>     (v1:c')
+       !> ------------------------------
+       !>     v1   _y
+       !>            !> _c1    c
+       !>       /
+       !>     c'
+       block
+         ${key}$ :: key_tmp
+         ${val}$ :: val_tmp
+         type(${node_ptr}$) :: next
+         next%p_ => x%p_%children_(pos+1)%p_
+         do while (.not. next%is_leaf())
+            next%p_ => next%p_%children_(1)%p_
+         end do
+         key_tmp = next%p_%key_(1)
+         val_tmp = next%p_%val_(1)
+         ! write(error_unit, '(a, *(i0, 1x))') "next: ", key, key_tmp
+         call x%remove(key_tmp)
+         x%p_%key_(pos) = key_tmp
+         x%p_%val_(pos) = val_tmp
+         ! write(error_unit, '(a, 2(i0, 1x))') "pattern 2b end: ", key, key_tmp
+         return
+       end block
+    else !> left and right children have  keys.
+       ! write(error_unit, '(a)') "pattern 2c"
+       !>   x                _y
+       !> c   c2(deallocate)    _c3
+       !> --------------------------------
+       !>            _y
+       !> (c//x//c2)    _c3
+       call x%merge_children(pos)
+       call x%p_%children_(pos)%remove(key)
+       ! write(error_unit, '(a, i0)') "pattern 2c end: ", key
+       return
+    end if
+  end subroutine remove_key_${node_ptr}$
+  !> merge_btree_node_ptr_int32_to_int32: Merge left child, middle key and right child.
+  !> Then shrink left and deallocate right child.
+  !>      x                   _y
+  !> left   right(deallocate)    _c
+  !> --------------------------------
+  !>                  _y
+  !> (left//x//right)    _c
+  subroutine merge_children_${node_ptr}$(x, pos)
+    class(${node_ptr}$), intent(in) :: x
+    integer(int32), intent(in) :: pos
+    type(${node_ptr}$) :: left, right
+    integer(int32) :: i
+    left%p_  => x%p_%children_(pos)%p_
+    right%p_ => x%p_%children_(pos + 1)%p_
+
+    left%p_%key_(t) = x%p_%key_(pos)
+    left%p_%val_(t) = x%p_%val_(pos)
+    left%p_%key_(t + 1 : inode) = right%p_%key_(1 :t - 1)
+    left%p_%val_(t + 1 : inode) = right%p_%val_(1 :t - 1)
+    do i = t + 1, 2 * t
+       left%p_%children_(i)%p_ => right%p_%children_(i-t)%p_
+    end do
+    left%p_%nelem_ = inode
+    deallocate(right%p_)
+    nullify(right%p_)
+    call x%shrink_left(pos, pos+1) ! unlink right child.
+  end subroutine merge_children_${node_ptr}$
+  !> rotate_left_${node_ptr}$: Rotate keys.
+  !> Increase the number of left node keys and decrease that of right node keys.
+  !> The number of right node keys must have at least  keys.
+  !> x:     key
+  !>      /     !> left         right(v1:rest)
+  !> ------------------------------
+  !> x:           v1
+  !>            /    !> (left:key)        rest
+  subroutine rotate_left_${node_ptr}$(x, pos)
+    class(${node_ptr}$), intent(in) :: x
+    integer(int32), intent(in) :: pos
+    type(${node_ptr}$) :: left, right
+    integer(int32) :: ls
+    left%p_  => x%p_%children_(pos)%p_
+    right%p_ => x%p_%children_(pos+1)%p_
+    ls = left%size() + 1
+    left%p_%key_(ls) = x%p_%key_(pos)
+    left%p_%val_(ls) = x%p_%val_(pos)
+    left%p_%children_(ls+1)%p_ => right%p_%children_(1)%p_
+    left%p_%nelem_ = ls
+    x%p_%key_(pos) = right%p_%key_(1)
+    x%p_%val_(pos) = right%p_%val_(1)
+    call right%shrink_left(1, 1) !> right%size() -= 1
+  end subroutine rotate_left_${node_ptr}$
+  !> rotate_right_${node_ptr}$: Rotate keys.
+  !> Increase the number of right node keys and decrease that of left node keys.
+  !> The number of left node keys must have at least  keys.
+  !> x:              key
+  !>               /     !> left(init:v1)         right
+  !> ------------------------------
+  !> x:       v1
+  !>        /    !>   init        (key:right)
+  subroutine rotate_right_${node_ptr}$(x, pos)
+    class(${node_ptr}$), intent(in) :: x
+    integer(int32), intent(in) :: pos
+    type(${node_ptr}$) :: left, right
+    left%p_  => x%p_%children_(pos)%p_
+    right%p_ => x%p_%children_(pos+1)%p_
+    call right%expand_right(1) !> right%size() += 1
+    right%p_%key_(1) = x%p_%key_(pos)
+    right%p_%val_(1) = x%p_%val_(pos)
+    right%p_%children_(1)%p_ => left%p_%children_(left%size() + 1)%p_
+    x%p_%key_(pos) = left%p_%key_(left%size())
+    x%p_%val_(pos) = left%p_%val_(left%size())
+    call left%shrink_left(left%size(), left%size()+1) !> unlink right child.
+  end subroutine rotate_right_${node_ptr}$
+  !> shrink_left_${node_ptr}$: Remove the  and  from the  of  and shrink it.
+  !> before: key(1), key(2), ... key(pos-1), key(pos), key(pos+1), ..., key(s)
+  !> after : key(1), key(2), ... key(pos-1), key(pos+1), ..., key(s)
+  !> before: child(1), child(2), ... child(pos_child-1), child(pos_child), child(pos_child+1), ..., child(s+1)
+  !> after : child(1), child(2), ... child(pos_child-1),                   child(pos_child+1), ..., child(s+1)
+  subroutine shrink_left_${node_ptr}$(this, pos, pos_child)
+    class(${node_ptr}$), intent(in) :: this
+    integer(int32), intent(in) :: pos, pos_child
+    type(${node_ptr}$) :: x
+    integer(int32) :: s
+    integer(int32) :: i
+    x%p_ => this%p_
+    s = x%size()
+    !> copy [pos+1, s] to [pos, s-1].
+    !> delete  of array.
+    x%p_%key_(pos:s-1) = x%p_%key_(pos+1:s)
+    x%p_%val_(pos:s-1) = x%p_%val_(pos+1:s)
+    x%p_%nelem_ = s - 1
+    if (x%is_leaf()) return
+    do i = pos_child, s
+       x%p_%children_(i)%p_ => x%p_%children_(i+1)%p_
+    end do
+  end subroutine shrink_left_${node_ptr}$
+  subroutine expand_right_${node_ptr}$(this, pos)
+    class(${node_ptr}$), intent(in) :: this
+    integer(int32), intent(in) :: pos
+    type(${node_ptr}$) :: x
+    integer(int32) :: s
+    integer(int32) :: i
+    x%p_ => this%p_
+    s = x%size()
+    !> copy [pos, s] to [pos+1, s+1].
+    !>  of array is empty.
+    x%p_%key_(pos+1:s+1) = x%p_%key_(pos:s)
+    x%p_%val_(pos+1:s+1) = x%p_%val_(pos:s)
+    x%p_%nelem_ = s + 1
+    if (x%is_leaf()) return
+    do i = s+1, pos, -1
+       x%p_%children_(i+1)%p_ => x%p_%children_(i)%p_
+    end do
+  end subroutine expand_right_${node_ptr}$
+#:block debug_block(typename = key)
+#:block debug_block(typename = val)
+  recursive subroutine debug_${node_ptr}$(this, unit, depth)
+    class(${node_ptr}$), intent(in) :: this
+    integer(int32), intent(in) :: unit, depth
+    type(${node_ptr}$) :: x
+    integer(int32) :: i
+    x%p_ => this%p_
+    write(unit, *) repeat("|", min(1, depth))//repeat("-", depth), depth, ": ", x%p_%key_(1:x%size())
+    if (x%is_leaf()) return
+    do i = 1, x%p_%nelem_ + 1
+       call x%p_%children_(i)%debug(unit, depth + 1)
+    end do
+  end subroutine debug_${node_ptr}$
+#:endblock
+#:endblock
+  recursive subroutine check_invariant_${node_ptr}$(this)
+    class(${node_ptr}$), intent(in) :: this
+    integer(int32) :: i
+    if (this%size() < t - 1) then
+       write(error_unit, '(a)') "Error: invariant, node must have at least  keys."
+       error stop 1
+    end if
+    if (this%is_leaf()) return
+    do i = 1, this%size() + 1
+       call this%p_%children_(i)%check_invariant()
+    end do
+  end subroutine check_invariant_${node_ptr}$
+  impure ${key}$ function key_${iter}$(this) result(res)
+    class(${iter}$), intent(in) :: this
+    res = this%nptr_%p_%key_(this%idx_)
+  end function key_${iter}$
+  impure ${val}$ function val_${iter}$(this) result(res)
+    class(${iter}$), intent(in) :: this
+    res = this%nptr_%p_%val_(this%idx_)
+  end function val_${iter}$
+  subroutine mut_val_${iter}$(this, val)
+    class(${iter}$), intent(in) :: this
+    ${val}$, intent(in) :: val
+    type(${node_ptr}$) :: x
+    x%p_ => this%nptr_%p_
+    x%p_%val_(this%idx_) = val
+  end subroutine mut_val_${iter}$
+  subroutine next_${iter}$(this)
+    class(${iter}$), intent(inout) :: this
+    if (this%is_end()) then
+       write(error_unit, '(a)') "Error in : exceed end of iterator."
+       error stop 4
+    end if
+    this%found_ = .true.
+    if (this%nptr_%is_leaf()) then
+       this%idx_ = this%idx_ + 1
+       if (this%idx_ <= this%nptr_%size()) return
+       !> this%idx_ == this%nptr_%size() + 1.
+       do !> visit parent of current node if  exceeds the range of , where s == this%nptr_%size().
+          if (this%depth_ == 1) then !> end of iterator if  and  is root of B-tree.
+             this%found_ = .false.
+             return
+          end if
+          this%depth_ = this%depth_ - 1
+          this%nptr_%p_ => this%parents_(this%depth_)%p_
+          this%idx_ = this%indices_(this%depth_)
+          nullify(this%parents_(this%depth_)%p_)
+          if (this%idx_ <= this%nptr_%size()) return !> this%idx_: [1:s], where s == this%nptr_%size().
+       end do
+    else !> visit right node and then visit the most left value.
+       this%parents_(this%depth_)%p_ => this%nptr_%p_
+       this%indices_(this%depth_) = this%idx_ + 1
+       this%depth_ = this%depth_ + 1
+       this%nptr_%p_ => this%nptr_%p_%children_(this%idx_ + 1)%p_
+       do while (.not. this%nptr_%is_leaf())
+          this%parents_(this%depth_)%p_ => this%nptr_%p_
+          this%indices_(this%depth_) = 1
+          this%depth_ = this%depth_ + 1
+          this%nptr_%p_ => this%nptr_%p_%children_(1)%p_
+       end do
+       !> this%nptr_%is_leaf() is .true..
+       this%idx_ = 1
+    end if
+  end subroutine next_${iter}$
+  subroutine prev_${iter}$(this)
+    class(${iter}$), intent(inout) :: this
+    if (this%is_begin()) then !>  and  is root of B-tree.
+       !> beginning of iterator.
+       write(error_unit, '(a)') "Error in : beginning of iterator."
+       error stop 4
+    end if
+    this%found_ = .true.
+    if (this%nptr_%is_leaf()) then
+       this%idx_ = this%idx_ - 1
+       if (this%idx_ >= 1) return
+       !> this%idx_ == 0
+       do !> visit parent of current node if  exceeds the range of , where s == this%nptr_%size().
+          if (this%depth_ == 1) then !> beginning of iterator if  and  is root of B-tree.
+             this%found_ = .false.
+             return
+          end if
+          this%depth_ = this%depth_ - 1
+          this%nptr_%p_ => this%parents_(this%depth_)%p_
+          nullify(this%parents_(this%depth_)%p_)
+          this%idx_ = this%indices_(this%depth_) - 1
+          if (this%idx_ >= 1) return !> this%idx_: [1:s], where s == this%nptr_%size().
+       end do
+    else !> visit left node and then visit the most right value.
+       this%parents_(this%depth_)%p_ => this%nptr_%p_
+       this%indices_(this%depth_) = this%idx_
+       this%depth_ = this%depth_ + 1
+       this%nptr_%p_ => this%nptr_%p_%children_(this%idx_)%p_
+       do while (.not. this%nptr_%is_leaf())
+          this%parents_(this%depth_)%p_ => this%nptr_%p_
+          this%indices_(this%depth_) = this%nptr_%size() + 1
+          this%depth_ = this%depth_ + 1
+          this%nptr_%p_ => this%nptr_%p_%children_(this%nptr_%size() + 1)%p_
+       end do
+       !> this%nptr_%is_leaf() is .true.
+       this%idx_ = this%nptr_%size()
+    end if
+  end subroutine prev_${iter}$
+  !> is_begin_${iter}$: return iter is begining of B-tree.
+  logical function is_begin_${iter}$(this) result(res)
+    class(${iter}$), intent(in) :: this
+    res = this%depth_ == 1 .and. this%idx_ == 0
+  end function is_begin_${iter}$
+  !> is_end_${iter}$: return iter is end of B-tree.
+  logical function is_end_${iter}$(this) result(res)
+    class(${iter}$), intent(in) :: this
+    res = this%depth_ == 1 .and. this%idx_ == this%nptr_%size() + 1
+  end function is_end_${iter}$
+  !> exist_${iter}$: return value is exist.
+  logical function exist_${iter}$(this) result(res)
+    class(${iter}$), intent(in) :: this
+    res = this%found_
+  end function exist_${iter}$
+#:endblock ordering_block
+#:endfor
+end module btree_m

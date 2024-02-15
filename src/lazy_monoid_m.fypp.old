@@ -1,0 +1,40 @@
+#:set LAZY_SEGMENT_TREE_ITEMS = [f"{type}({kind})" for (type, kind) in zip(LAZY_SEGMENT_TREE_ITEM_TYPES, LAZY_SEGMENT_TREE_ITEM_KINDS)]
+#:set LAZY_SEGMENT_TREE_LAZYS = [f"{type}({kind})" for (type, kind) in zip(LAZY_SEGMENT_TREE_LAZY_TYPES, LAZY_SEGMENT_TREE_LAZY_KINDS)]
+$:add_module("lazy_monoid_m")
+#:set LAZY_SEGMENT_TREE_MONOID_NAMES = []
+module lazy_monoid_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+#:for item, lazy, item_kind, lazy_kind in zip(LAZY_SEGMENT_TREE_ITEMS, LAZY_SEGMENT_TREE_LAZYS, LAZY_SEGMENT_TREE_ITEM_KINDS, LAZY_SEGMENT_TREE_LAZY_KINDS)
+  #:set monoid_name = f"monoid_{item_kind}_lazy_{lazy_kind}"
+  #:set LAZY_SEGMENT_TREE_MONOID_NAMES = LAZY_SEGMENT_TREE_MONOID_NAMES + [monoid_name]
+  public :: ${monoid_name}$
+  type, abstract :: ${monoid_name}$
+     private
+   contains
+     procedure(identity_${monoid_name}$) , nopass, deferred :: identity
+     procedure(bin_op_${monoid_name}$)   , nopass, deferred :: bin_op
+     procedure(mapping_${monoid_name}$)  , nopass, deferred :: mapping
+     procedure(composite_${monoid_name}$), nopass, deferred :: composite
+  end type ${monoid_name}$
+  abstract interface
+     pure ${item}$ function identity_${monoid_name}$() result(res)
+       $:import_kind(typenames = [item_kind])
+     end function identity_${monoid_name}$
+     pure ${item}$ function bin_op_${monoid_name}$(x, y) result(res)
+       $:import_kind(typenames = [item_kind])
+       ${item}$, intent(in) :: x, y
+     end function bin_op_${monoid_name}$
+     pure ${item}$ function mapping_${monoid_name}$(v, c, length) result(res)
+       $:import_kind(typenames = [item_kind, lazy_kind, "int32"])
+       ${item}$, intent(in) :: v
+       ${lazy}$, intent(in) :: c
+       integer(int32), intent(in) :: length
+     end function mapping_${monoid_name}$
+     pure ${item}$ function composite_${monoid_name}$(c_first, c_second) result(res)
+       $:import_kind(typenames = [item_kind, lazy_kind])
+       ${lazy}$, intent(in) :: c_first, c_second
+     end function composite_${monoid_name}$
+  end interface
+#:endfor
+end module lazy_monoid_m

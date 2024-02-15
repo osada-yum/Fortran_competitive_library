@@ -1,0 +1,156 @@
+#! Include this file with settting these values.
+#! :set SEGMENT_TREE_ITEM_TYPES = ["integer", "integer"]
+#! :set SEGMENT_TREE_ITEM_KINDS = ["int32", "int64"]
+#! :set SEGMENT_TREE_USE_MODULES = ["modulename"]
+#:set SEGMENT_TREE_ITEMS = [f"{type}({kind})" for (type, kind) in zip(SEGMENT_TREE_ITEM_TYPES, SEGMENT_TREE_ITEM_KINDS)]
+#:set SEGMENT_TREE_NAMES = [f"segment_tree_{kind}" for kind in SEGMENT_TREE_ITEM_KINDS]
+#:set SEGMENT_TREE_MONOID_NAMES = [f"monoid_op_{kind}" for kind in SEGMENT_TREE_ITEM_KINDS]
+$:add_module("segment_tree_m")
+module segment_tree_m
+  use, intrinsic :: iso_fortran_env
+#:for modulename in SEGMENT_TREE_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for name, item, monoid_name, kind in zip(SEGMENT_TREE_NAMES, SEGMENT_TREE_ITEMS, SEGMENT_TREE_MONOID_NAMES, SEGMENT_TREE_ITEM_KINDS)
+  public :: ${name}$
+  public :: ${monoid_name}$
+  type :: ${name}$
+     private
+     integer(int32) :: arr_size_, tree_size_, depth_
+     ${item}$, allocatable :: arr_(:)
+     class(${monoid_name}$), allocatable :: monoid_
+   contains
+     procedure, pass :: init   => init_${name}$
+#:block debug_block(typename = item)
+     procedure, pass :: dump   => dump_${name}$
+#:endblock debug_block
+     procedure, pass :: update => update_${name}$
+     procedure, pass :: query => query_${name}$
+  end type ${name}$
+  type, abstract :: ${monoid_name}$
+     private
+   contains
+     procedure(identity_${kind}$), nopass, deferred :: identity
+     procedure(bin_op_${kind}$)  , nopass, deferred :: bin_op
+  end type ${monoid_name}$
+  abstract interface
+     pure ${item}$ function identity_${kind}$() result(res)
+       $:import_kind(typenames = [kind])
+     end function identity_${kind}$
+     pure ${item}$ function bin_op_${kind}$(x, y) result(res)
+       $:import_kind(typenames = [kind])
+       ${item}$, intent(in) :: x, y
+     end function bin_op_${kind}$
+  end interface
+#:block number_block(typename = item)
+  public :: plus_${monoid_name}$, min_${monoid_name}$, max_${monoid_name}$
+  type, extends(${monoid_name}$) :: plus_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_plus_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_plus_${monoid_name}$
+  end type plus_${monoid_name}$
+  type, extends(${monoid_name}$) :: min_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_min_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_min_${monoid_name}$
+  end type min_${monoid_name}$
+  type, extends(${monoid_name}$) :: max_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_max_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_max_${monoid_name}$
+  end type max_${monoid_name}$
+#:endblock number_block
+#:endfor
+contains
+#:for name, item, monoid_name, kind in zip(SEGMENT_TREE_NAMES, SEGMENT_TREE_ITEMS, SEGMENT_TREE_MONOID_NAMES, SEGMENT_TREE_ITEM_KINDS)
+  !> indices rage [1:2^a-1]
+  subroutine init_${name}$ (this, num_elems, monoid_)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: num_elems
+    class(${monoid_name}$), intent(in) :: monoid_
+    integer(int32) :: tree_size
+    allocate(this%monoid_, source = monoid_)
+    tree_size = 1
+    this%depth_ = 1
+    do while (tree_size < num_elems)
+       tree_size = tree_size * 2
+       this%depth_ = this%depth_ + 1
+    end do
+    this%tree_size_ = tree_size
+    this%arr_size_ = 2 * tree_size - 1
+    allocate(this%arr_(this%arr_size_), source = this%monoid_%identity())
+  end subroutine init_${name}$
+
+  subroutine update_${name}$ (this, idx, val)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: idx
+    ${item}$, intent(in) :: val
+    integer(int32) :: pos
+    pos = this%tree_size_ + idx - 1
+    this%arr_(pos) = val
+    do while (pos > 1)
+       pos = pos / 2
+       this%arr_(pos) = this%monoid_%bin_op(this%arr_(2 * pos), this%arr_(2 * pos + 1))
+    end do
+  end subroutine update_${name}$
+  !> close interval [a, b].
+  pure ${item}$ function query_${name}$ (this, a, b) result(res)
+    class(${name}$), intent(in) :: this
+    integer(int32), intent(in) :: a, b
+    integer(int32) :: p, r
+    res = this%monoid_%identity()
+    if (a > b) return
+    p = this%tree_size_ + a - 1
+    r = this%tree_size_ + b - 1
+    do while (p <= r)
+       if (iand(p, b'1') == 1) then !> right child.
+          res = this%monoid_%bin_op(res, this%arr_(p))
+          p = p + 1
+       end if
+       if (iand(r, b'1') == 0) then !> left child.
+          res = this%monoid_%bin_op(res, this%arr_(r))
+          r = r - 1
+       end if
+       p = p / 2
+       r = r / 2
+    end do
+  end function query_${name}$
+#:block debug_block(typename = item)
+  subroutine dump_${name}$(this)
+    class(${name}$), intent(in) :: this
+    integer(int32) :: i
+    do i = 1, this%depth_
+       write(error_unit, '(*(g0, 1x))') i, this%arr_(2**(i - 1) : 2**i - 1)
+    end do
+  end subroutine dump_${name}$
+#:endblock debug_block
+#:block number_block(typename = item)
+  pure ${item}$ function identity_plus_${monoid_name}$() result(res)
+    res = ${getvar(f"ZERO_{kind}")}$
+  end function identity_plus_${monoid_name}$
+  pure ${item}$ function bin_op_plus_${monoid_name}$(x, y) result(res)
+    ${item}$, intent(in) :: x, y
+    res = x + y
+  end function bin_op_plus_${monoid_name}$
+  pure ${item}$ function identity_min_${monoid_name}$() result(res)
+    res = ${getvar(f"MAXIMUM_{kind}")}$
+  end function identity_min_${monoid_name}$
+  pure ${item}$ function bin_op_min_${monoid_name}$(x, y) result(res)
+    ${item}$, intent(in) :: x, y
+    res = min(x, y)
+  end function bin_op_min_${monoid_name}$
+  pure ${item}$ function identity_max_${monoid_name}$() result(res)
+    res = ${getvar(f"MINIMUM_{kind}")}$
+  end function identity_max_${monoid_name}$
+  pure ${item}$ function bin_op_max_${monoid_name}$(x, y) result(res)
+    ${item}$, intent(in) :: x, y
+    res = max(x, y)
+  end function bin_op_max_${monoid_name}$
+#:endblock number_block
+#:endfor
+end module segment_tree_m

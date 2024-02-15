@@ -1,0 +1,45 @@
+#:include "../../fypp/special.fypp"
+module grid_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  private
+  public :: grid
+  type :: grid
+     private
+     integer(int32) :: h_, w_
+     character, allocatable :: grids_(:, :)
+   contains
+     procedure, pass :: input => input_problem
+     procedure, pass :: solve => solve_problem
+     procedure, pass, private :: query => query_problem
+  end type grid
+contains
+  impure subroutine input_problem(this)
+    class(grid), intent(inout) :: this
+    integer(int32) :: i
+    read(input_unit, *) this%h_, this%w_
+    allocate(this%grids_(this%h_, this%w_))
+    do i = 1, this%h_
+       read(input_unit, '(*(a1))') this%grids_(i, :)
+    end do
+  end subroutine input_problem
+  impure subroutine solve_problem(this)
+    class(grid), intent(inout) :: this
+    associate(this => this); end associate
+    !> undefined.
+  end subroutine solve_problem
+  impure subroutine query_problem(this)
+    class(grid), intent(inout) :: this
+    associate(this => this); end associate
+    !> undefined.
+  end subroutine query_problem
+end module grid_m
+
+program ${PROGNAME}$
+  use, intrinsic :: iso_fortran_env
+  use grid_m
+  implicit none
+  type(grid) :: prob
+  call prob%input()
+  call prob%solve()
+end program ${PROGNAME}$

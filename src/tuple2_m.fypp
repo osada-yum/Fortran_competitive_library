@@ -1,0 +1,124 @@
+#! Include this file with settting these values.
+#! :set TUPLE2_ITEM1_TYPES = ["integer", "integer"]
+#! :set TUPLE2_ITEM2_TYPES = ["integer", "integer"]
+#! :set TUPLE2_ITEM1_KINDS = ["int32", "int64"]
+#! :set TUPLE2_ITEM2_KINDS = ["int32", "int64"]
+#! :set TUPLE2_USE_MODULES = []
+#:set TUPLE2_ITEM1S = [f"{type}({kind})" for (type, kind) in zip(TUPLE2_ITEM1_TYPES, TUPLE2_ITEM1_KINDS)]
+#:set TUPLE2_ITEM2S = [f"{type}({kind})" for (type, kind) in zip(TUPLE2_ITEM2_TYPES, TUPLE2_ITEM2_KINDS)]
+#:set TUPLE2_NAMES = [f"tuple2_{kind1}_{kind2}" for (kind1, kind2) in zip(TUPLE2_ITEM1_KINDS, TUPLE2_ITEM2_KINDS)]
+$:add_module("tuple2_m")
+module tuple2_m
+  use, intrinsic :: iso_fortran_env
+  !> maybe use module.
+#:for modulename in TUPLE2_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for name, item1, item2 in zip(TUPLE2_NAMES, TUPLE2_ITEM1S, TUPLE2_ITEM2S)
+  public :: ${name}$
+  type :: ${name}$
+     ${item1}$ :: v1_
+     ${item2}$ :: v2_
+   contains
+     procedure, pass, private :: assign => assign_${name}$
+     generic :: assignment(=) => assign
+  end type ${name}$
+  interface ${name}$
+     module procedure :: construct_${name}$
+  end interface ${name}$
+#:block ordering_block(typename = item1)
+#:block ordering_block(typename = item2)
+  $: add_attr_ordering(f"type({name})")
+  $: add_attr_debug(f"type({name})")
+#:block once_block(name = "tuple2")
+  public :: compare, operator(<), operator(<=), operator(>), operator(>=), operator(==), operator(/=)
+#:endblock
+  interface compare
+     module procedure :: compare_${name}$
+  end interface compare
+  interface operator(<)
+     module procedure :: less_${name}$
+  end interface operator(<)
+  interface operator(<=)
+     module procedure :: less_equal_${name}$
+  end interface operator(<=)
+  interface operator(>)
+     module procedure :: greater_${name}$
+  end interface operator(>)
+  interface operator(>=)
+     module procedure :: greater_equal_${name}$
+  end interface operator(>=)
+  interface operator(==)
+     module procedure :: equal_${name}$
+  end interface operator(==)
+  interface operator(/=)
+     module procedure :: not_equal_${name}$
+  end interface operator(/=)
+#:endblock ordering_block
+#:endblock ordering_block
+#:endfor
+contains
+#:for name, item1, item2 in zip(TUPLE2_NAMES, TUPLE2_ITEM1S, TUPLE2_ITEM2S)
+  !> construct_${name}$: Construct ${name}$.
+  impure function construct_${name}$(val1, val2) result(res)
+    type(${name}$) :: res
+    ${item1}$, intent(in) :: val1
+    ${item2}$, intent(in) :: val2
+    res%v1_ = val1
+    res%v2_ = val2
+  end function construct_${name}$
+  pure subroutine assign_${name}$(lhs, rhs)
+    class(${name}$), intent(inout) :: lhs
+    class(${name}$), intent(in) :: rhs
+    lhs%v1_ = rhs%v1_
+    lhs%v2_ = rhs%v2_
+  end subroutine assign_${name}$
+#:block ordering_block(typename = item1)
+#:block ordering_block(typename = item2)
+  pure integer(int32) function compare_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    if (lhs%v1_ < rhs%v1_) then
+       res = -1; return
+    else if (lhs%v1_ > rhs%v1_) then
+       res = 1; return
+    end if
+    !> lhs%v1_ == rhs%v1_
+    if (lhs%v2_ < rhs%v2_) then
+       res = -1; return
+    else if (lhs%v2_ > rhs%v2_) then
+       res = 1; return
+    end if
+    res = 0
+  end function compare_${name}$
+  !> less_${name}$: Compare the first elements.
+  !> Compare the second elements if the first elements are same.
+  pure logical function less_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) < 0
+  end function less_${name}$
+  pure logical function less_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) <= 0
+  end function less_equal_${name}$
+  pure logical function greater_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) > 0
+  end function greater_${name}$
+  pure logical function greater_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) >= 0
+  end function greater_equal_${name}$
+  pure logical function equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) == 0
+  end function equal_${name}$
+  pure logical function not_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) /= 0
+  end function not_equal_${name}$
+#:endblock ordering_block
+#:endblock ordering_block
+#:endfor
+end module tuple2_m
