@@ -32,6 +32,27 @@ end program ${PROGNAME}$
 ```
 として, fypp で処理すると tuple2 の vector を生成できる.
 
+## Implemented
+- [x] 可変長配列 `src/unwrapped_vector_m.fypp`.
+- [x] 可変長文字 `src/vec_string_m.fypp`.
+  + `s%read(input_unit)` で任意の長さの入力を扱える.
+- [x] merge sort `src/merge_sort_m.fypp`.
+- [x] tuple2 `src/tuple2_m.fypp`.
+- [x] tuple3 `src/tuple3_m.fypp`.
+- [x] modint `src/modint_m.fypp`.
+- [x] 座標圧縮 `src/coordinate_compress_m.fypp`.
+  + `merge_sort_m` も必要.
+- [x] union find `src/union_find_m.fypp`.
+- [x] deque `src/vec_deque_m.fypp`.
+- [x] 優先度付きキュー `src/priority_queue_m.fypp`.
+- [x] B木 `src/btree_m.fypp`.
+  + キーは比較可能でなければならない. 組込み型(integer, realなど)はキーに使える.
+  + 自作の型については `src/attr_ordering.fypp` を見る.
+- [x] 抽象化セグメント木 `src/segment_tree_m.fypp`.
+  + `monoid_op_*` 型を継承すれば, 自作のモノイドを載せることが可能.
+- [x] 抽象化遅延伝播セグメント木 `src/lazy_segment_tree_m.fypp`.
+  + こちらも `monoid_*_lazy_*` 型を継承すれば, 自作のモノイドを載せることが可能.
+
 ## TODO
 - [ ] Hash Map
   + B木を使えばよいので, モチベーションは低い.
