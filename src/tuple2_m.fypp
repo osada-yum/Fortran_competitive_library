@@ -17,6 +17,7 @@ module tuple2_m
   implicit none
   private
 #:for name, item1, item2 in zip(TUPLE2_NAMES, TUPLE2_ITEM1S, TUPLE2_ITEM2S)
+  $:add_attr_kind_import(f"{name}")
   public :: ${name}$
   type :: ${name}$
      ${item1}$ :: v1_
@@ -62,7 +63,7 @@ module tuple2_m
 contains
 #:for name, item1, item2 in zip(TUPLE2_NAMES, TUPLE2_ITEM1S, TUPLE2_ITEM2S)
   !> construct_${name}$: Construct ${name}$.
-  impure function construct_${name}$(val1, val2) result(res)
+  pure function construct_${name}$(val1, val2) result(res)
     type(${name}$) :: res
     ${item1}$, intent(in) :: val1
     ${item2}$, intent(in) :: val2
