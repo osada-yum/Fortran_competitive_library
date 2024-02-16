@@ -11,7 +11,7 @@ GFortran, fypp を使うことを想定.
 - `src/` 以下のファイルを見てみる. 例えば `tuple2` を使うときは `src/tuple2_m.fypp` の先頭のコメントで, どのような fypp の変数を定義すればよいかが分かる.
 
 - 例 (`#` で始まるものは fypp の命令.)
-```
+```sample.fypp
 #:include "src/special.fypp"
 #:set TUPLE2_ITEM1_TYPES = ["integer"]
 #:set TUPLE2_ITEM2_TYPES = ["integer"]
@@ -31,6 +31,10 @@ program ${PROGNAME}$
 end program ${PROGNAME}$
 ```
 として, fypp で処理すると tuple2 の vector を生成できる.
+```
+$ fypp -m random -m os sample.fypp
+```
+`-m random` と `-m os` を失くすには, `src/special.fypp` の `PROBABILITY` 変数と `PROGNAME` 変数を書き変える.
 
 ## Implemented
 - [x] 可変長配列 `src/unwrapped_vector_m.fypp`.

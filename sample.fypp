@@ -1,0 +1,17 @@
+#:include "src/special.fypp"
+#:set TUPLE2_ITEM1_TYPES = ["integer"]
+#:set TUPLE2_ITEM2_TYPES = ["integer"]
+#:set TUPLE2_ITEM1_KINDS = ["int32"]
+#:set TUPLE2_ITEM2_KINDS = ["int32"]
+#:set TUPLE2_USE_MODULES = []
+#:include "src/tuple2_m.fypp"
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = ["type"]
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = ["tuple2_int32_int32"]
+#:set UNWRAPPED_VECTOR_USE_MODULES = ["tuple2_m"]
+#:include "src/unwrapped_vector_m.fypp"
+
+program ${PROGNAME}$
+  use, intrinsic :: iso_fortran_env
+  ${USE_STATEMENT}$
+  implicit none
+end program ${PROGNAME}$
