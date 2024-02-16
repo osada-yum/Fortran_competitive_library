@@ -113,7 +113,7 @@ contains
           p = p + 1
        end if
        if (iand(r, b'1') == 0) then !> left child.
-          res = this%monoid_%bin_op(res, this%arr_(r))
+          res = this%monoid_%bin_op(this%arr_(r), res)
           r = r - 1
        end if
        p = p / 2
