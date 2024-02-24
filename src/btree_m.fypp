@@ -327,6 +327,10 @@ contains
     class(${node_ptr}$), intent(in) :: this
     ${key}$, intent(in) :: key
     res = this%lower_bound_iter(key)
+    if (res%is_end()) then
+       res%found_ = .false.
+       return
+    end if
     if (res%key() /= key) &
          res%found_ = .false.
   end function get_iter_${node_ptr}$
@@ -370,9 +374,13 @@ contains
     class(${node_ptr}$), intent(in) :: this
     ${key}$, intent(in) :: key
     res = this%lower_bound_iter(key)
+    res%found_ = .false.
     if (res%is_end()) return
     if (res%key() == key) &
          call res%next()
+    if (.not. res%is_end()) then
+       res%found_ = .true.
+    end if
   end function upper_bound_iter_${node_ptr}$
   subroutine split_child_${node_ptr}$(this, idx)
     class(${node_ptr}$), intent(in) :: this
