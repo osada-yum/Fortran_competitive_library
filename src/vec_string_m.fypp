@@ -71,6 +71,7 @@ contains
        capa = capa * 2
     end do
     call res%with_capacity(capa)
+    res%size_ = n
     do i = 1, n
        res%str_(i) = str(i:i)
     end do
