@@ -1,0 +1,183 @@
+module bitset_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  private
+  public bitset
+  integer(int32), parameter :: nbits = 64
+  type :: bitset
+     private
+     integer(int32) :: arr_size_, size_
+     integer(int64), allocatable :: arr_(:)
+   contains
+     procedure, pass :: init => init_bitset
+     procedure, pass :: set => set_bitset
+     procedure, pass :: clr => clr_bitset
+     procedure, pass :: flip => flip_bitset
+     procedure, pass :: popcnt => popcnt_bitset
+     procedure, pass :: debug => debug_bitset
+  end type bitset
+  public :: biand, bior, bieor, popcnt_biand
+  interface biand
+     module procedure :: and_bitset
+  end interface biand
+  interface bior
+     module procedure :: or_bitset
+  end interface bior
+  interface bieor
+     module procedure :: eor_bitset
+  end interface bieor
+  interface popcnt_biand
+     module procedure :: popcnt_and_bitset
+  end interface popcnt_biand
+  public :: assignment(=)
+  interface assignment(=)
+     module procedure :: assign_bitset
+  end interface assignment(=)
+contains
+  !> init_bitset: Initialize an object.
+  !> @param this A Initialized object.
+  !> @param n A positive `integer(int64)` value.
+  pure elemental subroutine init_bitset(this, n)
+    class(bitset), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (n <= 0) error stop "Error in initializing `bitset`."
+    if (allocated(this%arr_)) &
+         & deallocate(this%arr_)
+    this%size_ = n
+    this%arr_size_ = (n - 1) / nbits + 1
+    allocate(this%arr_(0 : this%arr_size_ - 1), source = 0_int64)
+  end subroutine init_bitset
+  !> assign_bitset: assign `rhs` to `lhs`.
+  !> @param lhs A left-hand-side object.
+  !> @param rhs A right-hand-side object.
+  pure subroutine assign_bitset(lhs, rhs)
+    type(bitset), intent(inout) :: lhs
+    type(bitset), intent(in) :: rhs
+    if (allocated(lhs%arr_)) &
+         & deallocate(lhs%arr_)
+    lhs%arr_size_ = rhs%arr_size_
+    lhs%size_ = rhs%size_
+    allocate(lhs%arr_, source = rhs%arr_)
+  end subroutine assign_bitset
+  !> set_bitset: Set a bit.
+  !> @param this A bitset object.
+  !> @param pos A position of setting.
+  pure subroutine set_bitset(this, pos)
+    class(bitset), intent(inout) :: this
+    integer(int32), intent(in) :: pos
+    integer(int32) :: idx
+    idx = pos / nbits
+    if (idx >= this%arr_size_) then
+       block
+         type(bitset) :: tmp
+         integer(int32) :: i
+         tmp = this
+         call this%init(pos)
+         do i = 0, tmp%arr_size_ - 1
+            this%arr_(i) = tmp%arr_(i)
+         end do
+       end block
+    end if
+    this%arr_(idx) = ibset(this%arr_(idx), mod(pos, nbits))
+  end subroutine set_bitset
+  !> clr_bitset: Clear a bit.
+  !> @param this A bitset object.
+  !> @param pos A position of clear.
+  pure subroutine clr_bitset(this, pos)
+    class(bitset), intent(inout) :: this
+    integer(int32), intent(in) :: pos
+    integer(int32) :: idx
+    idx = pos / nbits
+    if (idx >= this%arr_size_) return
+    this%arr_(idx) = ibclr(this%arr_(idx), mod(pos, nbits))
+  end subroutine clr_bitset
+  !> flip_bitset: Flip all bits in the array of an object.
+  !> @param this A bitset object.
+  pure subroutine flip_bitset(this)
+    class(bitset), intent(inout) :: this
+    integer(int64), parameter :: all_one = int(z'FFFFFFFFFFFFFFFF', int64)
+    integer(int32) :: i
+    do i = 0, this%arr_size_ - 1
+       this%arr_(i) = ieor(this%arr_(i), all_one)
+    end do
+  end subroutine flip_bitset
+  !> popcnt_bitset: Count bits of `1`.
+  pure integer(int32) function popcnt_bitset(this) result(res)
+    class(bitset), intent(in) :: this
+    integer(int32) :: i
+    res = 0_int32
+    do i = 0, this%arr_size_ - 1
+       res = res + popcnt(this%arr_(i))
+    end do
+  end function popcnt_bitset
+  impure subroutine debug_bitset(this)
+    class(bitset), intent(in) :: this
+    write(error_unit, '(*(i0, 1x))') this%size_, this%arr_size_
+    write(error_unit, '(*(b64.64))') this%arr_(this%arr_size_ - 1 : 0 : -1)
+  end subroutine debug_bitset
+  !> and_bitset: Performs a bitwise AND operation on `lhs` and `rhs`.
+  !> @param lhs A left-hand-side object.
+  !> @param rhs A right-hand-side object.
+  pure type(bitset) function and_bitset(lhs, rhs) result(res)
+    type(bitset), intent(in) :: lhs, rhs
+    integer(int32) :: i
+    call res%init(min(lhs%size_, rhs%size_))
+    do i = 0, res%arr_size_ - 1
+       res%arr_(i) = iand(lhs%arr_(i), rhs%arr_(i))
+    end do
+  end function and_bitset
+  !> or_bitset: Performs a bitwise OR operation on `lhs` and `rhs`.
+  !> @param lhs A left-hand-side object.
+  !> @param rhs A right-hand-side object.
+  pure type(bitset) function or_bitset(lhs, rhs) result(res)
+    type(bitset), intent(in) :: lhs, rhs
+    integer(int32) :: n
+    integer(int32) :: i
+    call res%init(max(lhs%size_, rhs%size_))
+    n = min(lhs%arr_size_, rhs%arr_size_)
+    do i = 0, n - 1
+       res%arr_(i) = ior(lhs%arr_(i), rhs%arr_(i))
+    end do
+    if (lhs%arr_size_ == rhs%arr_size_) return
+    if (lhs%arr_size_ < rhs%arr_size_) then
+       do i = n, lhs%arr_size_ - 1
+          res%arr_(i) = rhs%arr_(i)
+       end do
+    else !> lhs%arr_size_ > rhs%arr_size_
+       do i = n, rhs%arr_size_ - 1
+          res%arr_(i) = lhs%arr_(i)
+       end do
+    end if
+  end function or_bitset
+  !> eor_bitset: Performs a bitwise XOR operation on `lhs` and `rhs`.
+  !> @param lhs A left-hand-side object.
+  !> @param rhs A right-hand-side object.
+  pure type(bitset) function eor_bitset(lhs, rhs) result(res)
+    type(bitset), intent(in) :: lhs, rhs
+    integer(int32) :: n
+    integer(int32) :: i
+    call res%init(max(lhs%size_, rhs%size_))
+    n = min(lhs%arr_size_, rhs%arr_size_)
+    do i = 0, n - 1
+       res%arr_(i) = ieor(lhs%arr_(i), rhs%arr_(i))
+    end do
+    if (lhs%arr_size_ == rhs%arr_size_) return
+    if (lhs%arr_size_ < rhs%arr_size_) then
+       do i = n, lhs%arr_size_ - 1
+          res%arr_(i) = rhs%arr_(i)
+       end do
+    else !> lhs%arr_size_ > rhs%arr_size_
+       do i = n, rhs%arr_size_ - 1
+          res%arr_(i) = lhs%arr_(i)
+       end do
+    end if
+  end function eor_bitset
+  pure integer(int32) function popcnt_and_bitset(lhs, rhs) result(res)
+    type(bitset), intent(in) :: lhs, rhs
+    integer(int32) :: i
+    res = 0_int32
+    do i = 0, min(lhs%arr_size_, rhs%arr_size_) - 1
+       res = res + popcnt(iand(lhs%arr_(i), rhs%arr_(i)))
+    end do
+  end function popcnt_and_bitset
+end module bitset_m
