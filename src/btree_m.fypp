@@ -151,6 +151,10 @@ contains
   type(${iter}$) function get_iter_${name}$(this, key) result(res)
     class(${name}$), intent(in) :: this
     ${key}$, intent(in) :: key
+    if ((.not. associated(this%root_%p_)) .or. this%size() == 0) then
+       res%found_ = .false.
+       return
+    end if
     res = this%root_%get_iter(key)
   end function get_iter_${name}$
   logical function contains_${name}$(this, key) result(res)
@@ -327,7 +331,7 @@ contains
     class(${node_ptr}$), intent(in) :: this
     ${key}$, intent(in) :: key
     res = this%lower_bound_iter(key)
-    if (res%is_end()) then
+    if (res%is_begin() .or. res%is_end()) then
        res%found_ = .false.
        return
     end if
