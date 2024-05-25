@@ -1,0 +1,166 @@
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = ["integer"]
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = ["int32"]
+#:set UNWRAPPED_VECTOR_USE_MODULES = []
+#:set UNWRAPPED_VECTOR_MODULENAME_SUFFIX = "_scc"
+#:include "unwrapped_vector_m.fypp"
+#:del UNWRAPPED_VECTOR_ITEM_TYPES
+#:del UNWRAPPED_VECTOR_ITEM_KINDS
+#:del UNWRAPPED_VECTOR_USE_MODULES
+#:del UNWRAPPED_VECTOR_MODULENAME_SUFFIX
+module strongly_connected_components_m
+  use, intrinsic :: iso_fortran_env
+  use unwrapped_vector_scc_m, only: vec_i32 => unwrapped_vector_int32
+  implicit none
+  private
+  public :: strongly_connected_components
+  !> An object for graph to make strongly_connected_components(SCC).
+  type :: strongly_connected_components
+     private
+     integer(int32) :: n_, n_scc_
+     type(vec_i32), allocatable, public :: g_(:), components_(:), scc_g_(:)
+     integer(int32), allocatable, public :: scc_indices_(:)
+   contains
+     procedure, pass :: init => init_scc
+     procedure, pass :: add_edge => add_edge_scc
+     procedure, pass :: run => run_scc
+     procedure, pass, private :: make_scc_graph
+     !> getter.
+     procedure, pass :: n_scc => n_scc_scc
+     ! procedure, pass :: graph => graph_scc
+     ! procedure, pass :: scc_graph => scc_graph_scc
+     ! procedure, pass :: components => components_scc
+     ! procedure, pass :: scc_indices => scc_indices_scc
+  end type strongly_connected_components
+contains
+  !> init_scc: Initialize SCC.
+  !> @param this An object for SCC.
+  !> @param n An integer for the size of graph.
+  pure subroutine init_scc(this, n)
+    class(strongly_connected_components), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    if (allocated(this%g_)) return
+    this%n_ = n
+    allocate(this%g_(n))
+    allocate(this%scc_indices_(n), source = -1)
+  end subroutine init_scc
+  !> add_edge_scc: Add directed edge into SCC.
+  !> @param this An object for SCC.
+  !> @param from An integer for the vertex of graph.
+  !> @param to An integer for the vertex of graph.
+  pure subroutine add_edge_scc(this, from, to)
+    class(strongly_connected_components), intent(inout) :: this
+    integer(int32), intent(in) :: from, to
+    call this%g_(from)%push_back(to)
+  end subroutine add_edge_scc
+  !> run_scc: Make graph SCC.
+  !> @param this An object for SCC.
+  pure subroutine run_scc(this)
+    class(strongly_connected_components), intent(inout) :: this
+    integer(int32), allocatable :: next_mini(:), indices(:)
+    logical, allocatable :: visited(:)
+    type(vec_i32) :: stack
+    integer(int32) :: cnts_idx, cnts_scc
+    integer(int32) :: v
+    allocate(next_mini(this%n_))
+    allocate(visited(this%n_), source = .false.)
+    cnts_idx = 0
+    cnts_scc = 0
+    allocate(indices(this%n_))
+    do v = 1, this%n_
+       call dfs(this%n_, v, visited, next_mini, this%scc_indices_, indices, this%g_, stack, cnts_idx, cnts_scc)
+    end do
+    this%n_scc_ = cnts_scc
+    call this%make_scc_graph()
+  contains
+    pure recursive subroutine dfs(n, v, visited, next_mini, scc_indices, indices, g, stack, cnts_idx, cnts_scc)
+      integer(int32), intent(in) :: n, v
+      logical, intent(inout) :: visited(n)
+      integer(int32), intent(inout) :: next_mini(n), scc_indices(n), indices(n), cnts_idx, cnts_scc
+      type(vec_i32), intent(in) :: g(n)
+      type(vec_i32), intent(inout) :: stack
+      integer(int32) :: i
+      if (visited(v)) return
+      visited(v) = .true.
+      cnts_idx = cnts_idx + 1
+      indices(v) = cnts_idx
+      next_mini(v) = indices(v)
+      call stack%push_back(v)
+      do i = 1, g(v)%size()
+         associate(nv => g(v)%arr_(i))
+           if (visited(nv)) then
+              next_mini(v) = min(next_mini(v), next_mini(nv))
+              cycle
+           end if
+           call dfs(n, nv, visited, next_mini, scc_indices, indices, g, stack, cnts_idx, cnts_scc)
+           next_mini(v) = min(next_mini(v), next_mini(nv))
+         end associate
+      end do
+      if (next_mini(v) /= indices(v)) return
+      !> next_mini(v) == indices(v): Able to return self.
+      cnts_scc = cnts_scc + 1
+      do
+         associate(bv => stack%back())
+           call stack%pop_back()
+           scc_indices(bv) = cnts_scc
+           next_mini(bv) = n + 1
+           if (bv == v) exit
+         end associate
+      end do
+    end subroutine dfs
+  end subroutine run_scc
+  !> make_scc_graph: Make graph for SCC from `this%n_scc_` and `this%scc_indices_(:)`.
+  !> @param this An object for SCC.
+  pure subroutine make_scc_graph(this)
+    class(strongly_connected_components), intent(inout) :: this
+    integer(int32) :: v, i
+    allocate(this%components_(this%n_scc_))
+    do v = 1, this%n_
+       call this%components_(this%scc_indices_(v))%push_back(v)
+    end do
+    allocate(this%scc_g_(this%n_scc_))
+    do v = 1, this%n_
+       do i = 1, this%g_(v)%size()
+          associate(nv => this%g_(v)%arr_(i))
+            associate(sv => this%scc_indices_(v), snv => this%scc_indices_(nv))
+              if (sv == snv) cycle !> In the same component.
+              call this%scc_g_(sv)%push_back(snv)
+            end associate
+          end associate
+       end do
+    end do
+  end subroutine make_scc_graph
+  !> n_scc_scc: Return the number of vertex in SCC.
+  !> @param this An object for SCC.
+  pure integer(int32) function n_scc_scc(this) result(res)
+    class(strongly_connected_components), intent(in) :: this
+    res = this%n_scc_
+  end function n_scc_scc
+  ! !> graph_scc: Return the original graph.
+  ! !> @param this An object for SCC.
+  ! pure function graph_scc(this) result(res)
+  !   class(strongly_connected_components), intent(in) :: this
+  !   type(vec_i32), allocatable :: res(:)
+  !   allocate(res, source = this%g_)
+  ! end function graph_scc
+  ! !> scc_graph_scc: Return the graph for SCC.
+  ! !> @param this An object for SCC.
+  ! pure function scc_graph_scc(this) result(res)
+  !   class(strongly_connected_components), intent(in) :: this
+  !   type(vec_i32), allocatable :: res(:)
+  !   allocate(res, source = this%scc_g_)
+  ! end function scc_graph_scc
+  ! !> components_scc: Return the components in the vertex of SCC.
+  ! !> @param this An object for SCC.
+  ! pure function components_scc(this) result(res)
+  !   class(strongly_connected_components), intent(in) :: this
+  !   type(vec_i32), allocatable :: res(:)
+  !   allocate(res, source = this%components_)
+  ! end function components_scc
+  ! !> scc_indices_scc: Return the scc_indices for SCC.
+  ! !> @param this An object for SCC.
+  ! pure function scc_indices_scc(this) result(res)
+  !   class(strongly_connected_components), intent(in) :: this
+  !   integer(int32), allocatable :: res(:)
+  !   allocate(res, source = this%scc_indices_)
+  ! end function scc_indices_scc
+end module strongly_connected_components_m
