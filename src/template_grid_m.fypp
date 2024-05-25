@@ -3,6 +3,8 @@ module grid_m
   use, intrinsic :: iso_fortran_env
   implicit none
   private
+  integer(int32), parameter :: dy(4) = [1, 0, -1, 0]
+  integer(int32), parameter :: dx(4) = [0, 1, 0, -1]
   public :: grid
   type :: grid
      private
