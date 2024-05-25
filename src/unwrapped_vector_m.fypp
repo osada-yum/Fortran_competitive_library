@@ -40,6 +40,33 @@ module unwrapped_vector_m
           construct_${name}$_by_arr, &
           construct_${name}$_by_init_val
   end interface ${name}$
+#:block ordering_block(typename = item)
+  $: add_attr_ordering(f"type({name})")
+#:block once_block(name = "unwrapped_vector")
+  public :: compare, operator(<), operator(<=), operator(>), operator(>=), operator(==), operator(/=)
+#:endblock
+  interface compare
+     module procedure :: compare_${name}$
+  end interface compare
+  interface operator(<)
+     module procedure :: less_${name}$
+  end interface operator(<)
+  interface operator(<=)
+     module procedure :: less_equal_${name}$
+  end interface operator(<=)
+  interface operator(>)
+     module procedure :: greater_${name}$
+  end interface operator(>)
+  interface operator(>=)
+     module procedure :: greater_equal_${name}$
+  end interface operator(>=)
+  interface operator(==)
+     module procedure :: equal_${name}$
+  end interface operator(==)
+  interface operator(/=)
+     module procedure :: not_equal_${name}$
+  end interface operator(/=)
+#:endblock ordering_block
 #:endfor
 contains
 #:for name, item in zip(UNWRAPPED_VECTOR_NAMES, UNWRAPPED_VECTOR_ITEMS)
@@ -197,6 +224,59 @@ contains
       res = r
     end function upper_bound
   end function upper_bound_${name}$
+  pure integer(int32) function compare_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    integer(int32) :: i
+    associate(ls => lhs%size(), rs => rhs%size())
+      if (ls == 0 .and. rs == 0) then
+         res = 0; return
+      else if (ls == 0) then
+         res = -1; return
+      else if (rs == 0) then
+         res = +1; return
+      end if
+      do i = 1, min(ls, rs)
+         if (lhs%arr_(i) < rhs%arr_(i)) then
+            res = -1; return
+         else if (lhs%arr_(i) > rhs%arr_(i)) then
+            res = +1; return
+         end if
+      end do
+      if (ls == rs) then
+         res = 0
+      else if (ls < rs) then
+         res = -1
+      else
+         res = +1
+      end if
+    end associate
+  end function compare_${name}$
+  !> less_${name}$: Compare the first elements.
+  !> Compare the second elements if the first elements are same.
+  pure logical function less_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) < 0
+  end function less_${name}$
+  pure logical function less_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) <= 0
+  end function less_equal_${name}$
+  pure logical function greater_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) > 0
+  end function greater_${name}$
+  pure logical function greater_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) >= 0
+  end function greater_equal_${name}$
+  pure logical function equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) == 0
+  end function equal_${name}$
+  pure logical function not_equal_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    res = compare(lhs, rhs) /= 0
+  end function not_equal_${name}$
 #:endblock ordering_block
 #:endfor
-end module unwrapped_vector_m
+end module unwrapped_vector${getvar('UNWRAPPED_VECTOR_MODULENAME_SUFFIX', "")}$_m
