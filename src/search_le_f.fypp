@@ -18,7 +18,7 @@ pure integer(int32) function search_le(arr, key) result(res)
      q = (p + r) / 2
      if (arr(q) <= key) then
         p = q
-     else !> arr(q) > key
+     else !> key < arr(q)
         r = q
      end if
   end do binary_search
