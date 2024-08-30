@@ -20,6 +20,7 @@ module tuple3_m
   implicit none
   private
 #:for name, item1, item2, item3 in zip(TUPLE3_NAMES, TUPLE3_ITEM1S, TUPLE3_ITEM2S, TUPLE3_ITEM3S)
+  $:add_attr_kind_import(f"{name}")
   public :: ${name}$
   type :: ${name}$
      ${item1}$ :: v1_
@@ -63,7 +64,7 @@ module tuple3_m
 contains
 #:for name, item1, item2, item3 in zip(TUPLE3_NAMES, TUPLE3_ITEM1S, TUPLE3_ITEM2S, TUPLE3_ITEM3S)
   !> construct_${name}$: Construct `${name}$`.
-  impure function construct_${name}$(val1, val2, val3) result(res)
+  pure function construct_${name}$(val1, val2, val3) result(res)
     type(${name}$) :: res
     ${item1}$, intent(in) :: val1
     ${item2}$, intent(in) :: val2
