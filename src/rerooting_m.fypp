@@ -1,0 +1,184 @@
+#! Include this file with settting these values.
+#! :set REROOTING_ITEM_TYPES = ["integer", "integer"]
+#! :set REROOTING_ITEM_KINDS = ["int32", "int64"]
+#! :set REROOTING_USE_MODULES = ["modulename"]
+
+#:if not "int32" in REROOTING_ITEM_KINDS
+  $:REROOTING_ITEM_TYPES.append("integer")
+  $:REROOTING_ITEM_KINDS.append("int32")
+#:endif
+
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = REROOTING_ITEM_TYPES
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = REROOTING_ITEM_KINDS
+#:set UNWRAPPED_VECTOR_USE_MODULES = REROOTING_USE_MODULES
+#:set UNWRAPPED_VECTOR_MODULENAME_SUFFIX = "_rerooting"
+#:include "unwrapped_vector_m.fypp"
+#:del UNWRAPPED_VECTOR_ITEM_TYPES
+#:del UNWRAPPED_VECTOR_ITEM_KINDS
+#:del UNWRAPPED_VECTOR_USE_MODULES
+#:del UNWRAPPED_VECTOR_MODULENAME_SUFFIX
+
+#:set REROOTING_ITEMS = [f"{type}({kind})" for (type, kind) in zip(REROOTING_ITEM_TYPES, REROOTING_ITEM_KINDS)]
+#:set REROOTING_NAMES = [f"rerooting_{kind}" for kind in REROOTING_ITEM_KINDS]
+#:set VEC_NAMES = [f"vec_{s}" for s in REROOTING_ITEM_KINDS]
+#:set VEC_ABBREV_TO_NAME = map(lambda s: f"vec_{s} => unwrapped_vector_{s}", REROOTING_ITEM_KINDS)
+#:set REROOTING_MONOID_NAMES = [f"re_mono_op_{kind}" for kind in REROOTING_ITEM_KINDS]
+$:add_module("rerooting_m")
+module rerooting_m
+  use, intrinsic :: iso_fortran_env
+  use unwrapped_vector_rerooting_m, only: &
+       ${", &\n".join(VEC_ABBREV_TO_NAME)}$
+#:for modulename in REROOTING_USE_MODULES
+  use ${modulename}$
+#:endfor
+  implicit none
+  private
+#:for name, item, monoid_name, kind in zip(REROOTING_NAMES, REROOTING_ITEMS, REROOTING_MONOID_NAMES, REROOTING_ITEM_KINDS)
+  public :: ${name}$
+  type :: ${name}$
+     private
+     integer(int32) :: size_
+     type(vec_int32), allocatable :: g_(:)
+     type(vec_${kind}$), allocatable :: dp_(:)
+     ${item}$, allocatable, public :: dp_root_(:)
+     class(${monoid_name}$), allocatable :: monoid_
+   contains
+     procedure, pass :: init => init_${name}$
+     procedure, pass :: add_edge => add_edge_${name}$
+     procedure, pass :: calc_dp => calc_dp_${name}$
+     procedure, pass, private :: dfs => dfs_${name}$
+     procedure, pass, private :: bfs => bfs_${name}$
+  end type ${name}$
+
+  public :: ${monoid_name}$
+  type, abstract :: ${monoid_name}$
+     private
+   contains
+     procedure(identity_${kind}$), nopass, deferred :: identity
+     procedure(bin_op_${kind}$)  , nopass, deferred :: bin_op
+     procedure(add_root_${kind}$), nopass, deferred :: add_root
+  end type ${monoid_name}$
+  abstract interface
+     pure ${item}$ function identity_${kind}$() result(res)
+       $:import_kind(typenames = [kind])
+     end function identity_${kind}$
+     pure ${item}$ function bin_op_${kind}$(x, y) result(res)
+       $:import_kind(typenames = [kind])
+       ${item}$, intent(in) :: x, y
+     end function bin_op_${kind}$
+     pure ${item}$ function add_root_${kind}$(v) result(res)
+       $:import_kind(typenames = [kind])
+       ${item}$, intent(in) :: v
+     end function add_root_${kind}$
+  end interface
+#:block number_block(typename = item)
+  public :: max_dist_to_leaf_${monoid_name}$
+  type, extends(${monoid_name}$) :: max_dist_to_leaf_${monoid_name}$
+     private
+   contains
+     procedure, nopass :: identity => identity_max_dist_to_leaf_${monoid_name}$
+     procedure, nopass :: bin_op   => bin_op_max_dist_to_leaf_${monoid_name}$
+     procedure, nopass :: add_root => add_root_max_dist_to_leaf_${monoid_name}$
+  end type max_dist_to_leaf_${monoid_name}$
+#:endblock number_block
+#:endfor
+contains
+#:for name, item, monoid_name, kind in zip(REROOTING_NAMES, REROOTING_ITEMS, REROOTING_MONOID_NAMES, REROOTING_ITEM_KINDS)
+  !> init_${name}$: Initialize object by the size of elements and the object of monoid operator.
+  pure subroutine init_${name}$ (this, num_elems, monoid)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: num_elems
+    class(${monoid_name}$), intent(in) :: monoid
+    this%size_ = num_elems
+    allocate(this%g_(this%size_))
+    allocate(this%dp_(this%size_))
+    allocate(this%dp_root_(this%size_))
+    this%monoid_ = monoid
+  end subroutine init_${name}$
+  !> add_edge_${name}$: Add edge from `v` to `nv.
+  pure subroutine add_edge_${name}$ (this, v, nv)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: v, nv
+    call this%g_(v)%push_back(nv)
+  end subroutine add_edge_${name}$
+  !> calc_dp_${name}$: Calculate dp.
+  pure subroutine calc_dp_${name}$ (this)
+    class(${name}$), intent(inout) :: this
+    ${item}$ :: dummy
+    call this%dfs(1, -1, dummy)
+    call this%bfs(1, -1, this%monoid_%identity())
+  end subroutine calc_dp_${name}$
+
+  !> dfs_${name}$: Calculate the value of dp of root by DFS.
+  pure recursive subroutine dfs_${name}$ (this, v, p, dp_res)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: v, p
+    ${item}$, intent(inout) :: dp_res
+    integer(int32) :: s
+    integer(int32) :: i
+    s = this%g_(v)%size()
+    call this%dp_(v)%resize(s)
+    dp_res = this%monoid_%identity()
+    do i = 1, s
+       associate(nv => this%g_(v)%arr_(i))
+         if (nv == p) cycle
+         call this%dfs(nv, v, this%dp_(v)%arr_(i))
+         dp_res = this%monoid_%bin_op(dp_res, this%dp_(v)%arr_(i))
+       end associate
+    end do
+    dp_res = this%monoid_%add_root(dp_res)
+  end subroutine dfs_${name}$
+  !> bfs_${name}$: Calculate values for each vertex.
+  pure recursive subroutine bfs_${name}$ (this, v, p, dp_parent)
+    class(${name}$), intent(inout) :: this
+    integer(int32), intent(in) :: v, p
+    ${item}$, intent(in) :: dp_parent
+    integer(int32) :: s
+    integer(int32) :: i
+    s = this%g_(v)%size()
+    do i = 1, s
+       associate(nv => this%g_(v)%arr_(i))
+         if (nv /= p) cycle
+         !> nv == p
+         this%dp_(v)%arr_(i) = dp_parent
+       end associate
+    end do
+    block
+      ${item}$ :: dp_l(0:s), dp_r(1:s + 1)
+      ${item}$ :: dp_without_current
+      dp_l(0) = this%monoid_%identity()
+      dp_r(s + 1) = this%monoid_%identity()
+      do i = 1, s
+         !> dp_l(i): Value for [0, i].
+         dp_l(i) = this%monoid_%bin_op(dp_l(i - 1), this%dp_(v)%arr_(i))
+      end do
+      do i = s, 1, -1
+         !> dp_r(i): Value for [i, s + 1].
+         dp_r(i) = this%monoid_%bin_op(dp_r(i + 1), this%dp_(v)%arr_(i))
+      end do
+      this%dp_root_(v) = this%monoid_%add_root(dp_l(s))
+      do i = 1, s
+         dp_without_current = this%monoid_%bin_op(dp_l(i - 1), dp_r(i + 1))
+         associate(nv => this%g_(v)%arr_(i))
+           if (nv == p) cycle
+           call this%bfs(nv, v, this%monoid_%add_root(dp_without_current))
+         end associate
+      end do
+    end block
+  end subroutine bfs_${name}$
+
+#:block number_block(typename = item)
+  pure ${item}$ function identity_max_dist_to_leaf_${monoid_name}$() result(res)
+    res = -1
+  end function identity_max_dist_to_leaf_${monoid_name}$
+  pure ${item}$ function bin_op_max_dist_to_leaf_${monoid_name}$(x, y) result(res)
+    ${item}$, intent(in) :: x, y
+    res = max(x, y)
+  end function bin_op_max_dist_to_leaf_${monoid_name}$
+  pure ${item}$ function add_root_max_dist_to_leaf_${monoid_name}$(v) result(res)
+    ${item}$, intent(in) :: v
+    res = v + 1
+  end function add_root_max_dist_to_leaf_${monoid_name}$
+#:endblock number_block
+#:endfor
+end module rerooting_m
