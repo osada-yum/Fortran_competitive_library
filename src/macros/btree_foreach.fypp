@@ -1,0 +1,13 @@
+#:def btree_foreach(code, btree, iter, key, val)
+  block
+    type(btree_iter) :: ${iter}$
+    ${iter}$ = ${btree}$%minimum_iter()
+    do while (.not. ${iter}$%is_end())
+       associate(${key}$ => ${iter}$%key(), &
+            & ${val}$ => ${iter}$%val())
+         $: code
+       end associate
+       call ${iter}$%next()
+    end do
+  end block
+#:enddef

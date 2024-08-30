@@ -1,7 +1,12 @@
 !> This file was processed by `fypp`.
 #:set FORTUNES = ["Lucky:)", "Lucky AC", "Lucky WA", "Bad;)", "Bad AC", "Bad WA", "Happy TLE", "Happy MLE", "Sad CE", "forever WJ..."]
 #:set PROBABILITY = random.choice(FORTUNES)
+#:set ALGORITHMS = ["貪欲", "全探索", "半分全列挙", "bit全探索", "Union Find", "ポテンシャル付き Union Fnid", "DFS", "BFS", "Dijkstra", "Floyd-Warshall", "Bellman-Ford", "フロー", "風呂ー", "最小費用流", "セグメント木", "遅延伝播セグメント木", "DP", "ナップサックDP", "bit DP", "LIS", "メモ化再帰", "やばいDP", "巡回セールスマン問題", "ソート", "両側から見る", "真ん中を見る", "境界値を見る", "Combination", "調和級数", "因数分解", "2分探索", "重実装", "乱択", "シュタイナー木", "Stern-Brocot木", "Suffix Array", "Wavelet Matrix", "根性"]
+#:set ONE_ALGORITHM = random.choice(ALGORITHMS)
 !> Today's fortune: "${PROBABILITY}$", really OK?
+!> ランダムウォーク猿「'${ONE_ALGORITHM}$' で はっぴー.」
+#:set GAMBLE = ["AtCoder はギャンブルだ.", "AtCoder はゲームだ.", "AtCoder は運だ.", "AC...それはハチミツの味.", "...", "流れが来てる...!", "流れが来てない..."]
+!> ギャンブラー猿「${random.choice(GAMBLE)}$」
 #:mute
 #:set PROGNAME = (os.path.basename(os.path.abspath("..")) + os.path.basename(os.path.abspath("."))).replace('-', '_')
 #:set USE_STATEMENT = "!> auto use module"
@@ -23,4 +28,5 @@
 #:include "attr_ordering.fypp"
 #:include "attr_debug.fypp"
 #:include "attr_number.fypp"
+#:include "macros/macros.fypp"
 #:endmute

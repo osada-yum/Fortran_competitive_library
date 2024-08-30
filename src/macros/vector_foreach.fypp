@@ -1,0 +1,10 @@
+#:def vec_foreach(code, vec, iter, val)
+  block
+    integer(int32) :: ${iter}$
+    do ${iter}$ = 1, ${vec}$%size()
+       associate(${val}$ => ${vec}$%arr_(${iter}$))
+         $: code
+       end associate
+    end do
+  end block
+#:enddef

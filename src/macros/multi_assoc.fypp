@@ -1,0 +1,9 @@
+#:def multi_assoc(code, **keywords)
+#:for keyword in keywords
+  associate(${keyword}$ => ${keywords[keyword]}$)
+#:endfor
+$: code
+#:for _ in keywords
+  end associate
+#:endfor
+#:enddef
