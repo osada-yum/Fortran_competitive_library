@@ -1,0 +1,21 @@
+#:mute
+
+#:def calc_cumsum_name(type, kind = "")
+calc_cumsum_${type}$_${kind}$
+#:enddef calc_cumsum_name
+
+#:def calc_cumsum(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = calc_cumsum_name(type = type, kind = kind)
+pure function ${name}$(arr) result(res)
+  ${item}$, intent(in) :: arr(:)
+  ${item}$ :: res(0:size(arr))
+  integer(int32) :: i
+  res(0) = 0
+  do i = 1, size(arr)
+     res(i) = res(i - 1) + arr(i)
+  end do
+end function ${name}$
+#:enddef calc_cumsum
+
+#:endmute

@@ -1,0 +1,39 @@
+#:mute
+
+#:def search_le_name(type, kind = "")
+search_le_${type}$_${kind}$
+#:enddef search_le_name
+
+#:def search_le(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = search_le_name(type = type, kind = kind)
+  !> ${name}$: Return the index of the rightmost position that satisfies `arr(res) <= key` in the sorted array.
+  !> @param arr A sorted array.
+  !> @param key A value.
+  pure integer(int32) function ${name}$(arr, key) result(res)
+    ${item}$, intent(in) :: arr(:)
+    ${item}$, intent(in) :: key
+    integer(int32) :: p, q, r
+    p = 1
+    r = size(arr)
+    if (r == 0) then
+       res = 0; return
+    else if (arr(p) > key) then
+       res = 0; return
+    else if (arr(r) <= key) then
+       res = r; return
+    end if
+    !> invariant condition:
+    !> arr(p) <= key < arr(r)
+    binary_search: do while(p + 1 < r)
+       q = (p + r) / 2
+       if (arr(q) <= key) then
+          p = q
+       else !> key < arr(q)
+          r = q
+       end if
+    end do binary_search
+    res = p
+  end function ${name}$
+#:enddef
+#:endmute

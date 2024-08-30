@@ -1,0 +1,17 @@
+#:mute
+
+#:def chmin_name(type, kind = "")
+chmin_${type}$_${kind}$
+#:enddef chmin_name
+
+#:def chmin(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = chmin_name(type = type, kind = kind)
+pure elemental subroutine ${name}$(x, y)
+  ${item}$, intent(inout) :: x
+  ${item}$, intent(in) :: y
+  x = min(x, y)
+end subroutine ${name}$
+#:enddef chmin
+
+#:endmute

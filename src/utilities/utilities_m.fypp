@@ -1,0 +1,107 @@
+$:add_module("utilities_m")
+
+#:include "chadd_name.fypp"
+#:include "chmin_name.fypp"
+#:include "chmax_name.fypp"
+#:include "lower_bound_name.fypp"
+#:include "upper_bound_name.fypp"
+#:include "search_le_name.fypp"
+#:include "calc_cumsum_name.fypp"
+module utilities_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  private
+
+  public chadd
+  #:set CHADD_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set CHADD_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface chadd
+#:for type, kind in zip(CHADD_TYPES, CHADD_KINDS)
+     module procedure :: ${chadd_name(type = type, kind = kind)}$
+#:endfor
+  end interface chadd
+
+  public chmin
+  #:set CHMIN_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set CHMIN_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface chmin
+#:for type, kind in zip(CHMIN_TYPES, CHMIN_KINDS)
+     module procedure :: ${chmin_name(type = type, kind = kind)}$
+#:endfor
+  end interface chmin
+
+  public chmax
+  #:set CHMAX_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set CHMAX_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface chmax
+#:for type, kind in zip(CHMAX_TYPES, CHMAX_KINDS)
+     module procedure :: ${chmax_name(type = type, kind = kind)}$
+#:endfor
+  end interface chmax
+
+  public lower_bound
+  #:set LOWER_BOUND_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set LOWER_BOUND_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface lower_bound
+#:for type, kind in zip(LOWER_BOUND_TYPES, LOWER_BOUND_KINDS)
+     module procedure :: ${lower_bound_name(type = type, kind = kind)}$
+#:endfor
+  end interface lower_bound
+
+  public upper_bound
+  #:set UPPER_BOUND_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set UPPER_BOUND_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface upper_bound
+#:for type, kind in zip(UPPER_BOUND_TYPES, UPPER_BOUND_KINDS)
+     module procedure :: ${upper_bound_name(type = type, kind = kind)}$
+#:endfor
+  end interface upper_bound
+
+  public search_le
+  #:set SEARCH_LE_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
+  #:set SEARCH_LE_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface search_le
+#:for type, kind in zip(SEARCH_LE_TYPES, SEARCH_LE_KINDS)
+     module procedure :: ${search_le_name(type = type, kind = kind)}$
+#:endfor
+  end interface search_le
+
+  public calc_cumsum
+  #:set CALC_CUMSUM_TYPES = ["integer", "integer", "real", "real"]
+  #:set CALC_CUMSUM_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
+  interface calc_cumsum
+#:for type, kind in zip(CALC_CUMSUM_TYPES, CALC_CUMSUM_KINDS)
+     module procedure :: ${calc_cumsum_name(type = type, kind = kind)}$
+#:endfor
+  end interface calc_cumsum
+
+contains
+#:for type, kind in zip(CHADD_TYPES, CHADD_KINDS)
+  $:chadd(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(CHMIN_TYPES, CHMIN_KINDS)
+  $:chmin(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(CHMAX_TYPES, CHMAX_KINDS)
+  $:chmax(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(LOWER_BOUND_TYPES, LOWER_BOUND_KINDS)
+  $:lower_bound(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(UPPER_BOUND_TYPES, UPPER_BOUND_KINDS)
+  $:upper_bound(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(SEARCH_LE_TYPES, SEARCH_LE_KINDS)
+  $:search_le(type = type, kind = kind)
+#:endfor
+
+#:for type, kind in zip(CALC_CUMSUM_TYPES, CALC_CUMSUM_KINDS)
+  $:calc_cumsum(type = type, kind = kind)
+#:endfor
+
+end module utilities_m

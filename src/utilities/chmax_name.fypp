@@ -1,0 +1,17 @@
+#:mute
+
+#:def chmax_name(type, kind = "")
+chmax_${type}$_${kind}$
+#:enddef chmax_name
+
+#:def chmax(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = chmax_name(type = type, kind = kind)
+pure elemental subroutine ${name}$(x, y)
+  ${item}$, intent(inout) :: x
+  ${item}$, intent(in) :: y
+  x = max(x, y)
+end subroutine ${name}$
+#:enddef chmax
+
+#:endmute

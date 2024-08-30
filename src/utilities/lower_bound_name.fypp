@@ -1,0 +1,37 @@
+#:mute
+
+#:def lower_bound_name(type, kind = "")
+lower_bound_${type}$_${kind}$
+#:enddef lower_bound_name
+
+#:def lower_bound(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = lower_bound_name(type = type, kind = kind)
+pure integer(int32) function ${name}$(arr, key) result(res)
+  ${item}$, intent(in) :: arr(:)
+  ${item}$, intent(in) :: key
+  integer(int32) :: p, q, r
+  p = 1
+  r = size(arr)
+  if (r == 0) then
+     res = r + 1; return
+  else if (arr(p) >= key) then
+     res = p; return
+  else if (arr(r) < key) then
+     res = r + 1; return
+  end if
+  !> invariant condition:
+  !> arr(p) < key <= arr(r)
+  binary_search: do while(p + 1 < r)
+     q = (p + r) / 2
+     if (arr(q) < key) then
+        p = q
+     else !> key <= arr(q)
+        r = q
+     end if
+  end do binary_search
+  res = r
+end function ${name}$
+#:enddef lower_bound
+
+#:endmute

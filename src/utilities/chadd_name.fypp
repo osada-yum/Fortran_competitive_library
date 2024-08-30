@@ -1,0 +1,17 @@
+#:mute
+
+#:def chadd_name(type, kind = "")
+chadd_${type}$_${kind}$
+#:enddef chadd_name
+
+#:def chadd(type, kind = "")
+#:set item = f"{type}({kind})" if kind != "" else type
+#:set name = chadd_name(type = type, kind = kind)
+pure elemental subroutine ${name}$(x, y)
+  ${item}$, intent(inout) :: x
+  ${item}$, intent(in) :: y
+  x = x + y
+end subroutine ${name}$
+#:enddef chadd
+
+#:endmute
