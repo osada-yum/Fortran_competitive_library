@@ -33,6 +33,7 @@ module vec_deque_m
      procedure, pass :: front  => front_${name}$
      procedure, pass :: back   => back_${name}$
      procedure, pass :: at => at_${name}$
+     procedure, pass :: empty => empty_${name}$
      procedure, pass :: to_array => to_array_${name}$
   end type ${name}$
 #:endfor
@@ -148,6 +149,10 @@ contains
     pos = mod((this%head_ + 1) + (idx - 1) - 1, this%capa_) + 1
     res = this%arr_(pos)
   end function at_${name}$
+  pure logical function empty_${name}$(this) result(res)
+    class(${name}$), intent(in) :: this
+    res = this%size() == 0
+  end function empty_${name}$
   pure function to_array_${name}$(this) result(res)
     class(${name}$), intent(in) :: this
     ${item}$, allocatable :: res(:)
