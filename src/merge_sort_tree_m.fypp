@@ -1,0 +1,217 @@
+#:set MERGE_SORT_TREE_INTEGER_KINDS = ["int8", "int16", "int32"]
+
+#:set COUNT_FUNCS = ["count_less_equal_val", "count_more_equal_val", "count_less_equal_summ", "count_more_equal_summ"]
+#:set COUNT_KINDS = ["int32", "int32", "int64", "int64"]
+#:include "utilities/lower_bound_name.fypp"
+#:include "utilities/upper_bound_name.fypp"
+module merge_sort_tree_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  private
+  !> A type of elements in `merge_sort_tree`.
+  type :: array
+     private
+     integer(int32) :: size_
+     integer(int64), allocatable :: arr_(:)
+     integer(int64), allocatable :: cumsum_(:)
+   contains
+     procedure, pass :: init_array
+     procedure, pass :: init_array_by_val
+     generic :: init => &
+          & init_array, &
+          & init_array_by_val
+     procedure, pass :: merge => merge_array
+
+#:for func in COUNT_FUNCS
+     procedure, pass :: ${func}$ => ${func}$_array
+#:endfor
+  end type array
+
+  public :: merge_sort_tree
+  type :: merge_sort_tree
+     private
+     integer(int32) :: size_, tree_size_
+     type(array), allocatable :: tree_(:)
+   contains
+     procedure, pass :: init_merge_sort_tree_by_val
+#:for ikind in MERGE_SORT_TREE_INTEGER_KINDS
+     procedure, pass :: init_merge_sort_tree_by_val_${ikind}$
+#:endfor
+     generic :: init => &
+          & init_merge_sort_tree_by_val, &
+          ${", &\n".join([f"& init_merge_sort_tree_by_val_{ikind}" for ikind in MERGE_SORT_TREE_INTEGER_KINDS])}$
+#:for func in COUNT_FUNCS
+     procedure, pass :: ${func}$_merge_sort_tree
+#:for ikind in MERGE_SORT_TREE_INTEGER_KINDS
+     procedure, pass :: ${func}$_merge_sort_tree_${ikind}$
+#:endfor
+     generic :: ${func}$ => &
+          & ${func}$_merge_sort_tree, &
+          ${", &\n".join([f"& {func}_merge_sort_tree_{ikind}" for ikind in MERGE_SORT_TREE_INTEGER_KINDS])}$
+#:endfor
+  end type merge_sort_tree
+contains
+  ! Subprograms for `array` type.
+  !> init_array: Initialize `array` type.
+  !> @param this A type of `array`.
+  !> @param size A size of `array`.
+  pure subroutine init_array(this, size)
+    class(array), intent(inout) :: this
+    integer(int32), intent(in) :: size
+    this%size_ = size
+    allocate(this%arr_(this%size_))
+    allocate(this%cumsum_(0:this%size_))
+  end subroutine init_array
+  pure subroutine init_array_by_val(this, arr)
+    class(array), intent(inout) :: this
+    integer(int64), intent(in) :: arr(:)
+    integer(int32) :: i
+    this%size_ = size(arr)
+    allocate(this%arr_, source = arr)
+    allocate(this%cumsum_(0:this%size_))
+    this%cumsum_(0) = 0_int64
+    do i = 1, this%size_
+       this%cumsum_(i) = this%cumsum_(i - 1) + this%arr_(i)
+    end do
+  end subroutine init_array_by_val
+  pure subroutine merge_array(this, t1, t2)
+    class(array), intent(inout) :: this
+    type(array), intent(in) :: t1, t2
+    integer(int32) :: i, il, ir
+    if (.not. allocated(this%arr_)) &
+         & call this%init(t1%size_ + t2%size_)
+    if (this%size_ /= t1%size_ + t2%size_) &
+         & error stop "Fatal Error in `merge_sort_tree_m.fypp`."
+    il = 1; ir = 1
+    do i = 1, this%size_
+       if (t1%arr_(il) <= t2%arr_(ir)) then
+          this%arr_(i) = t1%arr_(il)
+          il = il + 1
+          if (il > t1%size_) then
+             this%arr_(i+1:this%size_) = t2%arr_(ir:t2%size_)
+             exit
+          end if
+       else
+          this%arr_(i) = t2%arr_(ir)
+          ir = ir + 1
+          if (ir > t2%size_) then
+             this%arr_(i+1:this%size_) = t1%arr_(il:t1%size_)
+             exit
+          end if
+       end if
+    end do
+    this%cumsum_(0) = 0_int64
+    do i = 1, this%size_
+       this%cumsum_(i) = this%cumsum_(i - 1) + this%arr_(i)
+    end do
+  end subroutine merge_array
+
+  pure integer(int32) function count_less_equal_val_array(this, val) result(res)
+    class(array), intent(in) :: this
+    integer(int64), intent(in) :: val
+    associate(pos => ${upper_bound_name(type = "integer", kind = "int64")}$(this%arr_(1:this%size_), val))
+      res = pos - 1
+    end associate
+  end function count_less_equal_val_array
+  pure integer(int32) function count_more_equal_val_array(this, val) result(res)
+    class(array), intent(in) :: this
+    integer(int64), intent(in) :: val
+    associate(pos => ${lower_bound_name(type = "integer", kind = "int64")}$(this%arr_(1:this%size_), val))
+      res = this%size_ - pos + 1
+    end associate
+  end function count_more_equal_val_array
+  pure integer(int64) function count_less_equal_summ_array(this, val) result(res)
+    class(array), intent(in) :: this
+    integer(int64), intent(in) :: val
+    associate(pos => ${upper_bound_name(type = "integer", kind = "int64")}$(this%arr_(1:this%size_), val))
+      res = this%cumsum_(pos - 1)
+    end associate
+  end function count_less_equal_summ_array
+  pure integer(int64) function count_more_equal_summ_array(this, val) result(res)
+    class(array), intent(in) :: this
+    integer(int64), intent(in) :: val
+    associate(pos => ${lower_bound_name(type = "integer", kind = "int64")}$(this%arr_(1:this%size_), val))
+      res = this%cumsum_(this%size_) - this%cumsum_(pos - 1)
+    end associate
+  end function count_more_equal_summ_array
+
+
+  !> init_merge_sort_tree_by_val: Initialize `merge_sort_tree` type.
+  !> @param this A `merge_sort_tree` type.
+  !> @param arr An array of `integer(int64)` values.
+  pure subroutine init_merge_sort_tree_by_val(this, arr)
+    class(merge_sort_tree), intent(inout) :: this
+    integer(int64), intent(in) :: arr(:)
+    integer(int32) :: n, max_bit
+    integer(int32) :: i
+    n = size(arr)
+    this%size_ = n
+    max_bit = bit_size(n) - leadz(n)
+    if (popcnt(n) == 1) then
+       this%tree_size_ = ishft(1_int32, max_bit) - 1
+    else
+       this%tree_size_ = ishft(1_int32, max_bit + 1) - 1
+    end if
+    ! write(error_unit, *) n, this%size_, this%tree_size_
+    allocate(this%tree_(this%tree_size_))
+    do i = this%tree_size_ / 2 + 1, this%tree_size_
+       if (i - this%tree_size_ / 2 <= this%size_) then
+          call this%tree_(i)%init([arr(i - this%tree_size_ / 2)])
+       else
+          call this%tree_(i)%init([0_int64])
+       end if
+    end do
+    do i = this%tree_size_ / 2, 1, -1
+       call this%tree_(i)%merge(this%tree_(2 * i), this%tree_(2 * i + 1))
+    end do
+  end subroutine init_merge_sort_tree_by_val
+#:for ikind in MERGE_SORT_TREE_INTEGER_KINDS
+  !> init_merge_sort_tree_by_val_${ikind}$: Call initializer for array of `integer(int64)`.
+  !> @param this A `merge_sort_tree` type.
+  !> @param arr An array of `integer(${ikind}$)` values.
+  pure subroutine init_merge_sort_tree_by_val_${ikind}$(this, arr)
+    class(merge_sort_tree), intent(inout) :: this
+    integer(${ikind}$), intent(in) :: arr(:)
+    call this%init(int(arr, int64))
+  end subroutine init_merge_sort_tree_by_val_${ikind}$
+#:endfor
+
+#:for func, fkind in zip(COUNT_FUNCS, COUNT_KINDS)
+  pure integer(${fkind}$) function ${func}$_merge_sort_tree(this, val, left, right) result(res)
+    class(merge_sort_tree), intent(in) :: this
+    integer(int64), intent(in) :: val
+    integer(int32), intent(in) :: left, right
+    integer(int32) :: l, r
+    res = 0_int32
+    if (left > right) return
+    !> left <= right
+    l = this%tree_size_ / 2 + max(1, left)
+    r = this%tree_size_ / 2 + min(this%size_, right)
+    do while (l < r)
+       if (iand(l, b'1') == 1) then ! `l` is odd.
+          res = res + this%tree_(l)%${func}$(val)
+          l = l + 1
+       end if
+       if (iand(r, b'1') == 0) then ! `r` is even.
+          res = res + this%tree_(r)%${func}$(val)
+          r = r - 1
+       end if
+       l = l / 2
+       r = r / 2
+    end do
+    if (l == r) &
+         & res = res + this%tree_(l)%${func}$(val)
+  end function ${func}$_merge_sort_tree
+#:for ikind in MERGE_SORT_TREE_INTEGER_KINDS
+  pure integer(${fkind}$) function ${func}$_merge_sort_tree_${ikind}$(this, val, left, right) result(res)
+    class(merge_sort_tree), intent(in) :: this
+    integer(${ikind}$), intent(in) :: val
+    integer(int32), intent(in) :: left, right
+    res = this%${func}$(int(val, int64), left, right)
+  end function ${func}$_merge_sort_tree_${ikind}$
+#:endfor
+#:endfor
+
+  $:lower_bound(type = "integer", kind = "int64")
+  $:upper_bound(type = "integer", kind = "int64")
+end module merge_sort_tree_m
