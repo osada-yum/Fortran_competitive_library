@@ -1,0 +1,266 @@
+module binary_indexed_tree_m
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  private
+  public :: binary_indexed_tree_int32
+  !> binary_indexed_tree_int32: can calculate the range sum O(log n).
+  type :: binary_indexed_tree_int32
+     private
+     integer(int32), allocatable :: arr_(:)
+     integer(int32) :: size_ = 0
+   contains
+     procedure, pass :: init_binary_indexed_tree_int32_by_size, init_binary_indexed_tree_int32_by_arr
+     generic         :: init  => init_binary_indexed_tree_int32_by_size, init_binary_indexed_tree_int32_by_arr
+     procedure, pass :: reset => reset_binary_indexed_tree_int32
+     procedure, pass :: size  => size_binary_indexed_tree_int32
+     procedure, pass :: add       => add_binary_indexed_tree_int32
+     procedure, pass :: sum1      => sum1_binary_indexed_tree_int32
+     procedure, pass :: sum_range => sum_range_binary_indexed_tree_int32
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_int32
+     final :: destroy_binary_indexed_tree_int32
+  end type binary_indexed_tree_int32
+  public :: binary_indexed_tree_int64
+  !> binary_indexed_tree_int64: can calculate the range sum O(log n).
+  type :: binary_indexed_tree_int64
+     private
+     integer(int64), allocatable :: arr_(:)
+     integer(int32) :: size_ = 0
+   contains
+     procedure, pass :: init_binary_indexed_tree_int64_by_size, init_binary_indexed_tree_int64_by_arr
+     generic         :: init  => init_binary_indexed_tree_int64_by_size, init_binary_indexed_tree_int64_by_arr
+     procedure, pass :: reset => reset_binary_indexed_tree_int64
+     procedure, pass :: size  => size_binary_indexed_tree_int64
+     procedure, pass :: add       => add_binary_indexed_tree_int64
+     procedure, pass :: sum1      => sum1_binary_indexed_tree_int64
+     procedure, pass :: sum_range => sum_range_binary_indexed_tree_int64
+     procedure, pass :: lower_bound => lower_bound_binary_indexed_tree_int64
+     final :: destroy_binary_indexed_tree_int64
+  end type binary_indexed_tree_int64
+contains
+  !> init_binary_indexed_tree_int32_by_size: Initialize the binary_indexed_tree_int32 by size.
+  !> All elements of binary_indexed_tree_int32 is 0_int32.
+  subroutine init_binary_indexed_tree_int32_by_size(this, n)
+    class(binary_indexed_tree_int32), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    !> Error exist if already allocated.
+    if (allocated(this%arr_)) then
+       ! write(error_unit, '(a, i0, a)', advance = "no")&
+       !      "Error in "//&
+       !      __FILE__&
+       !      //":", __LINE__, ":"
+       write(error_unit, '(a)')&
+            "This binary_indexed_tree_int32 is already allocated."
+       error stop 1
+    end if
+    allocate(this%arr_(n), source = 0_int32)
+    this%size_ = n
+  end subroutine init_binary_indexed_tree_int32_by_size
+  !> init_binary_indexed_tree_int32_by_arr: Initialize the binary_indexed_tree_int32 by array.
+  subroutine init_binary_indexed_tree_int32_by_arr(this, arr)
+    class(binary_indexed_tree_int32), intent(inout) :: this
+    integer(int32), intent(in) ::arr(:)
+    integer(int32) :: i, arr_size
+    arr_size = size(arr)
+    call this%init(arr_size)
+    do i = 1, arr_size
+       call this%add(i, arr(i))
+    end do
+  end subroutine init_binary_indexed_tree_int32_by_arr
+  !> reset_binary_indexed_tree_int32: Replace  with .
+  subroutine reset_binary_indexed_tree_int32(this)
+    class(binary_indexed_tree_int32), intent(inout) :: this
+    if (allocated(this%arr_)) then
+       this%arr_(:) = 0_int32
+    end if
+  end subroutine reset_binary_indexed_tree_int32
+  !> size_binary_indexed_tree_int32: Return current size of the binary_indexed_tree_int32.
+  pure integer(int32) function size_binary_indexed_tree_int32(this) result(res)
+    class(binary_indexed_tree_int32), intent(in) :: this
+    res = this%size_
+  end function size_binary_indexed_tree_int32
+  !> add_binary_indexed_tree_int32: Add the value  into the index  of .
+  subroutine add_binary_indexed_tree_int32(this, idx, val)
+    class(binary_indexed_tree_int32), intent(inout) :: this
+    integer(int32), intent(in) :: idx
+    integer(int32), intent(in) :: val
+    integer(int32) :: i
+    i = idx
+    do
+       if (i > this%size_) exit
+       this%arr_(i) = this%arr_(i) + val
+       i = i + iand(i, -i)
+    end do
+  end subroutine add_binary_indexed_tree_int32
+  !> sum1_binary_indexed_tree_int32: Return the summation of .
+  !> Return 0_int32 if r < 0.
+  integer(int32) function sum1_binary_indexed_tree_int32(this, r) result(res)
+    class(binary_indexed_tree_int32), intent(in) :: this
+    integer(int32), intent(in) :: r
+    integer(int32) :: i
+    res = 0_int32
+    i = r
+    do
+       if (i < 1) return
+       res = res + this%arr_(i)
+       i = i - iand(i, -i)
+    end do
+  end function sum1_binary_indexed_tree_int32
+  !> sum_range_binary_indexed_tree_int32: Return the summation of
+  !> Returun 0_int32 if r < l.
+  integer(int32) function sum_range_binary_indexed_tree_int32(this, l, r) result(res)
+    class(binary_indexed_tree_int32), intent(in) :: this
+    integer(int32), intent(in) :: l, r
+    res = 0_int32
+    if (r < l) return
+    res = this%sum1(r) - this%sum1(l-1)
+  end function sum_range_binary_indexed_tree_int32
+  !> lower_bound_binary_indexed_tree_int32: Return the minimum index, which .
+  !> Returun 0 if w <= 0_int32.
+  integer(int32) function lower_bound_binary_indexed_tree_int32(this, w) result(res)
+    class(binary_indexed_tree_int32), intent(in) :: this
+    integer(int32), intent(in) :: w
+    integer(int32) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0_int32) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_int32
+  !> destroy_binary_indexed_tree_int32: Replace  with .
+  subroutine destroy_binary_indexed_tree_int32(this)
+    type(binary_indexed_tree_int32), intent(inout) :: this
+    if (allocated(this%arr_)) then
+       deallocate(this%arr_)
+    end if
+  end subroutine destroy_binary_indexed_tree_int32
+  !> init_binary_indexed_tree_int64_by_size: Initialize the binary_indexed_tree_int64 by size.
+  !> All elements of binary_indexed_tree_int64 is 0_int64.
+  subroutine init_binary_indexed_tree_int64_by_size(this, n)
+    class(binary_indexed_tree_int64), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    !> Error exist if already allocated.
+    if (allocated(this%arr_)) then
+       ! write(error_unit, '(a, i0, a)', advance = "no")&
+       !      "Error in "//&
+       !      __FILE__&
+       !      //":", __LINE__, ":"
+       write(error_unit, '(a)')&
+            "This binary_indexed_tree_int64 is already allocated."
+       error stop 1
+    end if
+    allocate(this%arr_(n), source = 0_int64)
+    this%size_ = n
+  end subroutine init_binary_indexed_tree_int64_by_size
+  !> init_binary_indexed_tree_int64_by_arr: Initialize the binary_indexed_tree_int64 by array.
+  subroutine init_binary_indexed_tree_int64_by_arr(this, arr)
+    class(binary_indexed_tree_int64), intent(inout) :: this
+    integer(int64), intent(in) ::arr(:)
+    integer(int32) :: i, arr_size
+    arr_size = size(arr)
+    call this%init(arr_size)
+    do i = 1, arr_size
+       call this%add(i, arr(i))
+    end do
+  end subroutine init_binary_indexed_tree_int64_by_arr
+  !> reset_binary_indexed_tree_int64: Replace  with .
+  subroutine reset_binary_indexed_tree_int64(this)
+    class(binary_indexed_tree_int64), intent(inout) :: this
+    if (allocated(this%arr_)) then
+       this%arr_(:) = 0_int64
+    end if
+  end subroutine reset_binary_indexed_tree_int64
+  !> size_binary_indexed_tree_int64: Return current size of the binary_indexed_tree_int64.
+  pure integer(int32) function size_binary_indexed_tree_int64(this) result(res)
+    class(binary_indexed_tree_int64), intent(in) :: this
+    res = this%size_
+  end function size_binary_indexed_tree_int64
+  !> add_binary_indexed_tree_int64: Add the value  into the index  of .
+  subroutine add_binary_indexed_tree_int64(this, idx, val)
+    class(binary_indexed_tree_int64), intent(inout) :: this
+    integer(int32), intent(in) :: idx
+    integer(int64), intent(in) :: val
+    integer(int32) :: i
+    i = idx
+    do
+       if (i > this%size_) exit
+       this%arr_(i) = this%arr_(i) + val
+       i = i + iand(i, -i)
+    end do
+  end subroutine add_binary_indexed_tree_int64
+  !> sum1_binary_indexed_tree_int64: Return the summation of .
+  !> Return 0_int64 if r < 0.
+  integer(int64) function sum1_binary_indexed_tree_int64(this, r) result(res)
+    class(binary_indexed_tree_int64), intent(in) :: this
+    integer(int32), intent(in) :: r
+    integer(int32) :: i
+    res = 0_int64
+    i = r
+    do
+       if (i < 1) return
+       res = res + this%arr_(i)
+       i = i - iand(i, -i)
+    end do
+  end function sum1_binary_indexed_tree_int64
+  !> sum_range_binary_indexed_tree_int64: Return the summation of
+  !> Returun 0_int64 if r < l.
+  integer(int64) function sum_range_binary_indexed_tree_int64(this, l, r) result(res)
+    class(binary_indexed_tree_int64), intent(in) :: this
+    integer(int32), intent(in) :: l, r
+    res = 0_int64
+    if (r < l) return
+    res = this%sum1(r) - this%sum1(l-1)
+  end function sum_range_binary_indexed_tree_int64
+  !> lower_bound_binary_indexed_tree_int64: Return the minimum index, which .
+  !> Returun 0 if w <= 0_int64.
+  integer(int32) function lower_bound_binary_indexed_tree_int64(this, w) result(res)
+    class(binary_indexed_tree_int64), intent(in) :: this
+    integer(int64), intent(in) :: w
+    integer(int64) :: w_tmp
+    integer(int32) :: x, r, l
+    if (w <= 0_int64) then
+       res = 0_int32
+       return
+    end if
+    w_tmp = w
+    x = 0
+    r = 1
+    do while (r < this%size_)
+       r = ishft(r, 1)
+    end do
+    l = r
+    do while (l > 0)
+       if (x + l <= this%size_) then
+          if (this%arr_(x+l) < w_tmp) then
+             w_tmp = w_tmp - this%arr_(x+l)
+             x = x + l
+          end if
+       end if
+       l = ishft(l, -1)
+    end do
+    res = x + 1
+  end function lower_bound_binary_indexed_tree_int64
+  !> destroy_binary_indexed_tree_int64: Replace  with .
+  subroutine destroy_binary_indexed_tree_int64(this)
+    type(binary_indexed_tree_int64), intent(inout) :: this
+    if (allocated(this%arr_)) then
+       deallocate(this%arr_)
+    end if
+  end subroutine destroy_binary_indexed_tree_int64
+end module binary_indexed_tree_m
