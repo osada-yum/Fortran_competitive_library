@@ -2,10 +2,13 @@
 #! :set UNWRAPPED_VECTOR_ITEM_TYPES = ["integer", "integer"]
 #! :set UNWRAPPED_VECTOR_ITEM_KINDS = ["int32", "int64"]
 #! :set UNWRAPPED_VECTOR_USE_MODULES = ["modulename"]
+#! :set UNWRAPPED_VECTOR_MODULENAME_SUFFIX = ""
 #:set UNWRAPPED_VECTOR_ITEMS = [f"{type}({kind})" for (type, kind) in zip(UNWRAPPED_VECTOR_ITEM_TYPES, UNWRAPPED_VECTOR_ITEM_KINDS)]
 #:set UNWRAPPED_VECTOR_NAMES = [f"unwrapped_vector_{kind}" for kind in UNWRAPPED_VECTOR_ITEM_KINDS]
+#:if getvar('UNWRAPPED_VECTOR_MODULENAME_SUFFIX', "") == ""
 $:add_module("unwrapped_vector_m")
-module unwrapped_vector_m
+#:endif
+module unwrapped_vector${getvar('UNWRAPPED_VECTOR_MODULENAME_SUFFIX', "")}$_m
   use, intrinsic :: iso_fortran_env
   !> maybe use module.
 #:for modulename in UNWRAPPED_VECTOR_USE_MODULES
@@ -42,6 +45,7 @@ module unwrapped_vector_m
   end interface ${name}$
 #:block ordering_block(typename = item)
   $: add_attr_ordering(f"type({name})")
+! #:block once_block(name = f"unwrapped_vector{getvar('UNWRAPPED_VECTOR_MODULENAME_SUFFIX', '')}")
 #:block once_block(name = "unwrapped_vector")
   public :: compare, operator(<), operator(<=), operator(>), operator(>=), operator(==), operator(/=)
 #:endblock
