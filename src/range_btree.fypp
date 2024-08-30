@@ -1,0 +1,30 @@
+impure subroutine insert_range(bt, v)
+  type(btree), intent(inout) :: bt
+  integer(int32), intent(in) :: v
+  type(btree_iter) :: iter_right, iter_left
+  iter_right = bt%lower_bound_iter(t2(v + 1, v + 1))
+  iter_left = iter_right
+  call iter_left%prev()
+  associate(l => iter_left%key(), r => iter_right%key())
+    if (l%v1_ <= v .and. v <= l%v2_) return
+    if (l%v2_ == v - 1 .and. r%v1_ == v + 1) then
+       associate(next => t2(l%v1_, r%v2_))
+         call bt%remove(l)
+         call bt%remove(r)
+         call bt%insert(next, 0)
+       end associate
+    else if (l%v2_ == v - 1) then
+       associate(next => t2(l%v1_, v))
+         call bt%remove(l)
+         call bt%insert(next, 0)
+       end associate
+    else if (r%v1_ == v + 1) then
+       associate(next => t2(v, r%v2_))
+         call bt%remove(r)
+         call bt%insert(next, 0)
+       end associate
+    else
+       call bt%insert(t2(v, v), 0)
+    end if
+  end associate
+end subroutine insert_range
