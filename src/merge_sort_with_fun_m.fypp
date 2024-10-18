@@ -25,7 +25,7 @@ module merge_sort_with_fun_m
 #:for kind in MERGE_SORT_ITEM_KINDS
   interface
      pure function compare_${kind}$(v1, v2) result(res)
-       $:import_kind(typenames = ["int32", kind])
+       $:import_kind(kindnames = ["int32", kind])
        ${item}$, intent(in) :: v1, v2
        integer(int32) :: res
      end function compare_${kind}$

@@ -36,38 +36,45 @@ module segment_tree_m
      procedure(bin_op_${kind}$)  , nopass, deferred :: bin_op
   end type ${monoid_name}$
   abstract interface
+     $: add_attr_kind_import(kind)
      pure ${item}$ function identity_${kind}$() result(res)
-       $:import_kind(typenames = [kind])
+       $:import_kind(kindnames = [kind])
      end function identity_${kind}$
      pure ${item}$ function bin_op_${kind}$(x, y) result(res)
-       $:import_kind(typenames = [kind])
+       $:import_kind(kindnames = [kind])
        ${item}$, intent(in) :: x, y
      end function bin_op_${kind}$
   end interface
 #:block number_block(typename = item)
-  public :: plus_${monoid_name}$, min_${monoid_name}$, max_${monoid_name}$
+  public :: plus_${monoid_name}$
   type, extends(${monoid_name}$) :: plus_${monoid_name}$
      private
    contains
      procedure, nopass :: identity => identity_plus_${monoid_name}$
      procedure, nopass :: bin_op   => bin_op_plus_${monoid_name}$
   end type plus_${monoid_name}$
+#:endblock number_block
+#:block ordering_block(typename = item, require_max = True)
+  public :: min_${monoid_name}$
   type, extends(${monoid_name}$) :: min_${monoid_name}$
      private
    contains
      procedure, nopass :: identity => identity_min_${monoid_name}$
      procedure, nopass :: bin_op   => bin_op_min_${monoid_name}$
   end type min_${monoid_name}$
+#:endblock ordering_block
+#:block ordering_block(typename = item, require_min = True)
+  public :: max_${monoid_name}$
   type, extends(${monoid_name}$) :: max_${monoid_name}$
      private
    contains
      procedure, nopass :: identity => identity_max_${monoid_name}$
      procedure, nopass :: bin_op   => bin_op_max_${monoid_name}$
   end type max_${monoid_name}$
-#:endblock number_block
+#:endblock ordering_block
 #:endfor
 contains
-#:for name, item, monoid_name, kind in zip(SEGMENT_TREE_NAMES, SEGMENT_TREE_ITEMS, SEGMENT_TREE_MONOID_NAMES, SEGMENT_TREE_ITEM_KINDS)
+#:for name, item, monoid_name in zip(SEGMENT_TREE_NAMES, SEGMENT_TREE_ITEMS, SEGMENT_TREE_MONOID_NAMES)
   !> indices rage [1:2^a-1]
   subroutine init_${name}$ (this, num_elems, monoid_)
     class(${name}$), intent(inout) :: this
@@ -134,26 +141,30 @@ contains
 #:endblock debug_block
 #:block number_block(typename = item)
   pure ${item}$ function identity_plus_${monoid_name}$() result(res)
-    res = ${getvar(f"ZERO_{kind}")}$
+    res = ${GET_ZERO(item)}$
   end function identity_plus_${monoid_name}$
   pure ${item}$ function bin_op_plus_${monoid_name}$(x, y) result(res)
     ${item}$, intent(in) :: x, y
     res = x + y
   end function bin_op_plus_${monoid_name}$
+#:endblock number_block
+#:block ordering_block(typename = item, require_max = True)
   pure ${item}$ function identity_min_${monoid_name}$() result(res)
-    res = ${getvar(f"MAXIMUM_{kind}")}$
+    res = ${GET_MAXIMUM(item)}$
   end function identity_min_${monoid_name}$
   pure ${item}$ function bin_op_min_${monoid_name}$(x, y) result(res)
     ${item}$, intent(in) :: x, y
     res = min(x, y)
   end function bin_op_min_${monoid_name}$
+#:endblock ordering_block
+#:block ordering_block(typename = item, require_min = True)
   pure ${item}$ function identity_max_${monoid_name}$() result(res)
-    res = ${getvar(f"MINIMUM_{kind}")}$
+    res = ${GET_MINIMUM(item)}$
   end function identity_max_${monoid_name}$
   pure ${item}$ function bin_op_max_${monoid_name}$(x, y) result(res)
     ${item}$, intent(in) :: x, y
     res = max(x, y)
   end function bin_op_max_${monoid_name}$
-#:endblock number_block
+#:endblock ordering_block
 #:endfor
 end module segment_tree_m

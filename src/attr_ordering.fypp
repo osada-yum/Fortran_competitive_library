@@ -1,23 +1,62 @@
 #!: Types implement numeric operators such as `<`, `<=`, `>`, `>=`, `==`, `/=` (and `compare`).
 #:set ORDERING_TYPES = []
-#:def add_attr_ordering(typename)
+#:def add_attr_ordering(typename, minimum = None, maximum = None)
 #:mute
   #: global ORDERING_TYPES
   #:set ORDERING_TYPES = ORDERING_TYPES + [typename]
-  $: globalvar(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'))
-  $: setvar(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'), True)
+  #:set typename_underscore = typename.replace('(', '_').replace(')', '_')
+  $: globalvar(f"ORDERING_{typename_underscore}")
+  $: setvar(f"ORDERING_{typename_underscore}", True)
+
+  #:if minimum is not None
+  $: globalvar(f"MINIMUM_{typename_underscore}")
+  $: setvar(f"MINIMUM_{typename_underscore}", minimum)
+  #:endif
+  #:if maximum is not None
+  $: globalvar(f"MAXIMUM_{typename_underscore}")
+  $: setvar(f"MAXIMUM_{typename_underscore}", maximum)
+  #:endif
 #:endmute
 #:enddef add_attr_ordering
 
-#:def ordering_block(code, typename)
-  #:if defined(f"ORDERING_{typename}".replace('(', '_').replace(')', '_'))
+#:def GET_MINIMUM(typename)
+  #:set typename_underscore = typename.replace('(', '_').replace(')', '_')
+${getvar(f"MINIMUM_{typename_underscore}")}$
+#:enddef
+#:def GET_MAXIMUM(typename)
+  #:set typename_underscore = typename.replace('(', '_').replace(')', '_')
+${getvar(f"MAXIMUM_{typename_underscore}")}$
+#:enddef
+
+#:def ordering_block(code, typename, require_min = False, require_max = False)
+  #:set typename_underscore = typename.replace('(', '_').replace(')', '_')
+  #:set minimum_name = f"MINIMUM_{typename_underscore}"
+  #:set maximum_name = f"MINIMUM_{typename_underscore}"
+  #:if require_min and (not defined(minimum_name))
+  #! do nothing.
+  #:elif require_max and (not defined(maximum_name))
+  #! do nothing.
+  #:elif defined(f"ORDERING_{typename_underscore}")
   $: code
   #:endif
 #:enddef ordering_block
 
+#:set ikinds = ["int8", "int16", "int32", "int64"]
+#:set minimums = [f"(- huge(0_{kind}) - 1_{kind})" for kind in ikinds]
+#:set maximums = [f"(huge(0_{kind}))" for kind in ikinds]
+
+#:set rkinds = ["real32", "real64"]
+#:set minimums = minimums + [f"(- huge(0.0_{kind}))" for kind in rkinds]
+#:set maximums = maximums + [f"(huge(0.0_{kind}))" for kind in rkinds]
+
 #:set types = [f"integer({kind})" for kind in ["int8", "int16", "int32", "int64"]]
 #:set types = types + [f"real({kind})" for kind in ["real32", "real64"]]
-#:for type in types
-  $: add_attr_ordering(f"{type}")
+
+#:for type, minimum, maximum in zip(types, minimums, maximums)
+  $: add_attr_ordering(typename = type, minimum = minimum, maximum = maximum)
 #:endfor
 #:del types
+#:del ikinds
+#:del rkinds
+#:del minimums
+#:del maximums

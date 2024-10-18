@@ -60,14 +60,14 @@ module rerooting_m
   end type ${monoid_name}$
   abstract interface
      pure ${item}$ function identity_${kind}$() result(res)
-       $:import_kind(typenames = [kind])
+       $:import_kind(kindnames = [kind])
      end function identity_${kind}$
      pure ${item}$ function bin_op_${kind}$(x, y) result(res)
-       $:import_kind(typenames = [kind])
+       $:import_kind(kindnames = [kind])
        ${item}$, intent(in) :: x, y
      end function bin_op_${kind}$
      pure ${item}$ function add_root_${kind}$(v) result(res)
-       $:import_kind(typenames = [kind])
+       $:import_kind(kindnames = [kind])
        ${item}$, intent(in) :: v
      end function add_root_${kind}$
   end interface

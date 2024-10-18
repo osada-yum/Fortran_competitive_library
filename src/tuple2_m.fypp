@@ -31,11 +31,33 @@ module tuple2_m
   end interface ${name}$
 #:block ordering_block(typename = item1)
 #:block ordering_block(typename = item2)
-  $: add_attr_ordering(f"type({name})")
+  #:set minimum = None
+  #:if defined(f"MINIMUM_{item1}".replace('(', '_').replace(')', '_')) and defined(f"MINIMUM_{item2}".replace('(', '_').replace(')', '_'))
+  #:set minimum_kind1 = getvar(f"MINIMUM_{item1}".replace('(', '_').replace(')', '_'))
+  #:set minimum_kind2 = getvar(f"MINIMUM_{item2}".replace('(', '_').replace(')', '_'))
+  #:set minimum = f"{name}({minimum_kind1}, {minimum_kind2})"
+  #:endif
+  #:set maximum = None
+  #:if defined(f"MAXIMUM_{item1}".replace('(', '_').replace(')', '_')) and defined(f"MAXIMUM_{item2}".replace('(', '_').replace(')', '_'))
+  #:set maximum_kind1 = getvar(f"MAXIMUM_{item1}".replace('(', '_').replace(')', '_'))
+  #:set maximum_kind2 = getvar(f"MAXIMUM_{item2}".replace('(', '_').replace(')', '_'))
+  #:set maximum = f"{name}({minimum_kind1}, {minimum_kind2})"
+  #:endif
+  ! $: add_attr_ordering(f"type({name})")
+  $: add_attr_ordering(f"type({name})", minimum = minimum, maximum = maximum)
+  #:del minimum
+  #:del maximum
   $: add_attr_debug(f"type({name})")
 #:block once_block(name = "tuple2")
-  public :: compare, operator(<), operator(<=), operator(>), operator(>=), operator(==), operator(/=)
+  public :: compare, min, max
+  public :: operator(<), operator(<=), operator(>), operator(>=), operator(==), operator(/=)
 #:endblock
+  interface min
+     module procedure :: min_${name}$
+  end interface min
+  interface max
+     module procedure :: max_${name}$
+  end interface max
   interface compare
      module procedure :: compare_${name}$
   end interface compare
@@ -78,6 +100,22 @@ contains
   end subroutine assign_${name}$
 #:block ordering_block(typename = item1)
 #:block ordering_block(typename = item2)
+  pure type(${name}$) function min_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    if (lhs < rhs) then
+       res = lhs
+    else
+       res = rhs
+    end if
+  end function min_${name}$
+  pure type(${name}$) function max_${name}$(lhs, rhs) result(res)
+    type(${name}$), intent(in) :: lhs, rhs
+    if (lhs > rhs) then
+       res = lhs
+    else
+       res = rhs
+    end if
+  end function max_${name}$
   pure integer(int32) function compare_${name}$(lhs, rhs) result(res)
     type(${name}$), intent(in) :: lhs, rhs
     if (lhs%v1_ < rhs%v1_) then

@@ -2,7 +2,7 @@
 #! :set MODINT_MODULO = 998244353
 #:mute
 $:add_module("modint_m")
-$:add_attr_number(typename = "type(modint)", kindname = "modint", zero = "modint(0)", minimum = "modint(0)", maximum = f"modint({MODINT_MODULO} - 1)")
+$:add_attr_number(typename = "type(modint)", zero = "modint(0)")
 @:add_attr_kind_import(modint)
 @:add_attr_debug(type(modint))
 #:endmute

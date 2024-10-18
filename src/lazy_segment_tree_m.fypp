@@ -69,33 +69,29 @@ module lazy_segment_tree_m
   end type ${monoid_name}$
   abstract interface
      pure ${item}$ function identity_${monoid_name}$() result(res)
-       $:import_kind(typenames = [item_kind])
+       $:import_kind(kindnames = [item_kind])
      end function identity_${monoid_name}$
      pure ${item}$ function bin_op_${monoid_name}$(lhs, rhs) result(res)
-       $:import_kind(typenames = [item_kind])
+       $:import_kind(kindnames = [item_kind])
        ${item}$, intent(in) :: lhs, rhs
      end function bin_op_${monoid_name}$
      pure ${item}$ function mapping_${monoid_name}$(v, c, length) result(res)
-       $:import_kind(typenames = [item_kind, lazy_kind, "int32"])
+       $:import_kind(kindnames = [item_kind, lazy_kind, "int32"])
        ${item}$, intent(in) :: v
        ${lazy}$, intent(in) :: c
        integer(int32), intent(in) :: length
      end function mapping_${monoid_name}$
      pure ${lazy}$ function composite_${monoid_name}$(c_first, c_second) result(res)
-       $:import_kind(typenames = [lazy_kind])
+       $:import_kind(kindnames = [lazy_kind])
        ${lazy}$, intent(in) :: c_first, c_second
      end function composite_${monoid_name}$
   end interface
 
-#:block number_block(typename = item)
 #:if item == lazy
+#:block number_block(typename = item)
   public :: sum_assign_${monoid_name}$, &
        & sum_add_${monoid_name}$, &
        & sum_mul_${monoid_name}$
-  public :: min_assign_${monoid_name}$, &
-       & min_add_${monoid_name}$
-  public :: max_assign_${monoid_name}$, &
-       & max_add_${monoid_name}$
   type, extends(${monoid_name}$) :: sum_assign_${monoid_name}$
      private
    contains
@@ -120,7 +116,11 @@ module lazy_segment_tree_m
      procedure, nopass :: mapping   => mapping_sum_mul_${monoid_name}$
      procedure, nopass :: composite => composite_sum_mul_${monoid_name}$
   end type sum_mul_${monoid_name}$
+#:endblock number_block
 
+#:block ordering_block(typename = item, require_max = True)
+  public :: min_assign_${monoid_name}$, &
+       & min_add_${monoid_name}$
   type, extends(${monoid_name}$) :: min_assign_${monoid_name}$
      private
    contains
@@ -137,7 +137,11 @@ module lazy_segment_tree_m
      procedure, nopass :: mapping   => mapping_min_add_${monoid_name}$
      procedure, nopass :: composite => composite_min_add_${monoid_name}$
   end type min_add_${monoid_name}$
+#:endblock ordering_block
 
+#:block ordering_block(typename = item, require_min = True)
+  public :: max_assign_${monoid_name}$, &
+       & max_add_${monoid_name}$
   type, extends(${monoid_name}$) :: max_assign_${monoid_name}$
      private
    contains
@@ -154,8 +158,8 @@ module lazy_segment_tree_m
      procedure, nopass :: mapping   => mapping_max_add_${monoid_name}$
      procedure, nopass :: composite => composite_max_add_${monoid_name}$
   end type max_add_${monoid_name}$
+#:endblock ordering_block
 #:endif
-#:endblock number_block
 #:endfor
 contains
 #:for item, lazy, item_kind, lazy_kind in zip(LAZY_SEGMENT_TREE_ITEMS, LAZY_SEGMENT_TREE_LAZYS, LAZY_SEGMENT_TREE_ITEM_KINDS, LAZY_SEGMENT_TREE_LAZY_KINDS)
@@ -345,10 +349,10 @@ contains
 #:endblock debug_block
 #:endblock debug_block
 
-#:block number_block(typename = item)
 #:if item == lazy
+#:block number_block(typename = item)
   pure ${item}$ function identity_sum_${monoid_name}$() result(res)
-    res = ${getvar(f"ZERO_{item_kind}")}$
+    res = ${GET_ZERO(item)}$
   end function identity_sum_${monoid_name}$
   pure ${item}$ function bin_op_sum_${monoid_name}$(lhs, rhs) result(res)
     ${item}$, intent(in) :: lhs, rhs
@@ -387,9 +391,11 @@ contains
     ${lazy}$, intent(in) :: c_first, c_second
     res = c_first + c_second
   end function composite_sum_mul_${monoid_name}$
+#:endblock number_block
 
+#:block ordering_block(typename = item, require_max = True)
   pure ${item}$ function identity_min_${monoid_name}$() result(res)
-    res = ${getvar(f"MAXIMUM_{item_kind}")}$
+    res = ${GET_MAXIMUM(item)}$
   end function identity_min_${monoid_name}$
   pure ${item}$ function bin_op_min_${monoid_name}$(lhs, rhs) result(res)
     ${item}$, intent(in) :: lhs, rhs
@@ -418,9 +424,11 @@ contains
     ${lazy}$, intent(in) :: c_first, c_second
     res = c_first + c_second
   end function composite_min_add_${monoid_name}$
+#:endblock ordering_block
 
+#:block ordering_block(typename = item, require_min = True)
   pure ${item}$ function identity_max_${monoid_name}$() result(res)
-    res = ${getvar(f"MINIMUM_{item_kind}")}$
+    res = ${GET_MINIMUM(item)}$
   end function identity_max_${monoid_name}$
   pure ${item}$ function bin_op_max_${monoid_name}$(lhs, rhs) result(res)
     ${item}$, intent(in) :: lhs, rhs
@@ -449,7 +457,7 @@ contains
     ${lazy}$, intent(in) :: c_first, c_second
     res = c_first + c_second
   end function composite_max_add_${monoid_name}$
+#:endblock ordering_block
 #:endif
-#:endblock number_block
 #:endfor
 end module lazy_segment_tree_m
