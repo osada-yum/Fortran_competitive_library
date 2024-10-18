@@ -1,0 +1,122 @@
+#:set TUPLE3_ITEM1_TYPES = ["integer"]
+#:set TUPLE3_ITEM2_TYPES = ["integer"]
+#:set TUPLE3_ITEM3_TYPES = ["integer"]
+#:set TUPLE3_ITEM1_KINDS = ["int32"]
+#:set TUPLE3_ITEM2_KINDS = ["int32"]
+#:set TUPLE3_ITEM3_KINDS = ["int32"]
+#:set TUPLE3_USE_MODULES = []
+#:include "../../fypp/tuple3_m.fypp"
+#:set VEC_DEQUE_ITEM_TYPES = ["integer"]
+#:set VEC_DEQUE_ITEM_KINDS = ["int32"]
+#:set VEC_DEQUE_USE_MODULES = []
+#:include "../../fypp/vec_deque_m.fypp"
+#:set UNWRAPPED_VECTOR_ITEM_TYPES = ["type"]
+#:set UNWRAPPED_VECTOR_ITEM_KINDS = ["tuple3_int32_int32_int32"]
+#:set UNWRAPPED_VECTOR_USE_MODULES = ["tuple3_m"]
+#:set UNWRAPPED_VECTOR_MODULENAME_SUFFIX = "_max_flow"
+#:include "../../fypp/unwrapped_vector_m.fypp"
+#:del UNWRAPPED_VECTOR_ITEM_TYPES
+#:del UNWRAPPED_VECTOR_ITEM_KINDS
+#:del UNWRAPPED_VECTOR_USE_MODULES
+#:del UNWRAPPED_VECTOR_MODULENAME_SUFFIX
+module maximum_flow_m
+  use, intrinsic :: iso_fortran_env
+  use tuple3_m, only: t3 => tuple3_int32_int32_int32
+  use vec_deque_m, only: vec_deque => vec_deque_int32
+  use unwrapped_vector_max_flow_m, only: vec_t3 => unwrapped_vector_tuple3_int32_int32_int32
+  implicit none
+  private
+  public :: maximum_flow
+  type :: maximum_flow
+     private
+     integer(int32) :: n_
+     type(vec_t3), allocatable :: g_(:)
+   contains
+     procedure, pass :: init => init_maximum_flow
+     procedure, pass :: add_edge => add_edge_maximum_flow
+     procedure, pass :: calc_maximum_flow => calc_maximum_flow_maximum_flow
+  end type maximum_flow
+contains
+  subroutine init_maximum_flow(this, n)
+    class(maximum_flow), intent(inout) :: this
+    integer(int32), intent(in) :: n
+    this%n_ = n
+    allocate(this%g_(n))
+  end subroutine init_maximum_flow
+  subroutine add_edge_maximum_flow(this, a, b, c)
+    class(maximum_flow), intent(inout) :: this
+    integer(int32), intent(in) :: a, b, c
+    integer(int32) :: sa, sb
+    sa = this%g_(a)%size()
+    sb = this%g_(b)%size()
+    call this%g_(a)%push_back(t3(b, c, sb+1))
+    call this%g_(b)%push_back(t3(a, 0, sa+1))
+  end subroutine add_edge_maximum_flow
+  integer(int32) function calc_maximum_flow_maximum_flow(this, s, t) result(res)
+    class(maximum_flow), intent(inout) :: this
+    integer(int32), intent(in) :: s, t
+    logical, allocatable :: used(:)
+    integer(int32), parameter :: infini = ishft(1, 28)
+    integer(int32) :: flow
+    res = 0_int32
+    allocate(used(this%n_))
+    do
+       used(:) = .false.
+       flow = dfs(s, t, infini)
+       if (flow == 0) exit
+       res = res + flow
+    end do
+  contains
+    pure subroutine bfs(n, level, start)
+      integer(int32), intent(in) :: n, start
+      integer(int32), intent(inout) :: level(n)
+      logical :: visited(n)
+      type(vec_deque) :: que
+      visited(:) = .false.
+      level(:) = -1
+      level(start) = 0
+      call que%push_back(start)
+      do while (.not. que%empty())
+         associate(v => que%front())
+           call que%pop_front()
+           if (visited(v)) cycle
+           visited(v) = .true.
+           do i = 1, g(v)%size()
+              associate(nv => g(v)%arr_(i)%v1_)
+                if (visited(nv)) cycle
+                if (level(nv) <= level(v) + 1) cycle
+                level(nv) = level(v) + 1
+                call que%push_back(nv)
+              end associate
+           end do
+         end associate
+      end do
+    end subroutine bfs
+    recursive integer(int32) function dfs(n, v, level, goal, f) result(res)
+      integer(int32), intent(in) :: n, v, goal, f
+      integer(int32), intent(in) :: level(n)
+      integer(int32) :: flow
+      integer(int32) :: next_v, next_capa, rev
+      integer(int32) :: i
+      if (v == goal) then
+         res = f
+         return
+      end if
+      used(v) = .true.
+      do i = 1, this%g_(v)%size()
+         next_v    = this%g_(v)%arr_(i)%v1_
+         next_capa = this%g_(v)%arr_(i)%v2_
+         rev = this%g_(v)%arr_(i)%v3_
+         if (next_capa == 0) cycle
+         if (used(next_v)) cycle
+         flow = dfs(next_v, goal, min(f, next_capa))
+         if (flow <= 0) cycle
+         this%g_(v)%arr_(i)%v2_        = this%g_(v)%arr_(i)%v2_        - flow
+         this%g_(next_v)%arr_(rev)%v2_ = this%g_(next_v)%arr_(rev)%v2_ + flow
+         res = flow
+         return
+      end do
+      res = 0
+    end function dfs
+  end function calc_maximum_flow_maximum_flow
+end module maximum_flow_m
