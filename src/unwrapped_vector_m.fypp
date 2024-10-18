@@ -151,6 +151,10 @@ contains
     class(${name}$), intent(inout) :: this
     integer(int32), intent(in) :: resize
     ${item}$, allocatable :: tmp(:)
+    if (.not. allocated(this%arr_)) then
+       call this%init(resize)
+       return
+    end if
     if (resize < 1) then
        this%size_ = 0
        allocate(tmp(1))
