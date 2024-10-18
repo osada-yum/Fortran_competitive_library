@@ -67,7 +67,7 @@ module utilities_m
   end interface search_le
 
   public calc_cumsum
-  #:set CALC_CUMSUM_TYPES = ["integer", "integer", "real", "real"]
+  #:set CALC_CUMSUM_TYPES = ["integer", "integer", "integer", "integer", "real", "real"]
   #:set CALC_CUMSUM_KINDS = ["int8", "int16", "int32", "int64", "real32", "real64"]
   interface calc_cumsum
 #:for type, kind in zip(CALC_CUMSUM_TYPES, CALC_CUMSUM_KINDS)
