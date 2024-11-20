@@ -1,0 +1,59 @@
+#! Include this file with settting these values.
+#! :set RUN_LENGTH_ITEMS = ["integer(int32)", "integer(int64)"]
+#! :set RUN_LENGTH_USE_MODULES = ["modulename"]
+#:set RUN_LENGTH_KINDS = list(map(lambda x:re.search("\((.*)\)", x).group(1) if "(" in x else x, RUN_LENGTH_ITEMS))
+#! ${RUN_LENGTH_KINDS}$
+$:add_module("run_length_m")
+module run_length_m
+  use, intrinsic :: iso_fortran_env
+#:for modu in RUN_LENGTH_USE_MODULES
+  use ${modu}$
+#:endfor
+  implicit none
+  private
+  public run_length
+  interface run_length
+#:for kind in RUN_LENGTH_KINDS
+     module procedure :: run_length_${kind}$
+#:endfor
+  end interface run_length
+contains
+#:for item, kind in zip(RUN_LENGTH_ITEMS, RUN_LENGTH_KINDS)
+  pure subroutine run_length_${kind}$(n, arr, m_out, vals_out, cnts_out)
+    integer(int32), intent(in) :: n
+    type(${item}$), intent(in) :: arr(n)
+    integer(int32), intent(inout) :: m_out
+    type(${item}$), intent(inout), allocatable :: vals_out(:)
+    integer(int32), intent(inout), allocatable :: cnts_out(:)
+    type(${item}$), allocatable :: vals(:)
+    integer(int32), allocatable :: cnts(:)
+    integer(int32) :: m, c
+    integer(int32) :: i
+    m = 0
+    do i = 1, n
+       if (i < n) then
+          if (arr(i) == arr(i + 1)) cycle
+       end if
+       !> i == n .or. arr(i) /= arr(i + 1)
+       m = m + 1
+    end do
+    m_out = m
+    allocate(vals(m_out), cnts(m_out))
+    m = 0
+    c = 0
+    do i = 1, n
+       c = c + 1
+       if (i < n) then
+          if (arr(i) == arr(i + 1)) cycle
+       end if
+       !> i == n .or. arr(i) /= arr(i + 1)
+       m = m + 1
+       vals(m) = arr(i)
+       cnts(m) = c
+       c = 0
+    end do
+    call move_alloc(from = vals, to = vals_out)
+    call move_alloc(from = cnts, to = cnts_out)
+  end subroutine run_length_${kind}$
+#:endfor
+end module run_length_m
