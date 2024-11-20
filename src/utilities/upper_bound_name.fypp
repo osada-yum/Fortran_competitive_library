@@ -26,7 +26,7 @@ upper_bound_${type}$_${kind}$
     !> invariant condition:
     !> arr(p) <= key < arr(r)
     binary_search: do while(p + 1 < r)
-       q = (p + r) / 2
+       q = p + (r - p) / 2
        if (arr(q) <= key) then
           p = q
        else !> key < arr(q)
